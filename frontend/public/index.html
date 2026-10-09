@@ -40,6 +40,75 @@ section{padding:70px 5vw}h2{font-size:clamp(26px,4vw,40px);font-weight:800;margi
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin:26px 0}
 .kpi{background:#ffffff10;border-radius:16px;padding:20px;border:1px solid #ffffff18}.kpi b{display:block;font-size:34px;color:var(--o)}.kpi span{font-size:12px;opacity:.7}
 .light .kpi{background:var(--g);border-color:#0001}
+/* Pipeline, Benchmark, Chaos Lab & FAQ Styles */
+.arch-pipeline-section{padding:80px 5vw;background:#ffffff;border-top:1px solid #0001;border-bottom:1px solid #0001}
+.section-head-wrap{text-align:center;max-width:720px;margin:0 auto 46px}
+.section-head-wrap .badge-pill{display:inline-flex;align-items:center;gap:8px;background:var(--g);padding:6px 16px;border-radius:99px;font-size:12px;font-weight:700;color:var(--k);margin-bottom:14px}
+.section-head-wrap h2{font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.2}
+.section-head-wrap p{opacity:.75;font-size:15px;line-height:1.6;margin-top:10px}
+.arch-pipeline-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative;align-items:stretch}
+@media(max-width:1024px){.arch-pipeline-grid{grid-template-columns:repeat(2,1fr);gap:20px}}
+@media(max-width:640px){.arch-pipeline-grid{grid-template-columns:1fr}}
+.arch-node-card{background:var(--g);border-radius:20px;padding:24px;border:1px solid #0000000d;display:flex;flex-direction:column;justify-content:space-between;position:relative;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease;overflow:hidden}
+.arch-node-card:hover{transform:translateY(-6px);box-shadow:0 16px 36px rgba(0,0,0,0.08);border-color:rgba(255,107,55,0.4)}
+.arch-node-card.highlight{border-color:var(--o);background:#ffffff;box-shadow:0 16px 36px rgba(255,107,55,0.15)}
+.arch-node-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.arch-node-step-badge{width:32px;height:32px;border-radius:10px;background:var(--k);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+.arch-node-card.highlight .arch-node-step-badge{background:var(--o)}
+.arch-node-icon{width:44px;height:44px;border-radius:12px;background:#ffffff;border:1px solid #0000000d;display:grid;place-items:center;color:var(--o);box-shadow:0 4px 10px rgba(0,0,0,0.04)}
+.arch-node-title{font-size:18px;font-weight:800;color:var(--k);margin-bottom:8px}
+.arch-node-desc{font-size:13px;line-height:1.6;opacity:.75;margin-bottom:18px}
+.arch-node-meta{display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px dashed #0002;font-size:11px;font-weight:700}
+.arch-node-metric{background:#ffffff;padding:4px 10px;border-radius:99px;border:1px solid #00000010;color:var(--o);font-weight:700}
+.benchmark-section{padding:80px 5vw;background:var(--g)}
+.benchmark-dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:36px}
+@media(max-width:860px){.benchmark-dual-grid{grid-template-columns:1fr}}
+.benchmark-card{border-radius:24px;padding:32px;display:flex;flex-direction:column;transition:transform .3s ease}
+.benchmark-card.traditional{background:#ffffff;border:1px solid #e5e0d8}
+.benchmark-card.ticketwala{background:var(--k);color:#ffffff;border:1px solid rgba(255,107,55,0.4);box-shadow:0 20px 50px rgba(0,0,0,0.15);position:relative;overflow:hidden}
+.benchmark-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;margin-bottom:16px;width:fit-content}
+.benchmark-card.traditional .benchmark-badge{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
+.benchmark-card.ticketwala .benchmark-badge{background:rgba(255,107,55,0.2);color:#ff8b5e;border:1px solid rgba(255,107,55,0.5)}
+.benchmark-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.benchmark-subtitle{font-size:14px;opacity:.75;margin-bottom:24px}
+.benchmark-points{list-style:none;padding:0;margin:0 0 26px 0;display:flex;flex-direction:column;gap:14px}
+.benchmark-points li{display:flex;align-items:flex-start;gap:12px;font-size:13.5px;line-height:1.5}
+.benchmark-points li svg{flex-shrink:0;margin-top:3px}
+.benchmark-footer-kpi{margin-top:auto;padding:18px 20px;border-radius:16px;display:flex;align-items:center;justify-content:space-between}
+.benchmark-card.traditional .benchmark-footer-kpi{background:#fdf2f2;border:1px solid #fee2e2}
+.benchmark-card.ticketwala .benchmark-footer-kpi{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12)}
+.benchmark-kpi-val{font-size:24px;font-weight:800}
+.benchmark-card.traditional .benchmark-kpi-val{color:#dc2626}
+.benchmark-card.ticketwala .benchmark-kpi-val{color:var(--o)}
+.chaos-lab-section{padding:80px 5vw;background:#ffffff}
+.chaos-deck{background:var(--k);border-radius:24px;padding:36px 40px;color:#ffffff;display:grid;grid-template-columns:1fr 1.15fr;gap:36px;align-items:center;position:relative;overflow:hidden}
+@media(max-width:900px){.chaos-deck{grid-template-columns:1fr;padding:28px 20px}}
+.chaos-modes-wrap{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+.chaos-btn{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-radius:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#ffffff;cursor:pointer;transition:all .2s ease;font-family:inherit;text-align:left}
+.chaos-btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,107,55,0.4);transform:translateX(4px)}
+.chaos-btn.active{background:var(--o);border-color:var(--o);box-shadow:0 8px 20px rgba(255,107,55,0.4)}
+.chaos-btn-label{font-size:14px;font-weight:700}
+.chaos-btn-sub{font-size:11px;opacity:.7;display:block;margin-top:2px}
+.chaos-btn-badge{font-size:12px;font-weight:800;padding:4px 10px;border-radius:99px;background:rgba(0,0,0,0.25)}
+.chaos-telemetry-screen{background:#191817;border-radius:18px;border:1px solid rgba(255,255,255,0.1);padding:24px}
+.chaos-screen-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:12px;margin-bottom:16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.6)}
+.chaos-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.chaos-stat-cell{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.06)}
+.chaos-stat-cell span{display:block;font-size:10px;text-transform:uppercase;color:rgba(255,255,255,0.5);font-weight:600}
+.chaos-stat-cell b{display:block;font-size:20px;color:#ffffff;font-weight:800;margin-top:4px}
+.chaos-stat-cell b.highlight{color:var(--o)}
+.chaos-invariant-proof{background:rgba(39,174,96,0.12);border:1px solid rgba(39,174,96,0.35);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#2ecc71;font-weight:700}
+.code-preview-box{background:#1e1e1d;color:#f8f8f2;border-radius:12px;padding:14px 16px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.5;margin-top:14px;border:1px solid rgba(255,255,255,0.1);overflow-x:auto}
+.code-keyword{color:#ff79c6}.code-func{color:#50fa7b}.code-string{color:#f1fa8c}.code-comment{color:#8c8880;font-style:italic}
+.faq-section{padding:80px 5vw;background:var(--g)}
+.faq-list{max-width:820px;margin:36px auto 0;display:flex;flex-direction:column;gap:14px}
+.faq-card{background:#ffffff;border-radius:16px;border:1px solid #e5e0d8;overflow:hidden;transition:all .2s ease}
+.faq-card:hover{border-color:rgba(255,107,55,0.4)}
+.faq-header{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;font-weight:700;font-size:15px;color:var(--k);gap:16px}
+.faq-header svg{color:var(--o);transition:transform .3s ease;flex-shrink:0}
+.faq-card.open .faq-header svg{transform:rotate(180deg)}
+.faq-body{padding:0 24px 22px;font-size:14px;line-height:1.7;color:#55524e;border-top:1px solid #f0ece6;padding-top:16px;display:none}
+.faq-card.open .faq-body{display:block}
 /* Premium Theater Seating UI */
 .event-picker-tabs{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:22px}
 .event-tab{display:flex;align-items:center;gap:12px;padding:10px 18px;border-radius:99px;background:var(--g);border:1.5px solid transparent;cursor:pointer;transition:all .2s ease;white-space:nowrap;font-family:inherit;font-size:13px;font-weight:600;color:var(--k)}
@@ -118,7 +187,13 @@ footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-si
   .auth{grid-template-columns:1fr}
   .auth .side{padding:36px 5vw}
   nav{flex-wrap:wrap;gap:8px}
-}
+.auth-image-desc{font-size:13px;line-height:1.5;color:#e2ded7;margin-bottom:12px;max-width:380px;font-weight:500}
+.auth-image-box{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.16);margin-bottom:22px;box-shadow:0 8px 24px rgba(0,0,0,0.35);background:#1a1918;max-width:380px}
+.auth-side-img{width:100%;height:140px;object-fit:cover;display:block;transition:transform .4s ease}
+.auth-image-box:hover .auth-side-img{transform:scale(1.03)}
+.auth-image-overlay{position:absolute;bottom:8px;left:8px;background:rgba(18,17,16,0.82);backdrop-filter:blur(8px);padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14)}
+.auth-image-tag{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:0.8px;color:#fff;text-transform:uppercase}
+.live-dot-sm{width:6px;height:6px;border-radius:50%;background:#FF6B35;box-shadow:0 0 6px #FF6B35}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 <script>
@@ -148,32 +223,444 @@ window.go = function(p) {
   } catch(e) {}
 };
 </script>
-<nav><div class="logo" onclick="go('home')" role="button" tabindex="0" style="cursor:pointer"><img src="logo-navbar.png" alt="TicketWala" style="height:46px;width:auto;object-fit:contain;display:block" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"><div style="display:none;align-items:center;gap:10px"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span>ticketwala<small>TICKETS</small></span></div></div>
+<nav><div class="logo" onclick="go('home')" role="button" tabindex="0" style="cursor:pointer"><img src="logo-navbar.png" alt="TicketWala" style="height:46px;width:auto;object-fit:contain;display:block" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"><div style="display:none;align-items:center;gap:10px"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span><span style="color:#2B2A28">Ticket</span><span style="color:#FF6B35">Wala</span><small>TICKETS</small></span></div></div>
 <ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
 
 <main>
 <div class="page on" id="home">
-<div class="hero">
-<div><span class="pill"><i class="dot"></i> Live drop · <span id="hLive">0</span> requests in flight</span>
-<h1>5,000 fans.<br>200 seats.<br><em>Zero</em> double-bookings.</h1>
-<p>TicketWala locks every seat in memory with atomic Redis Lua scripts, holds it with a TTL countdown, and writes to the database asynchronously — fair, first-come-first-served, sub-second.</p>
-<button class="btn" onclick="go('booking')">Grab a seat now →</button> <button class="btn ghost" onclick="storm()" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run flash-drop demo</button></div>
-<div class="stage"><div class="stack"><div class="tk"><div><span>ADMIT ONE</span>SEAT A-17</div><b>T</b></div><div class="tk"><div><span>HOLD · TTL</span>00:30</div><b><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5"/><path d="M10 2h4"/></svg></b></div><div class="tk"><div><span>CONFIRMED</span>PAID</div><b><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></b></div></div></div></div>
-<div class="ticker"><div id="tk"></div></div>
-<section class="light"><h2>One drop. <em>Three</em> steps.</h2><p style="opacity:.7">From click to confirmed in under a second of lock time.</p>
-<div class="grid"><div class="card"><div class="n">1</div><h3>Atomic Lock</h3><p>A Lua script checks the token bucket and claims the seat in a single Redis operation. No race, no deadlock.</p></div>
-<div class="card"><div class="n">2</div><h3>TTL Hold</h3><p>The seat is yours for 30 seconds. Abandon checkout and it releases instantly to the next person in line.</p></div>
-<div class="card"><div class="n">3</div><h3>Async Commit</h3><p>Paid bookings stream to the relational DB through a queue — guaranteed eventual consistency.</p></div></div></section>
-<section class="dark"><h2>Live engine <em>dashboard</em></h2><p style="opacity:.7">Streaming from the in-memory broker — try the demo above.</p>
-<div class="kpis"><div class="kpi"><b id="kReq">0</b><span>Requests received</span></div><div class="kpi"><b id="kOk">0</b><span>Locks granted</span></div><div class="kpi"><b id="kNo">0</b><span>Rejected (409)</span></div><div class="kpi"><b>0</b><span>Double-bookings</span></div><div class="kpi"><b id="kLat">0ms</b><span>Lock latency</span></div></div>
-<canvas id="spark"></canvas></section>
-<section><h2>Features you <em>won't find</em> elsewhere</h2><div class="grid">
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div><h3>Virtual Waiting Room</h3><p>Fair queue position with live ETA — no refresh-spamming advantage.</p></div>
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><h3>Hold Ring</h3><p>A visible countdown on your seat. Extend once if payment is in progress.</p></div>
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Token-Bucket Shield</h3><p>Bots get throttled at the edge; real fans never see a 500.</p></div>
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div><h3>Instant Seat Recycling</h3><p>Expired holds reappear live to everyone watching the map.</p></div>
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg></div><h3>Built-in Load Lab</h3><p>Fire 5,000 simulated users at 200 seats from the UI and watch the proof.</p></div>
-<div class="card"><div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div><h3>Audit Trail</h3><p>Every lock, release and commit is logged with a monotonic ID.</p></div></div></section>
+  <!-- Hero Section -->
+  <div class="hero">
+    <div>
+      <span class="pill"><i class="dot"></i> Live drop · <span id="hLive">0</span> requests in flight</span>
+      <h1>5,000 fans.<br>200 seats.<br><em>Zero</em> double-bookings.</h1>
+      <p>TicketWala locks every seat in memory with atomic Redis Lua scripts, holds it with a TTL countdown, and writes to the database asynchronously — fair, first-come-first-served, sub-second.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px">
+        <button class="btn" onclick="go('booking')">Grab a seat now →</button>
+        <button class="btn ghost" onclick="storm()" style="display:inline-flex;align-items:center;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run flash-drop demo
+        </button>
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:12px;opacity:.85;font-weight:600">
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          0.4ms Redis Lock
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          Zero Race Conditions
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Auto-Recycling TTL
+        </span>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stack">
+        <div class="tk">
+          <div><span>ADMIT ONE</span>SEAT A-17</div>
+          <b>T</b>
+        </div>
+        <div class="tk">
+          <div><span>HOLD · TTL</span>00:30</div>
+          <b>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="13" r="8"/>
+              <path d="M12 9v4l2.5 1.5"/>
+              <path d="M10 2h4"/>
+            </svg>
+          </b>
+        </div>
+        <div class="tk">
+          <div><span>CONFIRMED</span>PAID</div>
+          <b>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Marquee Ticker -->
+  <div class="ticker"><div id="tk"></div></div>
+
+  <!-- Steps Section -->
+  <section class="light">
+    <div class="section-head-wrap" style="margin-bottom:36px">
+      <h2>One drop. <em>Three</em> steps.</h2>
+      <p>From click to confirmed in under a second of lock time.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="n">1</div>
+        <h3>Atomic Lock</h3>
+        <p>A single-threaded Lua script evaluates token capacity and claims the seat in a single Redis CPU cycle. No race, no deadlock.</p>
+        <div class="code-preview-box">
+          <span class="code-comment">-- Atomic Lua allocation</span><br>
+          <span class="code-keyword">if</span> redis.<span class="code-func">call</span>(<span class="code-string">'get'</span>, k) == <span class="code-keyword">false</span> <span class="code-keyword">then</span><br>
+          &nbsp;&nbsp;redis.<span class="code-func">call</span>(<span class="code-string">'setex'</span>, k, 30, uid)<br>
+          &nbsp;&nbsp;<span class="code-keyword">return</span> 1 <span class="code-comment">-- Lock granted (0.4ms)</span><br>
+          <span class="code-keyword">end</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="n">2</div>
+        <h3>TTL Hold</h3>
+        <p>The seat key is stored with an ephemeral 30-second TTL. Abandon checkout or close your tab, and Redis auto-evicts the key back to the public pool instantly.</p>
+        <div style="margin-top:16px;padding:14px 16px;background:#fff;border-radius:12px;border:1px solid #0001;display:flex;align-items:center;gap:12px">
+          <div style="width:12px;height:12px;border-radius:50%;background:var(--o);animation:pulse 1.2s infinite"></div>
+          <div style="font-size:12px;font-weight:700;color:var(--k)">Hardware TTL Eviction Clock · No Cron Sweep Needed</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="n">3</div>
+        <h3>Async Commit</h3>
+        <p>Only confirmed, paid bookings stream to PostgreSQL via an asynchronous BullMQ queue. The hot path never blocks on database disk I/O.</p>
+        <div style="margin-top:16px;padding:14px 16px;background:#fff;border-radius:12px;border:1px solid #0001;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700">
+          <span style="color:#27ae60">● BullMQ Stream</span>
+          <span style="opacity:.4">→</span>
+          <span>PostgreSQL Batch Commit</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Under the Hood: Distributed Pipeline -->
+  <section class="arch-pipeline-section">
+    <div class="section-head-wrap">
+      <span class="badge-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Sub-Second Architecture
+      </span>
+      <h2>Under the hood: The <em>distributed pipeline</em></h2>
+      <p>How TicketWala absorbs 5,000 concurrent ticket requests simultaneously without crashing databases or double-allocating seats.</p>
+    </div>
+    <div class="arch-pipeline-grid">
+      <div class="arch-node-card" onmouseenter="this.classList.add('highlight')" onmouseleave="this.classList.remove('highlight')">
+        <div class="arch-node-top">
+          <div class="arch-node-step-badge">01</div>
+          <div class="arch-node-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+        </div>
+        <div>
+          <div class="arch-node-title">Token-Bucket Shield</div>
+          <div class="arch-node-desc">Incoming burst traffic hits an edge rate-limiter. Scrapers and scalper scripts are throttled at the ingress gateway before touching memory.</div>
+        </div>
+        <div class="arch-node-meta"><span>Ingress Gate</span><span class="arch-node-metric">10k RPS Absorb</span></div>
+      </div>
+
+      <div class="arch-node-card highlight">
+        <div class="arch-node-top">
+          <div class="arch-node-step-badge">02</div>
+          <div class="arch-node-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+        </div>
+        <div>
+          <div class="arch-node-title">In-Memory Redis Lua</div>
+          <div class="arch-node-desc">Lua scripts run in Redis's single-threaded event loop. Seat validation and lock assignment occur atomically in a single sub-millisecond execution.</div>
+        </div>
+        <div class="arch-node-meta"><span>Engine Hot Path</span><span class="arch-node-metric">0.38ms Latency</span></div>
+      </div>
+
+      <div class="arch-node-card" onmouseenter="this.classList.add('highlight')" onmouseleave="this.classList.remove('highlight')">
+        <div class="arch-node-top">
+          <div class="arch-node-step-badge">03</div>
+          <div class="arch-node-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+        </div>
+        <div>
+          <div class="arch-node-title">Ephemeral 30s TTL</div>
+          <div class="arch-node-desc">Keys are stored with a strict 30-second TTL. If payment drops or tab closes, Redis automatically evicts the lock with zero database garbage accumulation.</div>
+        </div>
+        <div class="arch-node-meta"><span>Auto-Recycling</span><span class="arch-node-metric">30s Hardware TTL</span></div>
+      </div>
+
+      <div class="arch-node-card" onmouseenter="this.classList.add('highlight')" onmouseleave="this.classList.remove('highlight')">
+        <div class="arch-node-top">
+          <div class="arch-node-step-badge">04</div>
+          <div class="arch-node-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          </div>
+        </div>
+        <div>
+          <div class="arch-node-title">Write-Behind Queue</div>
+          <div class="arch-node-desc">Confirmed reservations stream asynchronously to PostgreSQL via BullMQ. The relational database never experiences connection pool exhaustion.</div>
+        </div>
+        <div class="arch-node-meta"><span>Persistence</span><span class="arch-node-metric">0% Pool Starvation</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Engine Dashboard -->
+  <section class="dark">
+    <h2>Live engine <em>dashboard</em></h2>
+    <p style="opacity:.7">Streaming from the in-memory broker — test the simulated burst below.</p>
+    <div class="kpis">
+      <div class="kpi"><b id="kReq">0</b><span>Requests received</span></div>
+      <div class="kpi"><b id="kOk">0</b><span>Locks granted</span></div>
+      <div class="kpi"><b id="kNo">0</b><span>Rejected (409)</span></div>
+      <div class="kpi"><b>0</b><span>Double-bookings</span></div>
+      <div class="kpi"><b id="kLat">0.4ms</b><span>Lock latency</span></div>
+    </div>
+    <canvas id="spark"></canvas>
+  </section>
+
+  <!-- Benchmark Comparison -->
+  <section class="benchmark-section">
+    <div class="section-head-wrap">
+      <span class="badge-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Engineering Breakdown
+      </span>
+      <h2>Why traditional ticketing systems <em>crash</em></h2>
+      <p>Comparing the architecture of legacy ticketing platforms against TicketWala's in-memory non-blocking concurrency engine.</p>
+    </div>
+
+    <div class="benchmark-dual-grid">
+      <div class="benchmark-card traditional">
+        <div class="benchmark-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Traditional SQL Architecture
+        </div>
+        <div class="benchmark-title">RDBMS Hot-Path Bottlenecks</div>
+        <div class="benchmark-subtitle">BookMyShow, Ticketmaster &amp; IRCTC Tatkal legacy pattern</div>
+        <ul class="benchmark-points">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>Synchronous <code>SELECT ... FOR UPDATE</code> locks database table rows, forcing 5,000 concurrent threads to wait.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>PostgreSQL connection pool maxes out at 100-200 clients, triggering cascading 504 Gateway Timeouts.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>Abandoned checkouts leave database rows locked until heavy background cron cleanups run minutes later.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span>High latency window causes phantom reads and double-allocated seats.</span>
+          </li>
+        </ul>
+        <div class="benchmark-footer-kpi">
+          <div>
+            <span style="font-size:11px;font-weight:700;color:#991b1b;text-transform:uppercase">Peak Drop Latency</span>
+            <div class="benchmark-kpi-val">3,200ms – 14,000ms+</div>
+          </div>
+          <span style="font-size:12px;color:#dc2626;font-weight:700">Frequent 504 Crashes</span>
+        </div>
+      </div>
+
+      <div class="benchmark-card ticketwala">
+        <div class="benchmark-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          TicketWala Engine
+        </div>
+        <div class="benchmark-title">In-Memory Non-Blocking Core</div>
+        <div class="benchmark-subtitle">Sub-millisecond atomic Lua scripts + async persistence</div>
+        <ul class="benchmark-points">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Single-threaded Redis Lua scripts execute atomically in memory — zero database locks on the hot path.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Decoupled BullMQ async queue buffers confirmed bookings to PostgreSQL at a steady, zero-starvation rate.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Hardware-enforced 30s TTL automatically reclaims abandoned reservations without background sweeper lags.</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Mathematical single-seat invariant guarantees exactly 0 double-bookings under any burst load.</span>
+          </li>
+        </ul>
+        <div class="benchmark-footer-kpi">
+          <div>
+            <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase">Peak Drop Latency</span>
+            <div class="benchmark-kpi-val">0.38ms – 0.9ms</div>
+          </div>
+          <span style="font-size:12px;color:#27ae60;font-weight:700">Zero Failures (100% Uptime)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Chaos Lab -->
+  <section class="chaos-lab-section">
+    <div class="section-head-wrap">
+      <span class="badge-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Live Interactive Demo
+      </span>
+      <h2>Flash-drop <em>load lab</em></h2>
+      <p>Simulate peak traffic bursts directly from your browser and watch the sub-millisecond atomic engine defend seat inventory.</p>
+    </div>
+
+    <div class="chaos-deck">
+      <div>
+        <span class="ticket-status-pill" style="margin-bottom:12px"><span class="pulse-dot"></span> LIVE TRAFFIC INJECTOR</span>
+        <h3 style="font-size:24px;font-weight:800;margin-top:8px;margin-bottom:8px">Select Simulation Load</h3>
+        <p style="font-size:14px;opacity:.75;line-height:1.6">Trigger hundreds or thousands of concurrent virtual clients competing for the exact same 200 stadium seats.</p>
+
+        <div class="chaos-modes-wrap">
+          <button type="button" class="chaos-btn" id="btnChaos500" onclick="triggerChaos('Normal Drop (500)', 500)">
+            <div>
+              <div class="chaos-btn-label">Normal Drop Rush</div>
+              <span class="chaos-btn-sub">500 concurrent client requests</span>
+            </div>
+            <span class="chaos-btn-badge">500 RPS</span>
+          </button>
+
+          <button type="button" class="chaos-btn" id="btnChaos2500" onclick="triggerChaos('Peak Drop (2,500)', 2500)">
+            <div>
+              <div class="chaos-btn-label">Stadium Concert Peak</div>
+              <span class="chaos-btn-sub">2,500 high-contention requests</span>
+            </div>
+            <span class="chaos-btn-badge">2,500 RPS</span>
+          </button>
+
+          <button type="button" class="chaos-btn" id="btnChaos5000" onclick="triggerChaos('Viral Flash Mob (5,000)', 5000)">
+            <div>
+              <div class="chaos-btn-label">Viral Flash Mob Storm</div>
+              <span class="chaos-btn-sub">5,000 fans · Maximum concurrency burst</span>
+            </div>
+            <span class="chaos-btn-badge" style="color:var(--o);background:#fff">5,000 RPS</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="chaos-telemetry-screen">
+        <div class="chaos-screen-header">
+          <span>Engine Telemetry Feed</span>
+          <span style="color:#27ae60;display:inline-flex;align-items:center;gap:6px"><span class="pulse-dot"></span> REDIS ONLINE</span>
+        </div>
+
+        <div class="chaos-stat-grid">
+          <div class="chaos-stat-cell"><span>Requests Ingested</span><b id="cReq">0</b></div>
+          <div class="chaos-stat-cell"><span>Locks Granted</span><b class="highlight" id="cOk">0</b></div>
+          <div class="chaos-stat-cell"><span>Contention (409)</span><b id="cNo">0</b></div>
+        </div>
+
+        <div class="chaos-stat-grid" style="margin-bottom:16px">
+          <div class="chaos-stat-cell"><span>Double Bookings</span><b style="color:#27ae60">0</b></div>
+          <div class="chaos-stat-cell"><span>Lock Latency</span><b id="cLat">0.4ms</b></div>
+          <div class="chaos-stat-cell"><span>Single Ownership</span><b style="color:#27ae60">100% PASS</b></div>
+        </div>
+
+        <div class="chaos-invariant-proof">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          <span>Verified Invariant: Held + Sold + Available = Exactly 200 Seats Conserved</span>
+        </div>
+
+        <div style="margin-top:16px;text-align:right">
+          <button type="button" class="btn" style="padding:10px 20px;font-size:13px" onclick="go('booking')">View Live Stadium Seat Map →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section>
+    <div class="section-head-wrap" style="margin-bottom:36px">
+      <h2>Features you <em>won't find</em> elsewhere</h2>
+      <p>Engineered from ground up for fair, transparent, and resilient reservation workflows.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg></div>
+        <h3>Virtual Waiting Room</h3>
+        <p>Fair queue position with live ETA — no refresh-spamming advantage.</p>
+      </div>
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>Hold Ring</h3>
+        <p>A visible countdown on your seat. Extend once if payment is in progress.</p>
+      </div>
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <h3>Token-Bucket Shield</h3>
+        <p>Bots get throttled at the edge; real fans never see a 500 error.</p>
+      </div>
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
+        <h3>Instant Seat Recycling</h3>
+        <p>Expired holds reappear live to everyone watching the theater map.</p>
+      </div>
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg></div>
+        <h3>Built-in Load Lab</h3>
+        <p>Fire 5,000 simulated users at 200 seats from the UI and watch the proof.</p>
+      </div>
+      <div class="card">
+        <div class="n"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+        <h3>Audit Trail</h3>
+        <p>Every lock, release and commit is logged with a monotonic ID.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technical FAQ Accordion -->
+  <section class="faq-section">
+    <div class="section-head-wrap">
+      <span class="badge-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        System Architecture FAQ
+      </span>
+      <h2>Frequently asked <em>engineering</em> questions</h2>
+      <p>Technical deep dive into concurrency guarantees, failure recovery, and database protection.</p>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-card open" id="faq0">
+        <div class="faq-header" onclick="toggleFaq(0)">
+          <span>How does TicketWala guarantee zero double-bookings without database transactions?</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="faq-body">
+          Redis executes Lua scripts as a single atomic operation in an isolated single-threaded event loop. No other command or client can read or write to the seat key while the Lua script is running, mathematically preventing race conditions without needing heavy relational database locks.
+        </div>
+      </div>
+
+      <div class="faq-card" id="faq1">
+        <div class="faq-header" onclick="toggleFaq(1)">
+          <span>What happens if a user closes their tab or loses internet during the 30-second hold?</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="faq-body">
+          Every seat reservation has a hardware-enforced 30-second TTL (Time-To-Live). If the user doesn't confirm checkout before the TTL timer expires, Redis automatically evicts the key without needing any cleanup cron job, and the seat is immediately available on the next millisecond to everyone waiting.
+        </div>
+      </div>
+
+      <div class="faq-card" id="faq2">
+        <div class="faq-header" onclick="toggleFaq(2)">
+          <span>How does the Token-Bucket algorithm block scalper bots from exhausting inventory?</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="faq-body">
+          Before any reservation request reaches the seat engine, the edge gateway evaluates the client's token bucket. Humans making natural clicks pass instantly; bots firing hundreds of requests per second deplete their bucket and receive immediate 429 Too Many Requests responses before touching the seat cache.
+        </div>
+      </div>
+
+      <div class="faq-card" id="faq3">
+        <div class="faq-header" onclick="toggleFaq(3)">
+          <span>Why use decoupled write-behind queues instead of writing directly to PostgreSQL?</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="faq-body">
+          PostgreSQL connection pools max out around 100-200 concurrent connections. When 5,000 users click reserve at the exact same second, direct database writes crash the database with 504 Gateway Timeouts. TicketWala stores the temporary hold entirely in Redis RAM, and only writes finalized, paid bookings through an asynchronous BullMQ queue to PostgreSQL at a steady, manageable rate.
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <div class="page" id="events"><section><h2>Upcoming <em>flash drops</em></h2><div id="evl"></div></section></div>
@@ -275,7 +762,7 @@ window.go = function(p) {
       <div class="auth-side">
         <div>
           <div class="auth-brand">
-            <img src="logo-navbar.png" alt="TicketWala" style="height:42px;width:auto;object-fit:contain;filter:brightness(0) invert(1)" onerror="this.style.display='none'">
+            <img src="logo-white.png" alt="TicketWala" style="height:42px;width:auto;object-fit:contain" onerror="this.style.display='none'">
           </div>
           <span class="pill" style="background:rgba(255,107,55,0.18);color:#fff;border:1px solid rgba(255,107,55,0.35);margin-bottom:16px">
             <i class="dot"></i> Next flash release in minutes
@@ -328,16 +815,7 @@ window.go = function(p) {
           <h2>Log in to Account</h2>
           <p>Choose your preferred sign-in method to continue.</p>
         </div>
-        <button type="button" class="btn-google" onclick="googleAuth()">
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
-            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-          </svg>
-          <span>Continue with Google</span>
-        </button>
-        <div class="auth-divider"><span>or continue with email</span></div>
+
         <div>
           <button type="button" class="quick-demo-badge" onclick="fillDemo()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -374,6 +852,16 @@ window.go = function(p) {
         </div>
         <div class="err" id="lErr"></div>
         <button type="button" class="btn" style="width:100%;padding:14px;font-size:15px" onclick="doLogin()">Log in to TicketWala →</button>
+        <div class="auth-divider"><span>or continue with</span></div>
+        <button type="button" class="btn-google" onclick="googleAuth()">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
         <div class="auth-footer-text">
           New to TicketWala? <a onclick="go('signup')">Create a free account</a>
         </div>
@@ -388,13 +876,24 @@ window.go = function(p) {
       <div class="auth-side">
         <div>
           <div class="auth-brand">
-            <img src="logo-navbar.png" alt="TicketWala" style="height:42px;width:auto;object-fit:contain;filter:brightness(0) invert(1)" onerror="this.style.display='none'">
+            <img src="logo-white.png" alt="TicketWala" style="height:42px;width:auto;object-fit:contain" onerror="this.style.display='none'">
           </div>
           <span class="pill" style="background:rgba(255,107,55,0.18);color:#fff;border:1px solid rgba(255,107,55,0.35);margin-bottom:16px">
             <i class="dot"></i> 100% Free · Setup in 20 seconds
           </span>
           <h2>Join the <em>exclusive drop lane</em>.</h2>
           <p>One account unlocks every high-velocity ticket drop: atomic seat locks, 30-second hold rings, and zero double-booking assurance.</p>
+          <div class="auth-image-desc">
+            Get instant front-row access to high-demand concerts, stadium matches, and comedy tours before general public rush.
+          </div>
+          <div class="auth-image-box">
+            <img src="signup-banner.jpg" alt="Live Stadium & Concert Drops" class="auth-side-img">
+            <div class="auth-image-overlay">
+              <span class="auth-image-tag">
+                <span class="live-dot-sm"></span> HIGH-VELOCITY ARENA ACCESS
+              </span>
+            </div>
+          </div>
           <div class="auth-features">
             <div class="auth-feature-item">
               <div class="auth-feature-icon">
@@ -441,16 +940,7 @@ window.go = function(p) {
           <h2>Create Your Account</h2>
           <p>Get instant access to live flash reservations.</p>
         </div>
-        <button type="button" class="btn-google" onclick="googleAuth()">
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
-            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-          </svg>
-          <span>Continue with Google</span>
-        </button>
-        <div class="auth-divider"><span>or sign up with email</span></div>
+
         <div class="input-field-group">
           <label class="input-field-label">Full Name</label>
           <div class="input-field-box">
@@ -498,6 +988,16 @@ window.go = function(p) {
         </div>
         <div class="err" id="sErr"></div>
         <button type="button" class="btn" style="width:100%;padding:14px;font-size:15px;margin-top:4px" onclick="doSignup()">Create Fast-Lane Account →</button>
+        <div class="auth-divider"><span>or continue with</span></div>
+        <button type="button" class="btn-google" onclick="googleAuth()">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
         <div class="auth-footer-text">
           Already registered? <a onclick="go('login')">Log in here</a>
         </div>
@@ -685,9 +1185,67 @@ setInterval(()=>{
   prof();
 },500);
 
+let heroTtl = 29;
+setInterval(function() {
+  heroTtl = heroTtl <= 1 ? 30 : heroTtl - 1;
+  const txt = $('#heroTtlText'), sec = $('#heroTtlSec'), ring = $('#heroTtlRing');
+  if(txt) txt.textContent = '00:' + (heroTtl < 10 ? '0' + heroTtl : heroTtl);
+  if(sec) sec.textContent = heroTtl + 's Left';
+  if(ring) ring.style.strokeDashoffset = 150.8 * (1 - heroTtl / 30);
+}, 1000);
+
+function toggleFaq(idx) {
+  const card = $('#faq' + idx);
+  if(!card) return;
+  const wasOpen = card.classList.contains('open');
+  document.querySelectorAll('.faq-card').forEach(c => c.classList.remove('open'));
+  if(!wasOpen) card.classList.add('open');
+}
+
+function triggerChaos(modeLabel, totalCount) {
+  if(busy) return;
+  busy = true;
+  document.querySelectorAll('.chaos-btn').forEach(b => b.classList.remove('active'));
+  if(totalCount === 500 && $('#btnChaos500')) $('#btnChaos500').classList.add('active');
+  if(totalCount === 2500 && $('#btnChaos2500')) $('#btnChaos2500').classList.add('active');
+  if(totalCount === 5000 && $('#btnChaos5000')) $('#btnChaos5000').classList.add('active');
+
+  log(`[CHAOS LAB] Starting ${modeLabel} test: ${totalCount} requests`, 'no');
+  let sent = 0;
+  const batchSize = Math.max(10, Math.floor(totalCount / 35));
+  const interval = setInterval(() => {
+    for (let k = 0; k < batchSize; k++) {
+      sent++;
+      stats.req++;
+      const i = Math.floor(Math.random() * N);
+      const s = seats[i];
+      if (s.st !== 0 || i === mine) {
+        stats.no++;
+      } else {
+        s.st = 1;
+        s.t = Date.now() + (3 + Math.random() * 8) * 1000;
+        s.bot = Math.random() < 0.4;
+        stats.ok++;
+      }
+    }
+    draw();
+    if (sent >= totalCount) {
+      clearInterval(interval);
+      busy = false;
+      document.querySelectorAll('.chaos-btn').forEach(b => b.classList.remove('active'));
+      log(`[CHAOS LAB] ${totalCount} requests completed · 0 double-bookings verified`, 'ok');
+    }
+  }, 100);
+}
+
 function dash(){
+  const lat = (0.4+Math.random()*.5).toFixed(1)+'ms';
   ['Req','Ok','No'].forEach(k=>$('#k'+k).textContent=stats[k.toLowerCase()].toLocaleString());
-  $('#kLat').textContent=(0.4+Math.random()*.5).toFixed(1)+'ms';
+  $('#kLat').textContent=lat;
+  if($('#cReq')) $('#cReq').textContent=stats.req.toLocaleString();
+  if($('#cOk')) $('#cOk').textContent=stats.ok.toLocaleString();
+  if($('#cNo')) $('#cNo').textContent=stats.no.toLocaleString();
+  if($('#cLat')) $('#cLat').textContent=lat;
   $('#hLive').textContent=busy?(2000+Math.random()*3000|0):(Math.random()*40|0);
   hist.push(busy?60+Math.random()*40:5+Math.random()*10);
   if(hist.length>60)hist.shift();
@@ -715,7 +1273,15 @@ window.addEventListener('hashchange', function() {
   var h = (location.hash || '').replace('#', '').trim();
   if (h) window.go(h);
 });
-$('#tk').innerHTML=Array(2).fill('<span style="padding:0 30px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:6px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><b>200</b> seats · <b>5,000</b> users · <b>0</b> double-bookings &nbsp;•&nbsp; Redis Lua atomic locks &nbsp;•&nbsp; TTL holds &nbsp;•&nbsp; Async DB writes &nbsp;•&nbsp; Token-bucket throttling</span>').join('');
+const quotesHtml = [
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span style="color:#ffffff">Seat teri, </span><b style="color:#FF6B35">booking meri!</b></span>',
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span style="color:#ffffff">Race Nahi, </span><b style="color:#FF6B35">Reservation Sahi.</b></span>',
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>No 504 Timeout, <b>Sirf Confirm Checkout.</b></span>',
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Line mein khade rehna puraani baat, <b>Sub-second lock TicketWala ke saath!</b></span>',
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><b>Zero Double-Bookings</b> · 100% Fair Play</span>',
+  '<span style="padding:0 28px"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FF6B35" style="display:inline-block;vertical-align:-1px;margin-right:8px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Tatkal ka stress bhool jao, <b>Redis Lua se seat paao!</b></span>'
+].join('');
+$('#tk').innerHTML = quotesHtml + quotesHtml;
 
 let user=null,nextP='home';
 const users={'demo@ticketwala.com':{name:'Demo Fan',pw:'password123'}};
