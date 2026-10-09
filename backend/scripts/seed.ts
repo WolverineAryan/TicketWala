@@ -4,57 +4,59 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-const eventId = process.env.EVENT_ID || "evt-main";
-const capacityArg = process.argv[2] ? parseInt(process.argv[2], 10) : undefined;
-const capacity = capacityArg || parseInt(process.env.DEFAULT_EVENT_CAPACITY || "200", 10);
 
-async function seedInventory() {
-  console.log(`🌱 Seeding TicketWala inventory for event [${eventId}] with ${capacity} units...`);
+const SEED_EVENTS = [
+  { id: "evt-flight-ai101", capacity: 192 },
+  { id: "evt-concert-coldplay", capacity: 200 },
+  { id: "evt-sports-iplfinal", capacity: 180 },
+  { id: "evt-cinema-imax", capacity: 160 },
+  { id: "evt-train-vandebharat", capacity: 150 },
+];
+
+async function seedAllInventory() {
+  console.log(`🌱 Seeding TicketWala Multipurpose Events into Redis...`);
   const redis = new Redis(redisUrl);
 
   try {
-    const queueKey = `ticketwala:event:${eventId}:available_queue`;
-    const bucketKey = `ticketwala:event:${eventId}:token_bucket`;
+    for (const evt of SEED_EVENTS) {
+      const queueKey = `ticketwala:event:${evt.id}:available_queue`;
+      const bucketKey = `ticketwala:event:${evt.id}:token_bucket`;
 
-    // 1. Reset FIFO Queue
-    await redis.del(queueKey);
+      await redis.del(queueKey);
 
-    const unitIds: string[] = [];
-    const padLen = capacity >= 1000 ? 4 : 3;
+      const unitIds: string[] = [];
+      for (let i = 1; i <= evt.capacity; i++) {
+        unitIds.push(`unit-${String(i).padStart(3, "0")}`);
+      }
 
-    for (let i = 1; i <= capacity; i++) {
-      const unitId = `unit-${String(i).padStart(padLen, "0")}`;
-      unitIds.push(unitId);
-    }
+      // LPUSH in reverse order so RPOP pops unit-001 first
+      const reversed = [...unitIds].reverse();
+      const batchSize = 100;
+      for (let i = 0; i < reversed.length; i += batchSize) {
+        const chunk = reversed.slice(i, i + batchSize);
+        await redis.lpush(queueKey, ...chunk);
+      }
 
-    // Push units into FIFO List (LPUSH so RPOP pops unit-001 first)
-    const reversed = [...unitIds].reverse();
-    const batchSize = 100;
-    for (let i = 0; i < reversed.length; i += batchSize) {
-      const chunk = reversed.slice(i, i + batchSize);
-      await redis.lpush(queueKey, ...chunk);
-    }
+      // Initialize unit hashes
+      for (const unitId of unitIds) {
+        const unitKey = `ticketwala:unit:${unitId}`;
+        await redis.hmset(unitKey, {
+          status: "AVAILABLE",
+          version: "1",
+        });
+        await redis.hdel(unitKey, "reservation_id", "token_hash", "expires_at");
+      }
 
-    // 2. Initialize Unit Hashes
-    for (const unitId of unitIds) {
-      const unitKey = `ticketwala:unit:${unitId}`;
-      await redis.hmset(unitKey, {
-        status: "AVAILABLE",
-        version: "1",
+      // Initialize adaptive token bucket
+      await redis.hmset(bucketKey, {
+        tokens: String(evt.capacity),
+        last_updated: String(Date.now()),
       });
-      await redis.hdel(unitKey, "reservation_id", "token_hash", "expires_at");
+
+      console.log(`✅ Seeded ${evt.capacity} units for event [${evt.id}].`);
     }
 
-    // 3. Initialize Adaptive Token Bucket
-    await redis.hmset(bucketKey, {
-      tokens: String(capacity),
-      last_updated: String(Date.now()),
-    });
-
-    const queueLength = await redis.llen(queueKey);
-    console.log(`✅ Successfully seeded ${queueLength} units into FIFO queue [${queueKey}].`);
-    console.log(`✅ Initialized adaptive token bucket [${bucketKey}] with ${capacity} tokens.`);
-  
+    console.log("🎉 All multipurpose events successfully initialized in Redis!");
   } catch (err: unknown) {
     console.error("❌ Inventory seeding failed:", err);
     process.exitCode = 1;
@@ -63,7 +65,4 @@ async function seedInventory() {
   }
 }
 
-seedInventory().catch((err: unknown) => {
-  console.error("❌ Seed process failed:", err);
-  process.exitCode = 1;
-});
+seedAllInventory();

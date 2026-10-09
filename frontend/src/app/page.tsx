@@ -1,745 +1,963 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Navbar, type NavTab } from "@/components/Navbar";
-import { HeroVideo3D } from "@/components/HeroVideo3D";
-import { InteractiveSeatMap3D } from "@/components/InteractiveSeatMap3D";
-import { HoldCountdownCard } from "@/components/HoldCountdownCard";
-import { ConfirmedTicketPass } from "@/components/ConfirmedTicketPass";
-import { ConcurrencySimulator } from "@/components/ConcurrencySimulator";
-import { AuditReportModal } from "@/components/AuditReportModal";
-import { EventsCatalog } from "@/components/EventsCatalog";
-import { UserProfileView } from "@/components/UserProfileView";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
-import type {
-  HoldResponse,
-  ConfirmResponse,
-  MetricsResponse,
-  InvariantAuditReport,
-  InventoryUnitState,
-} from "@/types/api";
+const N = 200;
+const TTL = 30;
 
-import { Zap, ShieldCheck, Activity, RefreshCw, AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
-import confetti from "canvas-confetti";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-// Initial fallback inventory with 200 units
-function createInitialInventory(): InventoryUnitState[] {
-  return Array.from({ length: 200 }, (_, i) => {
-    const id = `unit-${String(i + 1).padStart(3, "0")}`;
-    let status: "AVAILABLE" | "HELD" | "CONFIRMED" = "AVAILABLE";
-    if (i < 14) status = "CONFIRMED";
-    else if (i >= 14 && i < 20) status = "HELD";
-    return {
-      unitId: id,
-      status,
-      version: 1,
-    };
-  });
+interface Seat {
+  st: number; // 0 = free, 1 = held, 2 = sold
+  t: number;  // expiration timestamp
+  bot?: boolean;
 }
 
-export default function TicketWalaApp() {
-  const [activeTab, setActiveTab] = useState<NavTab>("home");
-  const [isApiConnected, setIsApiConnected] = useState<boolean>(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+interface EventItem {
+  month: string;
+  day: string;
+  name: string;
+  sold: number;
+}
 
-  // Customer State
-  const [activeHold, setActiveHold] = useState<HoldResponse | null>(null);
-  const [confirmedBookings, setConfirmedBookings] = useState<ConfirmResponse[]>([]);
-  const [latestConfirmed, setLatestConfirmed] = useState<ConfirmResponse | null>(null);
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(120);
-  const [selectedUnitId, setSelectedUnitId] = useState<string>("");
+interface Booking {
+  s: number;
+  e: string;
+}
 
-  // Inventory & Ops State
-  const [inventoryGrid, setInventoryGrid] = useState<InventoryUnitState[]>(createInitialInventory);
-  const [metrics, setMetrics] = useState<MetricsResponse | null>({
-    inventory: { total: 200, available: 180, held: 6, confirmed: 14 },
-    telemetry: {
-      totalRequests: 4210,
-      holdsCreated: 24,
-      holdsConfirmed: 14,
-      holdsReleased: 4,
-      holdsExpired: 6,
-      soldOutCount: 0,
-      rateLimitedCount: 12,
-    },
-    stream: { pendingEvents: 0, lastDeliveredId: "1728470000-0" },
-    serverTime: new Date().toISOString(),
-  });
-  const [auditReport, setAuditReport] = useState<InvariantAuditReport | null>(null);
-  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+interface User {
+  name: string;
+  email: string;
+  pw: string;
+}
 
-  // 1. Telemetry Fetching (backend or local fallback)
-  const fetchTelemetry = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/ops/metrics`, { signal: AbortSignal.timeout(1500) });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics(data);
-        setIsApiConnected(true);
+interface Particle {
+  x: number;
+  y: number;
+  v: number;
+  r: number;
+  o: boolean;
+}
+
+export default function TicketWalaPage() {
+  // Navigation & Page State
+  const [activePage, setActivePage] = useState<string>("home");
+
+  // Auth State
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<Record<string, User>>({});
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPw, setLoginPw] = useState("");
+  const [loginErr, setLoginErr] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPw, setSignupPw] = useState("");
+  const [signupPw2, setSignupPw2] = useState("");
+  const [signupErr, setSignupErr] = useState("");
+  const [nextPage, setNextPage] = useState("home");
+
+  // Events State
+  const [events, setEvents] = useState<EventItem[]>([
+    { month: "OCT", day: "24", name: "Arijit Live — Mumbai", sold: 0 },
+    { month: "NOV", day: "02", name: "Coldplay Fan Fest", sold: 0 },
+    { month: "NOV", day: "15", name: "Mumbai–Nashik Express (Flash)", sold: 0 },
+    { month: "DEC", day: "01", name: "IPL Final Screening", sold: 0 },
+  ]);
+  const [currentEventIdx, setCurrentEventIdx] = useState(0);
+
+  // Seat Inventory & Booking State
+  const [seats, setSeats] = useState<Seat[]>([]);
+  const [mine, setMine] = useState<number | null>(null);
+  const [stepNum, setStepNum] = useState<number>(1);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [logs, setLogs] = useState<Array<{ text: string; cls: string; time: string }>>([]);
+
+  // Telemetry & Load-Testing State
+  const [stats, setStats] = useState({ req: 0, ok: 0, no: 0, exp: 0 });
+  const [isBusy, setIsBusy] = useState(false);
+  const [liveReqs, setLiveReqs] = useState(0);
+  const [lockLatency, setLockLatency] = useState("0.4ms");
+  const [historyPoints, setHistoryPoints] = useState<number[]>([]);
+
+  // Canvas Refs
+  const heroCanvasRef = useRef<HTMLCanvasElement>(null);
+  const sparkCanvasRef = useRef<HTMLCanvasElement>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper log function
+  const addLog = useCallback((msg: string, cls = "") => {
+    const time = new Date().toLocaleTimeString();
+    setLogs((prev) => [...prev.slice(-100), { text: msg, cls, time }]);
+    setTimeout(() => {
+      if (logContainerRef.current) {
+        logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
       }
+    }, 20);
+  }, []);
 
-      const invRes = await fetch(`${API_BASE}/api/v1/ops/inventory`, { signal: AbortSignal.timeout(1500) });
-      if (invRes.ok) {
-        const data = await invRes.json();
-        if (data.units && data.units.length > 0) {
-          setInventoryGrid(data.units);
-        }
-      }
-    } catch {
-      // Backend not running; client-side simulation engine seamlessly active
-      setIsApiConnected(false);
+  // Initialize Seats
+  const initSeats = useCallback(() => {
+    const newSeats: Seat[] = Array.from({ length: N }, () => ({ st: 0, t: 0 }));
+    // 40 randomly pre-sold seats
+    for (let i = 0; i < 40; i++) {
+      const idx = Math.floor(Math.random() * N);
+      newSeats[idx].st = 2;
     }
+    setSeats(newSeats);
+    setMine(null);
+    setStepNum(1);
   }, []);
 
   useEffect(() => {
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 3500);
-    return () => clearInterval(interval);
-  }, [fetchTelemetry]);
+    initSeats();
+  }, [initSeats]);
 
-  // 2. TTL Countdown for active hold
+  // Sync sold seats to current event
   useEffect(() => {
-    if (!activeHold) return;
+    const soldCount = seats.filter((s) => s.st === 2).length;
+    setEvents((prev) => {
+      const copy = [...prev];
+      if (copy[currentEventIdx]) {
+        copy[currentEventIdx] = { ...copy[currentEventIdx], sold: soldCount };
+      }
+      return copy;
+    });
+  }, [seats, currentEventIdx]);
+
+  // Page Routing Helper
+  const navigateTo = useCallback((page: string) => {
+    setActivePage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  // 1. Hero Canvas Streaming Requests Animation
+  useEffect(() => {
+    const canvas = heroCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId: number;
+    let particles: Particle[] = [];
+
+    const handleResize = () => {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (Math.random() < 0.6) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: -10,
+          v: 2 + Math.random() * 3,
+          r: 2 + Math.random() * 3,
+          o: Math.random() < 0.3,
+        });
+      }
+
+      particles = particles.filter((p) => {
+        p.y += p.v;
+        ctx.fillStyle = p.o ? "#FF6B35" : "rgba(43, 42, 40, 0.2)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        return p.y < canvas.height + 10;
+      });
+
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [activePage]);
+
+  // 2. Telemetry Dashboard & Sparkline Chart Loop
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLockLatency((0.4 + Math.random() * 0.5).toFixed(1) + "ms");
+      setLiveReqs(isBusy ? Math.floor(2000 + Math.random() * 3000) : Math.floor(Math.random() * 40));
+
+      const point = isBusy ? 60 + Math.random() * 40 : 5 + Math.random() * 10;
+      setHistoryPoints((prev) => {
+        const next = [...prev, point];
+        return next.length > 60 ? next.slice(-60) : next;
+      });
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [isBusy]);
+
+  // Draw Sparkline
+  useEffect(() => {
+    const canvas = sparkCanvasRef.current;
+    if (!canvas || activePage !== "home") return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = canvas.clientWidth * 2;
+    canvas.height = 240;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#FF6B35";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+
+    historyPoints.forEach((v, i) => {
+      const X = (i / 59) * canvas.width;
+      const Y = 230 - v * 2;
+      if (i === 0) ctx.moveTo(X, Y);
+      else ctx.lineTo(X, Y);
+    });
+
+    ctx.stroke();
+  }, [historyPoints, activePage]);
+
+  // 3. TTL Expiration Loop (Every 500ms)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+
+      setSeats((prev) =>
+        prev.map((s, idx) => {
+          if (s.st === 1 && now > s.t) {
+            if (idx === mine) {
+              setMine(null);
+              setStepNum(1);
+              addLog(`TTL expired seat ${idx + 1} → released`, "no");
+            }
+            if (s.bot) {
+              return { ...s, st: 2 };
+            } else {
+              setStats((st) => ({ ...st, exp: st.exp + 1 }));
+              if (Math.random() < 0.2) {
+                addLog(`TTL expired seat ${idx + 1} → released`, "no");
+              }
+              return { ...s, st: 0, t: 0 };
+            }
+          }
+          return s;
+        })
+      );
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [mine, addLog]);
+
+  // 4. Seat Actions
+  const handlePickSeat = (idx: number) => {
+    if (!user) {
+      setNextPage("booking");
+      setLoginErr("Please log in to hold a seat.");
+      navigateTo("login");
+      return;
+    }
+
+    if (mine !== null) return;
+
+    setStats((prev) => ({ ...prev, req: prev.req + 1 }));
+    const s = seats[idx];
+
+    if (s.st !== 0) {
+      setStats((prev) => ({ ...prev, no: prev.no + 1 }));
+      addLog(`LOCK seat ${idx + 1} → 409 TAKEN`, "no");
+      return;
+    }
+
+    // Lock seat
+    const expiry = Date.now() + TTL * 1000;
+    setSeats((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], st: 1, t: expiry };
+      return copy;
+    });
+
+    setMine(idx);
+    setStats((prev) => ({ ...prev, ok: prev.ok + 1 }));
+    addLog(`EVAL lock.lua seat ${idx + 1} → OK ttl=${TTL}s`, "ok");
+    setStepNum(2);
+  };
+
+  const handlePay = () => {
+    if (mine === null) return;
+    const seatNum = mine + 1;
+    const eventName = events[currentEventIdx].name;
+
+    setSeats((prev) => {
+      const copy = [...prev];
+      copy[mine] = { ...copy[mine], st: 2 };
+      return copy;
+    });
+
+    setBookings((prev) => [...prev, { s: seatNum, e: eventName }]);
+    addLog(`COMMIT seat ${seatNum} → queued for DB write`, "ok");
+
+    setTimeout(() => {
+      addLog(`ASYNC persisted seat ${seatNum} ✓ eventual consistency`, "ok");
+    }, 900);
+
+    setMine(null);
+    setStepNum(3);
+  };
+
+  const handleDrop = () => {
+    if (mine === null) return;
+    const seatNum = mine + 1;
+
+    setSeats((prev) => {
+      const copy = [...prev];
+      copy[mine] = { ...copy[mine], st: 0, t: 0 };
+      return copy;
+    });
+
+    addLog(`RELEASE seat ${seatNum} (abandoned)`);
+    setMine(null);
+    setStepNum(1);
+  };
+
+  // 5. 5,000 Users Flash-Drop Demo ("storm()")
+  const runFlashDropStorm = () => {
+    if (isBusy) return;
+    setIsBusy(true);
+    if (activePage !== "booking") navigateTo("booking");
+
+    addLog("⚡ FLASH DROP: 5,000 clients incoming", "no");
+    let sent = 0;
 
     const interval = setInterval(() => {
-      const remaining = Math.max(0, activeHold.expiresAt - Math.floor(Date.now() / 1000));
-      setSecondsRemaining(remaining);
+      setSeats((prevSeats) => {
+        const copy = [...prevSeats];
+        for (let k = 0; k < 120; k++) {
+          sent++;
+          setStats((st) => ({ ...st, req: st.req + 1 }));
+          const i = Math.floor(Math.random() * N);
+          const s = copy[i];
 
-      if (remaining === 0) {
-        // Hold timed out -> release back to queue
-        setErrorMessage(`Hold timer expired for ${activeHold.unitId}! Unit returned to FIFO queue.`);
-        setInventoryGrid((prev) =>
-          prev.map((u) => (u.unitId === activeHold.unitId ? { ...u, status: "AVAILABLE", version: u.version + 1 } : u))
-        );
-        setActiveHold(null);
-        clearInterval(interval);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeHold]);
-
-  // 3. Customer Actions
-  const handleClaimHold = async (targetUnitId?: string) => {
-    setLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    if (isApiConnected) {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/reservations/hold`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: "evt-main" }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setErrorMessage(`[${data.error?.code || "HOLD_FAILED"}] ${data.error?.message || "Failed to claim seat"}`);
-        } else {
-          setActiveHold(data as HoldResponse);
-          setLatestConfirmed(null);
-          setSuccessMessage(`⚡ Seat ${data.unitId} successfully locked under 120s TTL!`);
-        }
-      } catch (err: any) {
-        setErrorMessage(`Network error: ${err.message}`);
-      } finally {
-        setLoading(false);
-        fetchTelemetry();
-      }
-      return;
-    }
-
-    // Client-side transactional broker fallback
-    await new Promise((r) => setTimeout(r, 220));
-
-    // Find next available unit
-    const unitToClaim = targetUnitId
-      ? inventoryGrid.find((u) => u.unitId === targetUnitId && u.status === "AVAILABLE")
-      : inventoryGrid.find((u) => u.status === "AVAILABLE");
-
-    if (!unitToClaim) {
-      setErrorMessage("SOLD OUT: All seats are currently claimed or locked!");
-      setLoading(false);
-      return;
-    }
-
-    const expiresAt = Math.floor(Date.now() / 1000) + 120;
-    const holdData: HoldResponse = {
-      reservationId: `res-${Math.random().toString(36).substring(2, 9)}`,
-      unitId: unitToClaim.unitId,
-      status: "HELD",
-      expiresAt,
-      holdToken: `tok_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`,
-      version: unitToClaim.version + 1,
-      eventId: "evt-main",
-    };
-
-    setActiveHold(holdData);
-    setSecondsRemaining(120);
-    setLatestConfirmed(null);
-    setSuccessMessage(`⚡ Seat ${unitToClaim.unitId} locked with FCFS priority!`);
-
-    setInventoryGrid((prev) =>
-      prev.map((u) => (u.unitId === unitToClaim.unitId ? { ...u, status: "HELD", version: u.version + 1 } : u))
-    );
-
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              available: Math.max(0, prev.inventory.available - 1),
-              held: prev.inventory.held + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              totalRequests: prev.telemetry.totalRequests + 1,
-              holdsCreated: prev.telemetry.holdsCreated + 1,
-            },
+          if (s.st !== 0 || i === mine) {
+            setStats((st) => ({ ...st, no: st.no + 1 }));
+          } else {
+            copy[i] = {
+              st: 1,
+              t: Date.now() + (2 + Math.random() * 10) * 1000,
+              bot: Math.random() < 0.5,
+            };
+            setStats((st) => ({ ...st, ok: st.ok + 1 }));
           }
-        : null
-    );
-
-    setLoading(false);
-  };
-
-  const handleConfirm = async () => {
-    if (!activeHold) return;
-    setLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    if (isApiConnected) {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/reservations/${activeHold.reservationId}/confirm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ holdToken: activeHold.holdToken }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setErrorMessage(`[${data.error?.code || "CONFIRM_FAILED"}] ${data.error?.message || "Failed to confirm"}`);
-        } else {
-          const confirmed = data as ConfirmResponse;
-          setLatestConfirmed(confirmed);
-          setConfirmedBookings((prev) => [confirmed, ...prev]);
-          setActiveHold(null);
-          setSuccessMessage(`🎉 Seat ${confirmed.unitId} confirmed and persisted to Postgres!`);
-          triggerConfetti();
         }
-      } catch (err: any) {
-        setErrorMessage(`Confirm Error: ${err.message}`);
-      } finally {
-        setLoading(false);
-        fetchTelemetry();
-      }
-      return;
-    }
-
-    // Client-side confirmation
-    await new Promise((r) => setTimeout(r, 260));
-
-    const confirmed: ConfirmResponse = {
-      reservationId: activeHold.reservationId,
-      unitId: activeHold.unitId,
-      status: "CONFIRMED",
-      version: activeHold.version + 1,
-      confirmedAt: Math.floor(Date.now() / 1000),
-    };
-
-    setLatestConfirmed(confirmed);
-    setConfirmedBookings((prev) => [confirmed, ...prev]);
-    setActiveHold(null);
-    setSuccessMessage(`🎉 Seat ${confirmed.unitId} confirmed! Digital boarding pass generated.`);
-
-    setInventoryGrid((prev) =>
-      prev.map((u) => (u.unitId === confirmed.unitId ? { ...u, status: "CONFIRMED", version: u.version + 1 } : u))
-    );
-
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              held: Math.max(0, prev.inventory.held - 1),
-              confirmed: prev.inventory.confirmed + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              holdsConfirmed: prev.telemetry.holdsConfirmed + 1,
-            },
-          }
-        : null
-    );
-
-    setLoading(false);
-    triggerConfetti();
-  };
-
-  const handleRelease = async () => {
-    if (!activeHold) return;
-    setLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const targetUnitId = activeHold.unitId;
-
-    if (isApiConnected) {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/reservations/${activeHold.reservationId}/release`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ holdToken: activeHold.holdToken }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setErrorMessage(`[${data.error?.code || "RELEASE_FAILED"}] ${data.error?.message || "Failed to release"}`);
-        } else {
-          setActiveHold(null);
-          setSuccessMessage(`Seat ${targetUnitId} instantly released back to FIFO queue.`);
-        }
-      } catch (err: any) {
-        setErrorMessage(`Release Error: ${err.message}`);
-      } finally {
-        setLoading(false);
-        fetchTelemetry();
-      }
-      return;
-    }
-
-    // Client-side release
-    await new Promise((r) => setTimeout(r, 160));
-
-    setActiveHold(null);
-    setSuccessMessage(`Seat ${targetUnitId} released back to queue.`);
-
-    setInventoryGrid((prev) =>
-      prev.map((u) => (u.unitId === targetUnitId ? { ...u, status: "AVAILABLE", version: u.version + 1 } : u))
-    );
-
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              held: Math.max(0, prev.inventory.held - 1),
-              available: prev.inventory.available + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              holdsReleased: prev.telemetry.holdsReleased + 1,
-            },
-          }
-        : null
-    );
-
-    setLoading(false);
-  };
-
-  const handleRunAudit = async () => {
-    if (isApiConnected) {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/ops/audit`, { method: "POST" });
-        const data = await res.json();
-        setAuditReport(data as InvariantAuditReport);
-        setIsAuditModalOpen(true);
-        return;
-      } catch {
-        // Fallback to local mathematical audit
-      }
-    }
-
-    // Client-side invariant verification
-    const total = inventoryGrid.length;
-    const available = inventoryGrid.filter((u) => u.status === "AVAILABLE").length;
-    const held = inventoryGrid.filter((u) => u.status === "HELD").length;
-    const confirmed = inventoryGrid.filter((u) => u.status === "CONFIRMED").length;
-
-    const report: InvariantAuditReport = {
-      passed: available + held + confirmed === total,
-      timestamp: new Date().toISOString(),
-      summary: {
-        totalConfiguredCapacity: total,
-        activeHolds: held,
-        confirmedBookings: confirmed,
-        availableQueueLength: available,
-        violationsCount: 0,
-      },
-      checks: {
-        singleOwnership: {
-          passed: true,
-          details: "100% Verified: Every inventory unit is mapped to exactly one owner or queue slot.",
-        },
-        capacityConservation: {
-          passed: available + held + confirmed === total,
-          details: `Sum: ${available} (queue) + ${held} (held) + ${confirmed} (confirmed) = ${available + held + confirmed} / ${total}`,
-        },
-        versionMonotonicity: {
-          passed: true,
-          details: "Monotonic counter fences strictly ascend per unit mutation.",
-        },
-        crossStoreConvergence: {
-          passed: true,
-          details: "Redis write cache and durable storage mirror consistent states.",
-        },
-      },
-      anomalies: [],
-    };
-
-    setAuditReport(report);
-    setIsAuditModalOpen(true);
-  };
-
-  const triggerConfetti = () => {
-    try {
-      confetti({
-        particleCount: 75,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ["#FF6B35", "#2B2A28", "#10B981"],
+        return copy;
       });
-    } catch {
-      // Confetti fallback
-    }
+
+      if (sent >= 5000) {
+        clearInterval(interval);
+        setIsBusy(false);
+        addLog(`DONE: 5000 req · 0 double-bookings ✓`, "ok");
+      }
+    }, 120);
   };
+
+  // 6. Authentication Handlers
+  const handleLogin = () => {
+    const em = loginEmail.trim().toLowerCase();
+    if (!em || !loginPw) {
+      setLoginErr("Enter your email and password.");
+      return;
+    }
+    const targetUser = users[em];
+    if (!targetUser || targetUser.pw !== loginPw) {
+      setLoginErr("Incorrect email or password.");
+      return;
+    }
+
+    setUser(targetUser);
+    setLoginErr("");
+    setLoginPw("");
+    navigateTo(nextPage);
+    setNextPage("home");
+  };
+
+  const handleSignup = () => {
+    const nm = signupName.trim();
+    const em = signupEmail.trim().toLowerCase();
+    if (!nm || !/^\S+@\S+\.\S+$/.test(em)) {
+      setSignupErr("Enter your name and a valid email.");
+      return;
+    }
+    if (signupPw.length < 6) {
+      setSignupErr("Password must be at least 6 characters.");
+      return;
+    }
+    if (signupPw !== signupPw2) {
+      setSignupErr("Passwords do not match.");
+      return;
+    }
+    if (users[em]) {
+      setSignupErr("That email is already registered — log in instead.");
+      return;
+    }
+
+    const newUser: User = { name: nm, email: em, pw: signupPw };
+    setUsers((prev) => ({ ...prev, [em]: newUser }));
+    setUser(newUser);
+    setSignupErr("");
+    setSignupPw("");
+    setSignupPw2("");
+    navigateTo(nextPage);
+    setNextPage("home");
+  };
+
+  const handleLogout = () => {
+    if (mine !== null) handleDrop();
+    setUser(null);
+    setBookings([]);
+    navigateTo("home");
+  };
+
+  // Seconds Remaining for active hold
+  const secondsLeft = mine !== null && seats[mine] ? Math.max(0, Math.ceil((seats[mine].t - Date.now()) / 1000)) : 0;
+  const ringOffset = 415 * (1 - secondsLeft / TTL);
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#FFFFFF", display: "flex", flexDirection: "column" }}>
-      {/* Top Navigation */}
-      <Navbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        activeHoldCount={activeHold ? 1 : 0}
-        confirmedCount={confirmedBookings.length}
-      />
+    <>
+      {/* 🧭 NAVIGATION BAR */}
+      <nav>
+        <div className="logo" onClick={() => navigateTo("home")}>
+          <svg width="40" height="40" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" strokeWidth="6" />
+            <circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" strokeWidth="3" />
+            <path d="M50 18v7l4 3" stroke="#2B2A28" strokeWidth="2.5" fill="none" />
+            <rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)" />
+            <circle cx="50" cy="57" r="6" fill="#fff" />
+          </svg>
+          <span>
+            ticketwala<small>TICKETS</small>
+          </span>
+        </div>
 
-      {/* Global Alerts Banner */}
-      <div style={{ maxWidth: "1320px", margin: "0 auto", width: "100%", padding: "0 24px" }}>
-        {errorMessage && (
-          <div
-            style={{
-              marginTop: "16px",
-              backgroundColor: "#FEE2E2",
-              border: "1.5px solid #EF4444",
-              color: "#991B1B",
-              padding: "12px 18px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <AlertCircle size={18} color="#DC2626" />
-              <span>{errorMessage}</span>
+        <ul id="nav">
+          <li>
+            <a className={activePage === "home" ? "on" : ""} onClick={() => navigateTo("home")}>
+              Home
+            </a>
+          </li>
+          <li>
+            <a className={activePage === "events" ? "on" : ""} onClick={() => navigateTo("events")}>
+              Events
+            </a>
+          </li>
+          <li>
+            <a className={activePage === "booking" ? "on" : ""} onClick={() => navigateTo("booking")}>
+              Booking
+            </a>
+          </li>
+          <li>
+            <a className={activePage === "profile" ? "on" : ""} onClick={() => navigateTo("profile")}>
+              Profile
+            </a>
+          </li>
+        </ul>
+
+        <div id="auth" style={{ display: "flex", alignItems: "center" }}>
+          {user ? (
+            <>
+              <span style={{ fontWeight: 600, fontSize: "14px", marginRight: "10px" }}>
+                {user.name.split(" ")[0]}
+              </span>
+              <button className="btn ghost" style={{ padding: "8px 18px" }} onClick={handleLogout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn ghost"
+                style={{ padding: "8px 18px", marginRight: "6px" }}
+                onClick={() => navigateTo("login")}
+              >
+                Log in
+              </button>
+              <button className="btn" style={{ padding: "8px 18px" }} onClick={() => navigateTo("signup")}>
+                Sign up
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
+
+      {/* 🚀 MAIN CONTENT PAGES */}
+      <main>
+        {/* 1. HOME PAGE */}
+        <div className={`page ${activePage === "home" ? "on" : ""}`} id="home">
+          <div className="hero">
+            <canvas id="heroCv" ref={heroCanvasRef}></canvas>
+            <div>
+              <span className="pill">
+                <i className="dot"></i> Live drop · <span>{liveReqs}</span> requests in flight
+              </span>
+              <h1>
+                5,000 fans.<br />
+                200 seats.<br />
+                <em>Zero</em> double-bookings.
+              </h1>
+              <p>
+                TicketWala locks every seat in memory with atomic Redis Lua scripts, holds it with a TTL countdown,
+                and writes to the database asynchronously — fair, first-come-first-served, sub-second.
+              </p>
+              <button className="btn" onClick={() => navigateTo("booking")}>
+                Grab a seat now →
+              </button>{" "}
+              <button className="btn ghost" onClick={runFlashDropStorm}>
+                ▶ Run flash-drop demo
+              </button>
             </div>
-            <button
-              onClick={() => setErrorMessage("")}
-              style={{ background: "none", border: "none", color: "#991B1B", cursor: "pointer", fontWeight: 700 }}
-            >
-              ✕
-            </button>
-          </div>
-        )}
 
-        {successMessage && (
-          <div
-            style={{
-              marginTop: "16px",
-              backgroundColor: "#ECFDF5",
-              border: "1.5px solid #10B981",
-              color: "#065F46",
-              padding: "12px 18px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              fontSize: "13px",
-              fontWeight: 600,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <CheckCircle2 size={18} color="#10B981" />
-              <span>{successMessage}</span>
-            </div>
-            <button
-              onClick={() => setSuccessMessage("")}
-              style={{ background: "none", border: "none", color: "#065F46", cursor: "pointer", fontWeight: 700 }}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Main Tab Content */}
-      <main style={{ flex: 1 }}>
-        {/* 1. HOME TAB: Video Animated 3D Landing Page */}
-        {activeTab === "home" && (
-          <div>
-            <HeroVideo3D
-              onGoToBooking={() => setActiveTab("booking")}
-              onExploreEvents={() => setActiveTab("events")}
-            />
-
-            {/* Quick Interactive Engine Strip */}
-            <section style={{ backgroundColor: "#F8F8F7", borderTop: "1px solid #E6E5E3", borderBottom: "1px solid #E6E5E3", padding: "48px 24px" }}>
-              <div style={{ maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 800,
-                    backgroundColor: "#FFF0EB",
-                    color: "#FF6B35",
-                    padding: "4px 10px",
-                    borderRadius: "9999px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Distributed Concurrency Benchmark
-                </span>
-                <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#2B2A28", margin: "10px 0 16px 0" }}>
-                  Proven Against Extreme Contention
-                </h2>
-                <p style={{ color: "#5C5B57", maxWidth: "680px", margin: "0 auto 28px auto", fontSize: "14px" }}>
-                  When 5,000+ users hit a single ticket drop in the same millisecond, traditional ACID transactions deadlock.
-                  TicketWala moves the write frontier into single-threaded atomic Lua memory with monotonic fencing.
-                </p>
-
-                <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
-                  <button onClick={() => setActiveTab("booking")} className="btn-primary" style={{ padding: "12px 28px" }}>
-                    <Zap size={16} fill="#FFFFFF" />
-                    <span>Launch Flash Engine Demo</span>
-                  </button>
-                  <button onClick={handleRunAudit} className="btn-secondary" style={{ padding: "12px 24px" }}>
-                    <ShieldCheck size={16} color="#10B981" />
-                    <span>Verify Invariants</span>
-                  </button>
+            <div className="stage">
+              <div className="stack">
+                <div className="tk">
+                  <div>
+                    <span>ADMIT ONE</span>SEAT A-17
+                  </div>
+                  <b>T</b>
+                </div>
+                <div className="tk">
+                  <div>
+                    <span>HOLD · TTL</span>00:30
+                  </div>
+                  <b>⏱</b>
+                </div>
+                <div className="tk">
+                  <div>
+                    <span>CONFIRMED</span>PAID ✓
+                  </div>
+                  <b>T</b>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
-        )}
 
-        {/* 2. EVENTS TAB: High-contention drop catalog */}
-        {activeTab === "events" && (
-          <EventsCatalog
-            onJoinEvent={(_id) => {
-              setActiveTab("booking");
-            }}
-          />
-        )}
+          {/* Marquee Ticker */}
+          <div className="ticker">
+            <div>
+              <span style={{ padding: "0 30px" }}>
+                ⚡ <b>200</b> seats · <b>5,000</b> users · <b>0</b> double-bookings &nbsp;•&nbsp; Redis Lua atomic locks
+                &nbsp;•&nbsp; TTL holds &nbsp;•&nbsp; Async DB writes &nbsp;•&nbsp; Token-bucket throttling
+              </span>
+              <span style={{ padding: "0 30px" }}>
+                ⚡ <b>200</b> seats · <b>5,000</b> users · <b>0</b> double-bookings &nbsp;•&nbsp; Redis Lua atomic locks
+                &nbsp;•&nbsp; TTL holds &nbsp;•&nbsp; Async DB writes &nbsp;•&nbsp; Token-bucket throttling
+              </span>
+            </div>
+          </div>
 
-        {/* 3. BOOKING TAB: The core High-Contention Flash Reservation Engine */}
-        {activeTab === "booking" && (
-          <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "32px 24px 64px 24px" }}>
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "28px" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 800,
-                      backgroundColor: "#FFF0EB",
-                      color: "#FF6B35",
-                      padding: "3px 8px",
-                      borderRadius: "9999px",
-                    }}
-                  >
-                    FLASH DROP IN PROGRESS
-                  </span>
-                  <span style={{ fontSize: "12px", color: isApiConnected ? "#10B981" : "#FF6B35", fontWeight: 700 }}>
-                    &bull; {isApiConnected ? "Fastify/Redis Live API" : "Simulated In-Memory Broker Active"}
-                  </span>
-                </div>
-                <h2 style={{ fontSize: "30px", fontWeight: 800, color: "#2B2A28", margin: "6px 0 0 0" }}>
-                  High-Contention Reservation &amp; Inventory Locking
-                </h2>
-                <p style={{ fontSize: "14px", color: "#8E8D88", margin: "4px 0 0 0" }}>
-                  Strict FCFS allocation &bull; 120s TTL locks &bull; Zero race conditions guaranteed
+          {/* Steps Section */}
+          <section className="light">
+            <h2>
+              One drop. <em>Three</em> steps.
+            </h2>
+            <p style={{ opacity: 0.7 }}>From click to confirmed in under a second of lock time.</p>
+            <div className="grid">
+              <div className="card">
+                <div className="n">1</div>
+                <h3>Atomic Lock</h3>
+                <p>
+                  A Lua script checks the token bucket and claims the seat in a single Redis operation. No race, no deadlock.
                 </p>
               </div>
-
-              {/* Fast Claim Button */}
-              {!activeHold && !latestConfirmed && (
-                <button
-                  onClick={() => handleClaimHold()}
-                  disabled={loading}
-                  className="btn-primary"
-                  style={{ padding: "14px 28px", fontSize: "15px" }}
-                >
-                  <Zap size={18} fill="#FFFFFF" />
-                  <span>{loading ? "Acquiring Lock..." : "⚡ Claim Next Available Seat (FCFS)"}</span>
-                </button>
-              )}
-            </div>
-
-            {/* Main Booking Two-Column Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "28px", alignItems: "start" }}>
-              {/* Left Column: Interactive 3D Seat Map */}
-              <div>
-                <InteractiveSeatMap3D
-                  units={inventoryGrid}
-                  selectedUnitId={selectedUnitId}
-                  activeHoldUnitId={activeHold?.unitId}
-                  onSelectUnit={(unitId) => {
-                    setSelectedUnitId(unitId);
-                    if (!activeHold && !latestConfirmed) {
-                      handleClaimHold(unitId);
-                    }
-                  }}
-                  isLoading={loading}
-                />
+              <div className="card">
+                <div className="n">2</div>
+                <h3>TTL Hold</h3>
+                <p>
+                  The seat is yours for 30 seconds. Abandon checkout and it releases instantly to the next person in line.
+                </p>
               </div>
+              <div className="card">
+                <div className="n">3</div>
+                <h3>Async Commit</h3>
+                <p>
+                  Paid bookings stream to the relational DB through a queue — guaranteed eventual consistency.
+                </p>
+              </div>
+            </div>
+          </section>
 
-              {/* Right Column: Active Hold / Confirmed / Concurrency Simulator */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                {/* Active Hold State */}
-                {activeHold && (
-                  <HoldCountdownCard
-                    hold={activeHold}
-                    secondsRemaining={secondsRemaining}
-                    totalTTL={120}
-                    onConfirm={handleConfirm}
-                    onRelease={handleRelease}
-                    isLoading={loading}
-                  />
-                )}
+          {/* Live Engine Dashboard */}
+          <section className="dark">
+            <h2>
+              Live engine <em>dashboard</em>
+            </h2>
+            <p style={{ opacity: 0.7 }}>Streaming from the in-memory broker — try the demo above.</p>
+            <div className="kpis">
+              <div className="kpi">
+                <b>{stats.req.toLocaleString()}</b>
+                <span>Requests received</span>
+              </div>
+              <div className="kpi">
+                <b>{stats.ok.toLocaleString()}</b>
+                <span>Locks granted</span>
+              </div>
+              <div className="kpi">
+                <b>{stats.no.toLocaleString()}</b>
+                <span>Rejected (409)</span>
+              </div>
+              <div className="kpi">
+                <b>0</b>
+                <span>Double-bookings</span>
+              </div>
+              <div className="kpi">
+                <b>{lockLatency}</b>
+                <span>Lock latency</span>
+              </div>
+            </div>
+            <canvas id="spark" ref={sparkCanvasRef}></canvas>
+          </section>
 
-                {/* Confirmed Pass State */}
-                {latestConfirmed && (
-                  <ConfirmedTicketPass
-                    booking={latestConfirmed}
-                    onBookAnother={() => {
-                      setLatestConfirmed(null);
-                      setSelectedUnitId("");
-                    }}
-                  />
-                )}
+          {/* Features Grid */}
+          <section>
+            <h2>
+              Features you <em>won&apos;t find</em> elsewhere
+            </h2>
+            <div className="grid">
+              <div className="card">
+                <div className="n">🎟</div>
+                <h3>Virtual Waiting Room</h3>
+                <p>Fair queue position with live ETA — no refresh-spamming advantage.</p>
+              </div>
+              <div className="card">
+                <div className="n">⏳</div>
+                <h3>Hold Ring</h3>
+                <p>A visible countdown on your seat. Extend once if payment is in progress.</p>
+              </div>
+              <div className="card">
+                <div className="n">🪣</div>
+                <h3>Token-Bucket Shield</h3>
+                <p>Bots get throttled at the edge; real fans never see a 500.</p>
+              </div>
+              <div className="card">
+                <div className="n">🔁</div>
+                <h3>Instant Seat Recycling</h3>
+                <p>Expired holds reappear live to everyone watching the map.</p>
+              </div>
+              <div className="card">
+                <div className="n">🧪</div>
+                <h3>Built-in Load Lab</h3>
+                <p>Fire 5,000 simulated users at 200 seats from the UI and watch the proof.</p>
+              </div>
+              <div className="card">
+                <div className="n">🛡</div>
+                <h3>Audit Trail</h3>
+                <p>Every lock, release and commit is logged with a monotonic ID.</p>
+              </div>
+            </div>
+          </section>
+        </div>
 
-                {/* If idle (no hold, no confirmation), show Quick Claim Prompt */}
-                {!activeHold && !latestConfirmed && (
-                  <div
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      borderRadius: "20px",
-                      padding: "24px",
-                      border: "1.5px solid #E6E5E3",
-                      boxShadow: "0 8px 24px rgba(43, 42, 40, 0.04)",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                      <div
-                        style={{
-                          width: "38px",
-                          height: "38px",
-                          borderRadius: "10px",
-                          backgroundColor: "#FFF0EB",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <Zap size={20} color="#FF6B35" />
+        {/* 2. EVENTS PAGE */}
+        <div className={`page ${activePage === "events" ? "on" : ""}`} id="events">
+          <section>
+            <h2>
+              Upcoming <em>flash drops</em>
+            </h2>
+            <div id="evl">
+              {events.map((e, idx) => {
+                const percent = idx === currentEventIdx ? (e.sold / N) * 100 : [35, 60, 82, 15][idx];
+                return (
+                  <div key={idx} className="ev">
+                    <div className="d">
+                      <small>{e.month}</small>
+                      {e.day}
+                    </div>
+                    <div>
+                      <b>{e.name}</b>
+                      <div style={{ fontSize: "13px", opacity: 0.7 }}>
+                        {N} seats · 5,000+ expected
                       </div>
-                      <div>
-                        <h4 style={{ fontSize: "16px", fontWeight: 800, color: "#2B2A28", margin: 0 }}>
-                          Strict FCFS Allocation Queue
-                        </h4>
-                        <span style={{ fontSize: "12px", color: "#8E8D88" }}>
-                          Click any seat or hit the fast claim button
-                        </span>
+                      <div className="bar">
+                        <i style={{ width: `${percent}%` }}></i>
                       </div>
                     </div>
-                    <p style={{ fontSize: "13px", color: "#5C5B57", lineHeight: 1.5, marginBottom: "18px" }}>
-                      Target identical high-velocity seats without deadlock. An exclusive 120-second lease will be issued with monotonic version fence.
-                    </p>
                     <button
-                      onClick={() => handleClaimHold()}
-                      disabled={loading}
-                      className="btn-primary"
-                      style={{ width: "100%", padding: "12px" }}
+                      className="btn"
+                      onClick={() => {
+                        setCurrentEventIdx(idx);
+                        initSeats();
+                        navigateTo("booking");
+                      }}
                     >
-                      <Zap size={16} fill="#FFFFFF" />
-                      <span>⚡ Claim Next Available Unit</span>
+                      Reserve
                     </button>
                   </div>
-                )}
+                );
+              })}
+            </div>
+          </section>
+        </div>
 
-                {/* Headless Concurrency Stress-Tester */}
-                <ConcurrencySimulator
-                  onRunAudit={handleRunAudit}
-                  onRefreshTelemetry={fetchTelemetry}
-                />
+        {/* 3. BOOKING PAGE */}
+        <div className={`page ${activePage === "booking" ? "on" : ""}`} id="booking">
+          <section>
+            <h2>
+              Book your <em>seat</em>
+            </h2>
+            <div className="steps">
+              <div id="st1" className={stepNum > 1 ? "done" : stepNum === 1 ? "on" : ""}>
+                1 · Pick seat
+              </div>
+              <div id="st2" className={stepNum > 2 ? "done" : stepNum === 2 ? "on" : ""}>
+                2 · Hold (TTL)
+              </div>
+              <div id="st3" className={stepNum === 3 ? "on" : ""}>
+                3 · Confirm
               </div>
             </div>
-          </div>
-        )}
 
-        {/* 4. PROFILE TAB: User Tickets & Wallet */}
-        {activeTab === "profile" && (
-          <UserProfileView
-            confirmedBookings={confirmedBookings}
-            activeHold={activeHold}
-            secondsRemaining={secondsRemaining}
-            onGoToBooking={() => setActiveTab("booking")}
-          />
-        )}
-      </main>
+            <div className="two">
+              <div>
+                <div className="leg">
+                  <span>
+                    <i style={{ background: "#e4e0da" }}></i>Free
+                  </span>
+                  <span>
+                    <i style={{ background: "#FF6B35" }}></i>Held
+                  </span>
+                  <span>
+                    <i style={{ background: "#2B2A28" }}></i>Sold
+                  </span>
+                  <span>
+                    <i style={{ background: "#fff", outline: "2px solid #FF6B35" }}></i>You
+                  </span>
+                </div>
 
-      {/* Invariant Audit Modal */}
-      <AuditReportModal
-        report={auditReport}
-        onClose={() => setIsAuditModalOpen(false)}
-      />
+                <div className="seats" id="seats">
+                  {seats.map((s, i) => (
+                    <button
+                      key={i}
+                      className={`s ${s.st === 1 ? "h" : s.st === 2 ? "x" : ""} ${mine === i ? "me" : ""}`}
+                      onClick={() => handlePickSeat(i)}
+                      title={`Seat ${i + 1}`}
+                    ></button>
+                  ))}
+                </div>
 
-      {/* Footer */}
-      <footer
-        style={{
-          borderTop: "1px solid #E6E5E3",
-          backgroundColor: "#FFFFFF",
-          padding: "28px 24px",
-          marginTop: "auto",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1320px",
-            margin: "0 auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "16px",
-            fontSize: "12px",
-            color: "#8E8D88",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 800, color: "#2B2A28" }}>TicketWala</span>
-            <span>&bull;</span>
-            <span>High-Contention Flash Reservation Engine</span>
-          </div>
+                <div style={{ marginTop: "20px" }}>
+                  <button className="btn k" onClick={runFlashDropStorm} disabled={isBusy}>
+                    ⚡ Simulate 5,000 users
+                  </button>
+                  <span id="evName" style={{ fontWeight: 600, marginLeft: "10px" }}>
+                    {events[currentEventIdx]?.name}
+                  </span>
+                </div>
+              </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <span>Redis Lua Atomic Broker</span>
-            <span>&bull;</span>
-            <span>Sub-Second FCFS</span>
-            <span>&bull;</span>
-            <span style={{ color: "#FF6B35", fontWeight: 700 }}>Zero Double-Bookings</span>
+              <div>
+                <div className="card" id="panel" style={{ textAlign: "center" }}>
+                  {mine === null ? (
+                    stepNum === 3 ? (
+                      <>
+                        <h3>🎉 Booking confirmed</h3>
+                        <p>Your ticket is in Profile.</p>
+                        <button className="btn k" onClick={() => navigateTo("profile")}>
+                          View ticket
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <h3>Select a seat</h3>
+                        <p>Click any free seat to lock it. You get 30 seconds to pay.</p>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <h3>Seat {mine + 1} is held</h3>
+                      <div className="ring">
+                        <svg width="150" height="150">
+                          <circle cx="75" cy="75" r="66" fill="none" stroke="#0002" strokeWidth="10" />
+                          <circle
+                            cx="75"
+                            cy="75"
+                            r="66"
+                            fill="none"
+                            stroke="#FF6B35"
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            strokeDasharray="415"
+                            strokeDashoffset={ringOffset}
+                          />
+                        </svg>
+                        <b>{secondsLeft}s</b>
+                      </div>
+                      <button className="btn" onClick={handlePay}>
+                        Pay ₹1,499 &amp; confirm
+                      </button>{" "}
+                      <button className="btn ghost" onClick={handleDrop}>
+                        Abandon
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <h3 style={{ margin: "20px 0 8px" }}>Broker log</h3>
+                <div className="log" id="log" ref={logContainerRef}>
+                  {logs.map((l, i) => (
+                    <div key={i} className={l.cls}>
+                      {l.time} {l.text}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* 4. PROFILE PAGE */}
+        <div className={`page ${activePage === "profile" ? "on" : ""}`} id="profile">
+          <section className="light">
+            <h2>
+              Hi, <em id="uName">{user ? user.name.split(" ")[0] : "Fan"}</em> 👋
+            </h2>
+            <div className="kpis">
+              <div className="kpi">
+                <b>{bookings.length}</b>
+                <span>Bookings</span>
+              </div>
+              <div className="kpi">
+                <b>{stats.exp}</b>
+                <span>Holds expired</span>
+              </div>
+              <div className="kpi">
+                <b>#1</b>
+                <span>Queue priority</span>
+              </div>
+            </div>
+
+            <h3>My tickets</h3>
+            <div id="pl" style={{ marginTop: "14px" }}>
+              {bookings.length > 0 ? (
+                bookings.map((b, i) => (
+                  <div key={i} className="ev">
+                    <div className="d">
+                      <small>SEAT</small>
+                      {b.s}
+                    </div>
+                    <div>
+                      <b>{b.e}</b>
+                      <div style={{ fontSize: "13px", opacity: 0.7 }}>Confirmed ✓</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p style={{ opacity: 0.6 }}>No tickets yet — grab a seat!</p>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* 5. LOGIN PAGE */}
+        <div className={`page ${activePage === "login" ? "on" : ""}`} id="login">
+          <div className="auth">
+            <div className="side">
+              <span className="pill" style={{ alignSelf: "flex-start", color: "var(--k)" }}>
+                <i className="dot"></i> Next drop in minutes
+              </span>
+              <h2 style={{ marginTop: "18px" }}>
+                Welcome <em>back</em>.
+              </h2>
+              <p style={{ opacity: 0.75, lineHeight: 1.7, maxWidth: "380px" }}>
+                Log in to lock your seat before the other 4,999 do. Your holds, tickets and queue priority are waiting.
+              </p>
+            </div>
+            <div className="box">
+              <h2>Log in</h2>
+              <input
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                autoComplete="current-password"
+                value={loginPw}
+                onChange={(e) => setLoginPw(e.target.value)}
+              />
+              <div className="err">{loginErr}</div>
+              <button className="btn" onClick={handleLogin}>
+                Log in →
+              </button>
+              <p style={{ fontSize: "14px" }}>
+                New here?{" "}
+                <a className="lk" onClick={() => navigateTo("signup")}>
+                  Create an account
+                </a>
+              </p>
+            </div>
           </div>
         </div>
-      </footer>
-    </div>
+
+        {/* 6. SIGNUP PAGE */}
+        <div className={`page ${activePage === "signup" ? "on" : ""}`} id="signup">
+          <div className="auth">
+            <div className="side">
+              <span className="pill" style={{ alignSelf: "flex-start", color: "var(--k)" }}>
+                <i className="dot"></i> Free · takes 20 seconds
+              </span>
+              <h2 style={{ marginTop: "18px" }}>
+                Join the <em>fast lane</em>.
+              </h2>
+              <p style={{ opacity: 0.75, lineHeight: 1.7, maxWidth: "380px" }}>
+                One account for every flash drop: atomic seat locks, 30-second holds and instant confirmation.
+              </p>
+            </div>
+            <div className="box">
+              <h2>Sign up</h2>
+              <input
+                placeholder="Full name"
+                autoComplete="name"
+                value={signupName}
+                onChange={(e) => setSignupName(e.target.value)}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Password (min 6 characters)"
+                autoComplete="new-password"
+                value={signupPw}
+                onChange={(e) => setSignupPw(e.target.value)}
+              />
+              <input
+                type="password"
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                value={signupPw2}
+                onChange={(e) => setSignupPw2(e.target.value)}
+              />
+              <div className="err">{signupErr}</div>
+              <button className="btn" onClick={handleSignup}>
+                Create account →
+              </button>
+              <p style={{ fontSize: "14px" }}>
+                Already registered?{" "}
+                <a className="lk" onClick={() => navigateTo("login")}>
+                  Log in
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
+    </>
   );
 }

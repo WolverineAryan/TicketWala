@@ -1,14 +1,27 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { HoldResponse } from "@/types/api";
-import { Clock, CheckCircle2, XCircle, ShieldAlert, KeyRound, Ticket } from "lucide-react";
+import {
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Ticket,
+  ShieldCheck,
+  CreditCard,
+  Smartphone,
+  Building,
+  User,
+  Mail,
+  Phone,
+  Lock,
+} from "lucide-react";
 
 interface HoldCountdownCardProps {
   hold: HoldResponse;
   secondsRemaining: number;
   totalTTL?: number;
-  onConfirm: () => void;
+  onConfirm: (passengerData: { name: string; email: string; phone: string; paymentMethod: "UPI" | "CARD" | "NETBANKING" }) => void;
   onRelease: () => void;
   isLoading: boolean;
 }
@@ -21,8 +34,27 @@ export const HoldCountdownCard: React.FC<HoldCountdownCardProps> = ({
   onRelease,
   isLoading,
 }) => {
+  const [name, setName] = useState("Rushikesh Thormise");
+  const [email, setEmail] = useState("rushikesh@ticketwala.io");
+  const [phone, setPhone] = useState("+91 98765 43210");
+  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "CARD" | "NETBANKING">("UPI");
+
   const progressPercent = Math.max(0, Math.min(100, (secondsRemaining / totalTTL) * 100));
-  const isUrgent = secondsRemaining <= 20;
+  const isUrgent = secondsRemaining <= 25;
+
+  const basePrice = hold.price || 4500;
+  const taxes = Math.round(basePrice * 0.05); // 5% GST
+  const totalPrice = basePrice + taxes;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm({
+      name,
+      email,
+      phone,
+      paymentMethod,
+    });
+  };
 
   return (
     <div
@@ -30,189 +62,289 @@ export const HoldCountdownCard: React.FC<HoldCountdownCardProps> = ({
         backgroundColor: "#FFFFFF",
         borderRadius: "20px",
         padding: "24px",
-        border: "2px solid #FF6B35",
-        boxShadow: "0 12px 36px rgba(255, 107, 53, 0.16)",
+        border: isUrgent ? "2px solid #EF4444" : "2px solid #FF6B35",
+        boxShadow: isUrgent
+          ? "0 12px 36px rgba(239, 68, 68, 0.2)"
+          : "0 12px 36px rgba(255, 107, 53, 0.16)",
         position: "relative",
         overflow: "hidden",
+        transition: "border-color 0.3s ease",
       }}
     >
-      {/* Background Accent glow */}
+      {/* Top Countdown Header */}
       <div
         style={{
-          position: "absolute",
-          top: "-50px",
-          right: "-50px",
-          width: "160px",
-          height: "160px",
-          borderRadius: "50%",
-          backgroundColor: "#FFF0EB",
-          zIndex: 0,
-          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "12px",
+          marginBottom: "16px",
+          paddingBottom: "14px",
+          borderBottom: "1px solid #F1F5F9",
         }}
-      />
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "12px",
+              backgroundColor: isUrgent ? "#FEE2E2" : "#FFF0EB",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: `1px solid ${isUrgent ? "#EF4444" : "#FF6B35"}`,
+            }}
+          >
+            <Ticket size={22} color={isUrgent ? "#EF4444" : "#FF6B35"} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "17px", fontWeight: 800, color: "#1E293B" }}>
+                Seat Held: {hold.unitId}
+              </span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  backgroundColor: isUrgent ? "#EF4444" : "#FF6B35",
+                  color: "#FFFFFF",
+                  padding: "2px 8px",
+                  borderRadius: "9999px",
+                }}
+              >
+                HELD
+              </span>
+            </div>
+            <span style={{ fontSize: "12px", color: "#64748B" }}>
+              {hold.tierName || "Standard"} • {hold.eventTitle || "Multipurpose Event"}
+            </span>
+          </div>
+        </div>
 
-      <div style={{ position: "relative", zIndex: 1 }}>
-        {/* Top Header */}
+        {/* Live Countdown Badge */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "12px",
-            marginBottom: "18px",
+            gap: "8px",
+            backgroundColor: isUrgent ? "#FEE2E2" : "#FFF0EB",
+            color: isUrgent ? "#DC2626" : "#C2410C",
+            padding: "8px 14px",
+            borderRadius: "9999px",
+            fontWeight: 800,
+            fontSize: "14px",
+            border: `1px solid ${isUrgent ? "#FCA5A5" : "rgba(255, 107, 53, 0.3)"}`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "12px",
-                backgroundColor: "#FFF0EB",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid rgba(255, 107, 53, 0.4)",
-              }}
-            >
-              <Ticket size={22} color="#FF6B35" />
+          <Clock size={16} />
+          <span>
+            {Math.floor(secondsRemaining / 60)}:
+            {String(secondsRemaining % 60).padStart(2, "0")}
+          </span>
+          <span style={{ fontSize: "11px", fontWeight: 600 }}>left to pay</span>
+        </div>
+      </div>
+
+      {/* Expiry Bar */}
+      <div style={{ height: "6px", backgroundColor: "#F1F5F9", borderRadius: "9999px", overflow: "hidden", marginBottom: "20px" }}>
+        <div
+          style={{
+            height: "100%",
+            width: `${progressPercent}%`,
+            backgroundColor: isUrgent ? "#EF4444" : "#FF6B35",
+            transition: "width 1s linear, background-color 0.3s ease",
+          }}
+        />
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* Passenger / Guest Details */}
+        <div style={{ marginBottom: "18px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "8px" }}>
+            Passenger / Attendee Details
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
+            <div style={{ position: "relative" }}>
+              <User size={15} color="#94A3B8" style={{ position: "absolute", left: "12px", top: "12px" }} />
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full Name as on ID"
+                style={{
+                  width: "100%",
+                  padding: "10px 12px 10px 36px",
+                  borderRadius: "10px",
+                  border: "1.5px solid #E2E8F0",
+                  fontSize: "13px",
+                  color: "#1E293B",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
             </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontSize: "16px", fontWeight: 800, color: "#2B2A28" }}>
-                  Active Hold: {hold.unitId}
-                </span>
-                <span
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div style={{ position: "relative" }}>
+                <Mail size={15} color="#94A3B8" style={{ position: "absolute", left: "12px", top: "12px" }} />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email Address"
                   style={{
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    backgroundColor: "#FF6B35",
-                    color: "#FFFFFF",
-                    padding: "2px 8px",
-                    borderRadius: "9999px",
+                    width: "100%",
+                    padding: "10px 12px 10px 36px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #E2E8F0",
+                    fontSize: "13px",
+                    color: "#1E293B",
+                    outline: "none",
+                    boxSizing: "border-box",
                   }}
-                >
-                  HELD
-                </span>
+                />
               </div>
-              <div style={{ fontSize: "12px", color: "#8E8D88" }}>
-                Exclusive transactional hold locked via Redis Lua
+
+              <div style={{ position: "relative" }}>
+                <Phone size={15} color="#94A3B8" style={{ position: "absolute", left: "12px", top: "12px" }} />
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Mobile Number"
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px 10px 36px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #E2E8F0",
+                    fontSize: "13px",
+                    color: "#1E293B",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Countdown Clock Display */}
+        {/* Payment Method Selector */}
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "8px" }}>
+            Select Payment Method
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+            {[
+              { id: "UPI", label: "UPI Instant", icon: Smartphone, desc: "GPay / PhonePe" },
+              { id: "CARD", label: "Debit / Card", icon: CreditCard, desc: "Visa / Master" },
+              { id: "NETBANKING", label: "Net Banking", icon: Building, desc: "All Major Banks" },
+            ].map((method) => {
+              const isSelected = paymentMethod === method.id;
+              const Icon = method.icon;
+              return (
+                <div
+                  key={method.id}
+                  onClick={() => setPaymentMethod(method.id as any)}
+                  style={{
+                    border: isSelected ? "2px solid #2563EB" : "1.5px solid #E2E8F0",
+                    backgroundColor: isSelected ? "#EFF6FF" : "#FFFFFF",
+                    borderRadius: "12px",
+                    padding: "10px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                    textAlign: "center",
+                  }}
+                >
+                  <Icon size={18} color={isSelected ? "#2563EB" : "#64748B"} style={{ margin: "0 auto 4px auto" }} />
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: isSelected ? "#1E3A8A" : "#334155", display: "block" }}>
+                    {method.label}
+                  </span>
+                  <span style={{ fontSize: "10px", color: "#64748B" }}>{method.desc}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Fare Summary Breakdown */}
+        <div
+          style={{
+            backgroundColor: "#F8FAFC",
+            borderRadius: "12px",
+            padding: "14px 16px",
+            border: "1px solid #E2E8F0",
+            marginBottom: "20px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "6px" }}>
+            <span>Seat Base Fare ({hold.tierName || "Standard"})</span>
+            <span>₹{basePrice.toLocaleString("en-IN")}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#475569", marginBottom: "8px" }}>
+            <span>GST &amp; Security Convenience Fee</span>
+            <span>₹{taxes.toLocaleString("en-IN")}</span>
+          </div>
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: isUrgent ? "#FEE2E2" : "#FFF0EB",
-              border: `1.5px solid ${isUrgent ? "#EF4444" : "#FF6B35"}`,
-              padding: "6px 14px",
-              borderRadius: "9999px",
-              color: isUrgent ? "#B91C1C" : "#FF6B35",
+              justifyContent: "space-between",
+              fontSize: "15px",
               fontWeight: 800,
-              fontSize: "14px",
+              color: "#0F172A",
+              borderTop: "1px dashed #CBD5E1",
+              paddingTop: "8px",
             }}
           >
-            <Clock size={16} />
-            <span>{secondsRemaining}s Remaining</span>
+            <span>Total Payable</span>
+            <span style={{ color: "#059669" }}>₹{totalPrice.toLocaleString("en-IN")}</span>
           </div>
         </div>
 
-        {/* Progress Bar for TTL */}
-        <div
-          style={{
-            width: "100%",
-            height: "6px",
-            backgroundColor: "#F1F1EF",
-            borderRadius: "3px",
-            overflow: "hidden",
-            marginBottom: "18px",
-          }}
-        >
-          <div
-            style={{
-              width: `${progressPercent}%`,
-              height: "100%",
-              backgroundColor: isUrgent ? "#EF4444" : "#FF6B35",
-              transition: "width 1s linear, background-color 0.3s ease",
-            }}
-          />
-        </div>
-
-        {/* Reservation Metadata Details */}
-        <div
-          style={{
-            backgroundColor: "#F8F8F7",
-            borderRadius: "12px",
-            padding: "14px 18px",
-            marginBottom: "20px",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "10px",
-            fontSize: "12px",
-          }}
-        >
-          <div>
-            <span style={{ color: "#8E8D88", display: "block" }}>Reservation ID</span>
-            <span style={{ fontWeight: 700, color: "#2B2A28", fontFamily: "monospace", fontSize: "11px" }}>
-              {hold.reservationId}
-            </span>
-          </div>
-
-          <div>
-            <span style={{ color: "#8E8D88", display: "block" }}>Hold Token (Fenced Secret)</span>
-            <span style={{ fontWeight: 700, color: "#2B2A28", fontFamily: "monospace", fontSize: "11px" }}>
-              {hold.holdToken?.slice(0, 16)}...
-            </span>
-          </div>
-
-          <div>
-            <span style={{ color: "#8E8D88", display: "block" }}>Monotonic Version</span>
-            <span style={{ fontWeight: 700, color: "#2B2A28" }}>v{hold.version}</span>
-          </div>
-
-          <div>
-            <span style={{ color: "#8E8D88", display: "block" }}>Event Scope</span>
-            <span style={{ fontWeight: 700, color: "#2B2A28" }}>{hold.eventId || "evt-main"}</span>
-          </div>
-        </div>
-
-        {/* Actions (Confirm vs Abandon) */}
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
-            onClick={onConfirm}
+            type="submit"
             disabled={isLoading || secondsRemaining <= 0}
             className="btn-primary"
-            style={{ flex: "1 1 200px", padding: "12px 20px" }}
+            style={{
+              flex: 1,
+              padding: "12px 18px",
+              fontSize: "14px",
+              fontWeight: 800,
+              borderRadius: "12px",
+              backgroundColor: "#059669",
+              borderColor: "#059669",
+            }}
           >
-            <CheckCircle2 size={18} />
-            <span>{isLoading ? "Processing Lock..." : "💳 Confirm & Pay (Simulated)"}</span>
+            <Lock size={15} fill="#FFFFFF" />
+            <span>{isLoading ? "Processing Payment..." : `Pay ₹${totalPrice.toLocaleString("en-IN")} & Confirm`}</span>
           </button>
 
           <button
+            type="button"
             onClick={onRelease}
             disabled={isLoading}
-            className="btn-secondary"
             style={{
-              flex: "0 1 180px",
-              padding: "12px 18px",
+              padding: "12px 16px",
+              fontSize: "13px",
+              fontWeight: 700,
               color: "#DC2626",
-              borderColor: "rgba(220, 38, 38, 0.3)",
+              backgroundColor: "#FEF2F2",
+              border: "1.5px solid #FCA5A5",
+              borderRadius: "12px",
+              cursor: "pointer",
             }}
           >
-            <XCircle size={18} />
-            <span>Abandon / Release</span>
+            <XCircle size={15} />
+            <span>Cancel</span>
           </button>
         </div>
-
-        <p style={{ margin: "14px 0 0 0", fontSize: "11px", color: "#8E8D88", textAlign: "center" }}>
-          ⚡ Strict Safety: If timer hits 0s, Lua script releases hold and requeues unit to FIFO queue with zero race hazard.
-        </p>
-      </div>
+      </form>
     </div>
   );
 };
