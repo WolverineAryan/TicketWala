@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:concurrency": "vitest run tests/concurrency",
     "bench:smoke": "k6 run tests/load/smoke.js",
-    "bench:burst": "k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js"
+    "bench:burst": "k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js",
+    "bench:demo": "k6 run tests/load/demo-burst.js"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
