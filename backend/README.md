@@ -55,3 +55,39 @@ npm run ops:audit
 # Run 5,000+ request burst benchmark
 npm run bench:burst
 ```
+
+## Manual demo traffic burst
+
+Run this from a terminal before the demo; it does not add a button or load
+traffic from visitors' browsers. It sends 5,000 hold requests to the selected
+API using up to 250 virtual users, after checking API health and that the event
+exists. This is 5,000 requests, not 5,000 simultaneous real users.
+
+Use a dedicated demo deployment and an event reserved for load testing. Each
+successful request creates a real temporary hold and consumes demo inventory
+until it expires; do not point this test at an event accepting real bookings.
+The script intentionally requires the target and event to be supplied and
+requires explicit confirmation for remote targets.
+
+PowerShell example:
+
+```powershell
+$env:BASE_URL = "https://your-demo-api.example.com"
+$env:EVENT_ID = "evt-flight-ai101"
+$env:CONFIRM_DEMO_TARGET = "YES"
+$env:ALLOW_REMOTE_TARGET = "YES"
+npm run bench:demo --workspace=ticketwala-backend
+```
+
+Optionally lower the load, up to the script limits of 5,000 total requests and
+250 virtual users:
+
+```powershell
+$env:TOTAL_REQUESTS = "1000"
+$env:VUS = "100"
+```
+
+Close the test terminal to stop a running test. Keep the demo website open for
+viewers; this script sends traffic directly to the API and does not make the
+browser display a load-test dashboard. Refresh the event/seat view to see
+availability changes if the page does not update automatically.
