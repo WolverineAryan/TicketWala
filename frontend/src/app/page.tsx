@@ -977,6 +977,13 @@ function findNearestCity(lat: number, lng: number): City {
 }
 
 export default function TicketWalaPage() {
+  // Client-side mount tracking to eliminate browser-extension hydration mismatches (e.g. fdprocessedid)
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Navigation & Page State (default to home)
   const [activePage, setActivePage] = useState<string>("home");
 
@@ -1806,12 +1813,41 @@ export default function TicketWalaPage() {
   const secondsLeft = mine !== null && seats[mine] ? Math.max(0, Math.ceil((seats[mine].t - Date.now()) / 1000)) : 0;
   const ringOffset = 415 * (1 - secondsLeft / TTL);
 
+  if (!isMounted) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#ffffff",
+          color: "#2B2A28",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'Poppins', sans-serif",
+        }}
+        suppressHydrationWarning
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+          <img
+            src="/logo-navbar.png"
+            alt="TicketWala"
+            style={{ height: "46px", width: "auto" }}
+          />
+        </div>
+        <div style={{ fontSize: "14px", color: "#8c8880", fontWeight: 600 }}>
+          Initializing TicketWala Engine...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* NAVIGATION BAR */}
-      <nav>
-        <div className="nav-left-group">
-          <div className="logo" onClick={() => navigateTo("home")} role="button" tabIndex={0} style={{ cursor: "pointer" }}>
+      <nav suppressHydrationWarning>
+        <div className="nav-left-group" suppressHydrationWarning>
+          <div className="logo" onClick={() => navigateTo("home")} role="button" tabIndex={0} style={{ cursor: "pointer" }} suppressHydrationWarning>
             <img
               src="/logo-navbar.png"
               alt="TicketWala"
