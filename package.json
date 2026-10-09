@@ -1,0 +1,43 @@
+{
+  "name": "ticketwala",
+  "version": "1.0.0",
+  "description": "High-Contention Flash-Reservation & Adaptive Seat Inventory Locking Engine",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=ticketwala-frontend",
+    "dev:backend": "npm run dev:api --workspace=ticketwala-backend",
+    "dev:api": "npm run dev:api --workspace=ticketwala-backend",
+    "dev:worker": "npm run dev:worker --workspace=ticketwala-backend",
+    "build:frontend": "npm run build --workspace=ticketwala-frontend",
+    "build:backend": "npm run build --workspace=ticketwala-backend",
+    "build": "npm run build --workspaces --if-present",
+    "start:frontend": "npm run start --workspace=ticketwala-frontend",
+    "start:api": "npm run start:api --workspace=ticketwala-backend",
+    "start:worker": "npm run start:worker --workspace=ticketwala-backend",
+    "db:migrate": "npm run db:migrate --workspace=ticketwala-backend",
+    "db:seed": "npm run db:seed --workspace=ticketwala-backend",
+    "ops:audit": "npm run ops:audit --workspace=ticketwala-backend",
+    "test": "npm run test --workspace=ticketwala-backend",
+    "test:concurrency": "npm run test:concurrency --workspace=ticketwala-backend",
+    "bench:smoke": "npm run bench:smoke --workspace=ticketwala-backend",
+    "bench:burst": "npm run bench:burst --workspace=ticketwala-backend"
+  },
+  "keywords": [
+    "redis",
+    "lua",
+    "supabase",
+    "postgres",
+    "high-concurrency",
+    "reservations",
+    "fcfs",
+    "token-bucket",
+    "fastify",
+    "nextjs"
+  ],
+  "author": "WolverineAryan",
+  "license": "MIT"
+}

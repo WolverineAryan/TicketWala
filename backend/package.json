@@ -1,0 +1,38 @@
+{
+  "name": "ticketwala-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TicketWala High-Contention Flash Reservation & Locking Engine Backend",
+  "scripts": {
+    "build": "tsc",
+    "dev:api": "tsx watch src/api/server.ts",
+    "dev:worker": "tsx watch src/worker/worker.ts",
+    "start:api": "node dist/api/server.js",
+    "start:worker": "node dist/worker/worker.js",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "ops:audit": "tsx scripts/audit.ts",
+    "test": "vitest run",
+    "test:concurrency": "vitest run tests/concurrency",
+    "bench:smoke": "k6 run tests/load/smoke.js",
+    "bench:burst": "k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/sensible": "^6.0.3",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "ioredis": "^5.5.0",
+    "pg": "^8.13.3",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@types/pg": "^8.11.11",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

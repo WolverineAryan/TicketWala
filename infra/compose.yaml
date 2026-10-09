@@ -1,0 +1,90 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: ticketwala-redis
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ticketwala-postgres
+    environment:
+      POSTGRES_USER: ticketwala
+      POSTGRES_PASSWORD: ticketwala_secure_password
+      POSTGRES_DB: ticketwala
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ../backend/db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketwala -d ticketwala"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.api
+    container_name: ticketwala-api
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8000
+      HOST: 0.0.0.0
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
+      DATABASE_DIRECT_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
+      RESERVATION_TTL_SECONDS: 120
+      RATE_LIMIT_MAX_PER_MINUTE: 10000
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.worker
+    container_name: ticketwala-worker
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_DIRECT_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
+      DATABASE_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
+      CONSUMER_GROUP: ticketwala_workers
+      BATCH_SIZE: 50
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: ticketwala-frontend
+    depends_on:
+      - api
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  pg_data:

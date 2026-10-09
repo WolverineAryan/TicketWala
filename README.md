@@ -2,6 +2,7 @@
 ### High-Contention Flash-Reservation & Adaptive Seat Inventory Locking Engine
 
 [![Runtime: Node.js 20+](https://img.shields.io/badge/Runtime-Node.js%2020%2B-brightgreen.svg)](https://nodejs.org/)
+[![Frontend: Next.js 15](https://img.shields.io/badge/Frontend-Next.js%2015-black.svg)](https://nextjs.org/)
 [![API: Fastify TypeScript](https://img.shields.io/badge/API-Fastify%20TypeScript-blue.svg)](https://fastify.dev/)
 [![Memory Broker: Upstash Redis](https://img.shields.io/badge/Memory-Upstash%20Redis%20(TLS)-red.svg)](https://upstash.com/)
 [![Durable Ledger: Supabase Postgres](https://img.shields.io/badge/Database-Supabase%20Postgres-emerald.svg)](https://supabase.com/)
@@ -12,7 +13,7 @@
 
 ## 📌 Problem Statement & Architecture Vision
 
-High-velocity digital ticket releases (stadium concerts like Coldplay, Diljit Dosanjh, Taylor Swift, sports playoffs, transit drops) drive thousands of concurrent users to target identical limited inventory slots simultaneously. Under this extreme contention, traditional architectures collapse:
+High-velocity digital ticket releases (stadium concerts, sports playoffs, transit flash allocations) drive thousands of concurrent users to target identical limited inventory slots simultaneously. Under this extreme contention, traditional architectures collapse:
 1. **Database Deadlocks & Pool Starvation:** Relational row-level pessimistic locking (`SELECT ... FOR UPDATE`) serializes requests at the database engine, causing 5-second lock waits, connection exhaustion (`sorry, too many clients already`), and cascading server failure.
 2. **Race Hazards & Double-Bookings:** Naive read-then-write caching patterns allow competing threads to see the same seat as available before updating, resulting in multiple customers paying for the same ticket.
 3. **Delayed Lock Leaks:** Distributed locks without monotonic fencing permit delayed expiration jobs to inadvertently revoke a seat that has already been reassigned to a newer buyer.
@@ -24,16 +25,55 @@ High-velocity digital ticket releases (stadium concerts like Coldplay, Diljit Do
 
 ---
 
+## 🗂️ Clean Repository Structure: Frontend & Backend
+
+The repository is divided into two distinct, decoupled environments:
+
+```
+TicketWala/
+├── frontend/                  # Next.js 15 Client & Scaffold
+│   ├── src/
+│   │   ├── app/               # App Router pages (layout.tsx, page.tsx)
+│   │   └── types/api.ts       # Fully typed API DTOs & Contracts
+│   ├── Dockerfile             # Standalone Frontend Container
+│   ├── package.json           # Frontend dependencies (React 19, Next 15)
+│   └── README.md              # Frontend Developer Guide
+│
+├── backend/                   # High-Concurrency Core Engine
+│   ├── src/
+│   │   ├── api/server.ts      # Fastify REST Gateway
+│   │   ├── worker/worker.ts   # Redis Streams -> Supabase Sync Worker
+│   │   ├── lua/               # Atomic Lua Scripts (Adaptive Bucket, FCFS)
+│   │   └── contracts/         # Zod schemas & shared DTOs
+│   ├── db/migrations/         # Supabase PostgreSQL DDL & Invariants
+│   ├── scripts/               # migrate.ts, seed.ts, audit.ts
+│   ├── tests/
+│   │   ├── concurrency/       # 50:1 race hazard test suite
+│   │   └── load/              # k6 5,000+ request burst scripts
+│   ├── Dockerfile.api         # Fastify API Container
+│   ├── Dockerfile.worker      # Persistence Worker Container
+│   ├── package.json           # Backend dependencies (Fastify, ioredis, pg)
+│   └── README.md              # Backend Developer Guide
+│
+├── infra/
+│   └── compose.yaml           # Docker Compose full-stack orchestration
+├── docs/                      # PRD, SRS, Implementation Plan PDFs (local)
+├── .env.example               # Unified environment variables
+└── README.md                  # Project Root Documentation
+```
+
+---
+
 ## 🏛️ System Architecture Topology
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["Client & Operations Layer"]
+    subgraph ClientLayer ["Client & Operations Layer (frontend/)"]
         A["Next.js 15 Customer Booking UI"]
         B["Contention Observatory Dashboard"]
     end
 
-    subgraph APILayer ["Fastify API Web Service (Render)"]
+    subgraph APILayer ["Fastify API Web Service (backend/src/api)"]
         LIVE["/health/live (Liveness)"]
         READY["/health/ready (Readiness)"]
         VAL["Zod Validation & SHA-256 Idempotency"]
@@ -46,8 +86,8 @@ flowchart TD
         STREAM[("Redis Stream: ticketwala:events")]
     end
 
-    subgraph WorkerLayer ["Durable Persistence Worker (Render)"]
-        WORKER["Consumer Group: ticketwalla_workers (XREADGROUP)"]
+    subgraph WorkerLayer ["Durable Persistence Worker (backend/src/worker)"]
+        WORKER["Consumer Group: ticketwala_workers (XREADGROUP)"]
         RECOVER["Crash Recovery Protocol (XAUTOCLAIM)"]
     end
 
@@ -57,7 +97,7 @@ flowchart TD
         TABLES[("reservations & events Tables (ACID Unique Constraints)")]
     end
 
-    subgraph AuditLayer ["Independent Invariant Auditor"]
+    subgraph AuditLayer ["Independent Invariant Auditor (scripts/audit.ts)"]
         AUDIT{"4-Point Cross-Store Mathematical Verification"}
     end
 
@@ -89,9 +129,9 @@ flowchart TD
 
 ---
 
-## ⚡ Adaptive Request Balancing: How it Works
+## ⚡ Adaptive Request Balancing: Dynamic Capacity Scaling
 
-The 5,000+ requests against 200 seats represents our **reference high-contention validation scenario**, but the TicketWala engine is fully parameterized to support arbitrary seat counts $N$ (e.g., $N=50$, $N=200$, $N=1,000$, $N=10,000$):
+The 5,000+ requests against 200 seats represents our **reference high-contention validation scenario**, but TicketWala is fully parameterized to support arbitrary seat counts $N$ (e.g., $N=50$, $N=200$, $N=1,000$, $N=10,000$):
 
 $$\text{AdmissionRate}(t) = f(S_{\text{available}}(t), S_{\text{capacity}})$$
 
@@ -104,8 +144,8 @@ $$\text{AdmissionRate}(t) = f(S_{\text{available}}(t), S_{\text{capacity}})$$
 ## ☁️ Deployment Architecture: Render + Upstash + Supabase
 
 ### 1. Supabase Dual-Connection Topology
-* **Transaction Pooler (Port 6543 via Supavisor):** Configured for `apps/api`. Under burst contention, queries flow through Supavisor, preventing PostgreSQL connection exhaustion.
-* **Direct Connection (Port 5432):** Configured for `apps/worker` and migration scripts (`db/migrations/`) for session-level batch commits and DDL transactions.
+* **Transaction Pooler (Port 6543 via Supavisor):** Configured for `DATABASE_URL`. Under burst contention, queries flow through Supavisor, preventing PostgreSQL connection exhaustion.
+* **Direct Connection (Port 5432):** Configured for `DATABASE_DIRECT_URL` (`worker` and `scripts/migrate.ts`) for session-level batch commits and DDL transactions.
 
 ### 2. Two-Tier Health Probes
 * `GET /health/live` &mdash; Fast process liveness probe for container lifecycle management.
@@ -114,10 +154,8 @@ $$\text{AdmissionRate}(t) = f(S_{\text{available}}(t), S_{\text{capacity}})$$
 ### 3. Graceful Shutdown (`SIGTERM`)
 When Render scales down or updates a container, the process ceases accepting new requests, flushes in-flight worker batches to Supabase, issues `XACK` confirmations, and drains connection pools cleanly within 10 seconds.
 
-### 4. Venue-Proof Local Fallback (Hackathon Wi-Fi Insurance)
-To guard against venue Wi-Fi failure or cloud cold starts during judging:
-* TicketWala includes a 1-command offline setup via `infra/compose.yaml` (or local PostgreSQL 18 + local Redis).
-* The entire system, k6 benchmark, and Contention Observatory can run 100% offline on `http://localhost:3000`.
+### 4. Venue-Proof Local Fallback
+TicketWala includes a 1-command offline setup via `infra/compose.yaml`. The entire system, k6 benchmark, and Contention Observatory can run 100% offline.
 
 ---
 
@@ -125,83 +163,76 @@ To guard against venue Wi-Fi failure or cloud cold starts during judging:
 
 | Method & Path | Headers Required | Payload / Parameters | Success Response | Standard Errors |
 |---|---|---|---|---|
-| `POST /api/v1/reservations/hold` | `Idempotency-Key`<br>`X-Client-Id` | `{ "eventId": "evt-01" }` | `201 Created`<br>`{ "reservationId": "uuid", "unitId": "unit-012", "holdToken": "secret", "expiresAt": 1791535000 }` | `409 SOLD_OUT`<br>`422 IDEMPOTENCY_CONFLICT`<br>`429 RATE_LIMITED` |
+| `POST /api/v1/reservations/hold` | `Idempotency-Key` | `{ "eventId": "evt-main" }` | `201 Created`<br>`{ "reservationId": "uuid", "unitId": "unit-012", "holdToken": "secret", "expiresAt": 1791535000 }` | `409 SOLD_OUT`<br>`422 IDEMPOTENCY_CONFLICT`<br>`429 RATE_LIMITED` |
 | `POST /api/v1/reservations/:id/confirm` | `Idempotency-Key` | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "CONFIRMED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN`<br>`409 HOLD_EXPIRED`<br>`409 ALREADY_CONFIRMED` |
 | `POST /api/v1/reservations/:id/release` | None | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "RELEASED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN` |
-| `GET /api/v1/reservations/:id` | None | URL Path ID | `200 OK` (State, Timestamps; *Token Redacted*) | `404 NOT_FOUND` |
 | `GET /api/v1/ops/inventory` | None | None | `200 OK` (Full seat status array & versions) | `500 INTERNAL_ERROR` |
-| `GET /api/v1/ops/metrics` | None | None | `200 OK` (RPS, latency percentiles, queue lag) | `500 INTERNAL_ERROR` |
+| `GET /api/v1/ops/metrics` | None | None | `200 OK` (Queue size, holds, confirms, sold out count) | `500 INTERNAL_ERROR` |
 | `POST /api/v1/ops/audit` | None | None | `200 OK` (4-point invariant verification report) | `500 AUDIT_FAILED` |
-| `GET /health/live` | None | None | `200 OK` (`{ "status": "UP" }`) | - |
-| `GET /health/ready` | None | None | `200 OK` (`{ "status": "READY", "redis": true, "postgres": true }`) | `503 SERVICE_UNAVAILABLE` |
+| `GET /health/live` | None | None | `200 OK` (`{ "status": "alive" }`) | - |
+| `GET /health/ready` | None | None | `200 OK` (`{ "status": "ready", "redis": "healthy", "postgres": "healthy" }`) | `503 SERVICE_UNAVAILABLE` |
 
 ---
 
 ## 🚀 Quickstart & Setup Guide
 
-### Prerequisites
-* **Node.js:** v20.x or higher (`node -v`)
-* **Package Manager:** npm or pnpm
-* **Datastores:** Upstash Redis (or local Redis) + Supabase Postgres (or local Postgres)
-* **Load Runner:** [k6 CLI](https://k6.io/) installed
-
-### 1. Clone & Configure
+### 1. Configure Environment
 ```bash
-git clone https://github.com/WolverineAryan/TicketWala.git
-cd TicketWala
-
 # Copy environment template
 cp .env.example .env
 ```
 
-### 2. Database Migrations
-Apply versioned migrations to Supabase PostgreSQL:
+### 2. Frontend Development (UI Developer)
 ```bash
-npm run db:migrate
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
-### 3. Start Local Development
+### 3. Backend Development (Backend / Systems Engineer)
 ```bash
-# Terminal 1: Fastify API Gateway
+cd backend
+npm install
+
+# Run database migrations against Supabase
+npm run db:migrate
+
+# Seed event inventory (e.g., 200 units)
+npm run db:seed 200
+
+# Start API Gateway (Port 8000)
 npm run dev:api
 
-# Terminal 2: Persistence Worker
+# Start Stream Persistence Worker
 npm run dev:worker
+```
 
-# Terminal 3: Next.js Frontend & Contention Observatory
-npm run dev:web
+### 4. Running from Workspace Root
+```bash
+npm run dev:frontend   # Launches Next.js UI
+npm run dev:backend    # Launches Fastify API
+npm run dev:worker     # Launches Sync Worker
+npm run test           # Executes Concurrency test suite
+npm run ops:audit      # Runs Invariant Mathematical Auditor
 ```
 
 ---
 
 ## 📊 High-Concurrency Load Benchmark (k6)
 
-Run the headless 5,000+ request contention suite against the running instance:
+Run the headless 5,000+ request contention suite:
 ```bash
-# 1. Smoke test (sanity check)
-k6 run tests/load/smoke.js
-
-# 2. 5,000-Request Contention Burst
-k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js
+# In backend/ directory:
+npm run bench:smoke
+npm run bench:burst
 ```
 
-### Expected Benchmark Results
-* **Total Offered Requests:** 5,000+ within a 15-second burst window.
+### Benchmark Invariant Assertions
+* **Offered Traffic:** 5,000+ requests across 15 seconds.
 * **Confirmed Holds:** Exactly equal to available seats (e.g. 200).
 * **Clean Rejections:** Exactly 4,800 returned with instantaneous `409 SOLD_OUT`.
-* **Latency Profile:** p50 < 10ms, p95 < 45ms, p99 < 85ms.
-* **Double Allocations:** Exactly **0** (verified via `POST /api/v1/ops/audit`).
-
----
-
-## 🎬 7-Minute Judge Presentation Script
-
-* **0:00 - 1:00 (Context):** The flash reservation dilemma: RDBMS connection pool exhaustion vs. naive distributed lock overselling.
-* **1:00 - 2:30 (Architecture):** Decoupled architecture: In-memory atomic Lua broker + Adaptive Token Bucket + strict FCFS FIFO queue + Supabase durable ledger.
-* **2:30 - 4:00 (Live Contention):** Open **Contention Observatory** &rarr; trigger 5,000 concurrent requests &rarr; watch seats lock in microsecond sequence while excess traffic receives instant 409 rejections.
-* **4:00 - 5:30 (Chaos Resilience):** Kill the persistence worker process live &rarr; show stream backlog accumulating safely &rarr; reboot worker &rarr; show zero data loss with `XAUTOCLAIM`.
-* **5:30 - 6:30 (Mathematical Proof):** Click **Run Invariant Auditor** live &rarr; show 100% green checkmarks for all invariants.
-* **6:30 - 7:00 (Conclusion):** Q&A.
+* **Double Allocations:** Exactly **0** (verified via `npm run ops:audit`).
 
 ---
 
@@ -210,15 +241,13 @@ k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js
 | Item | Production Value |
 |---|---|
 | **Platform Name** | **TicketWala** |
-| **Production UI URL** | `https://ticketwala.onrender.com` |
-| **Production API / Health** | `https://api-ticketwala.onrender.com/health/ready` |
-| **Durable Database** | Supabase Postgres (AWS Region, Pooler Port 6543 / Direct Port 5432) |
-| **Memory & Streams** | Upstash Redis (TLS enabled, Redis Streams group `ticketwalla_workers`) |
-| **Git Commit / Release** | `v1.0.0-release (main)` |
-| **Database Migration Version** | `001_init_ticketwala_schema.sql` |
-| **Local Fallback Command** | `docker compose -f infra/compose.yaml up --build` |
-| **k6 Test Profile** | 5,000 requests, 150 VUs, 15s duration, strict FCFS assertion |
-| **Benchmark Evidence Files** | `tests/load/results/benchmark_5000_req.json` |
+| **Frontend Directory** | `frontend/` (Next.js 15, React 19) |
+| **Backend Directory** | `backend/` (Fastify, Redis Lua, Supabase Worker) |
+| **Durable Database** | Supabase Postgres (Pooler Port 6543 / Direct Port 5432) |
+| **Memory Broker** | Upstash Redis (TLS enabled, Stream Group `ticketwala_workers`) |
+| **Database Migration** | `backend/db/migrations/001_init_ticketwala_schema.sql` |
+| **Local Fallback** | `docker compose -f infra/compose.yaml up --build` |
+| **Invariant Auditor** | `npm run ops:audit` |
 
 ---
 
