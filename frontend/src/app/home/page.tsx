@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import {
   Film,
   Music,
@@ -260,6 +261,9 @@ export default function HomePage() {
         )}
 
       </main>
+
+      <Footer />
     </div>
   );
 }
+
