@@ -23,6 +23,7 @@
     "ops:audit": "npm run ops:audit --workspace=ticketwala-backend",
     "test": "npm run test --workspace=ticketwala-backend",
     "test:concurrency": "npm run test:concurrency --workspace=ticketwala-backend",
+    "test:integration": "npm run test:integration --workspace=ticketwala-backend",
     "bench:smoke": "npm run bench:smoke --workspace=ticketwala-backend",
     "bench:burst": "npm run bench:burst --workspace=ticketwala-backend"
   },

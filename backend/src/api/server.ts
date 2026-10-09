@@ -1987,7 +1987,7 @@ export async function createServer(): Promise<{
         payload: { holdToken: holdA.holdToken },
       });
 
-      const currentUnit = inMemoryUnits.get(unitId);
+      const currentUnit = inMemoryUnits.get(memoryUnitKey(demoEventId, unitId));
       const isHoldBProtected = currentUnit && currentUnit.reservationId === holdB.reservationId && currentUnit.status === "HELD";
 
       return reply.status(200).send({

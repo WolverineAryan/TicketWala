@@ -50,12 +50,27 @@ npm run dev:worker
 # Run unit & concurrency tests
 npm run test
 
+# Run the stateful integration suite against an isolated in-memory API
+$env:RUN_INTEGRATION_TESTS = "YES"
+npm run test:integration
+
 # Run Invariant Auditor (verifies single ownership & capacity conservation)
 npm run ops:audit
 
 # Run 5,000+ request burst benchmark
 npm run bench:burst
 ```
+
+The integration suite is stateful: it resets the demo event, confirms test
+bookings, and creates an organizer event. It requires explicit opt-in through
+`RUN_INTEGRATION_TESTS=YES` and refuses to run unless the API reports its
+embedded in-memory engine. Start the API without Redis and use a dedicated
+local process; do not run it against production or a shared booking API.
+Test email addresses use the reserved `.invalid` domain. Remote targets also
+require both `ALLOW_REMOTE_TARGET=YES` and `CONFIRM_DEMO_TARGET=YES`, and must
+be a dedicated demo deployment. The suite releases remaining unconfirmed
+holds, but confirmed bookings remain in the process-local demo sandbox until
+the API restarts.
 
 The operations endpoint (`/api/v1/ops/metrics`) reports worker heartbeats,
 processed/retried/dead-lettered totals, the dead-letter stream length, and the
