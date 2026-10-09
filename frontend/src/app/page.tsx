@@ -1853,7 +1853,6 @@ export default function TicketWalaPage() {
               alt="TicketWala"
               style={{ height: "46px", width: "auto", objectFit: "contain", display: "block" }}
             />
-          </div>
           <button
             type="button"
             className="location-pill-btn"
