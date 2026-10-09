@@ -5017,11 +5017,11 @@ export default function TicketWalaPage() {
 
                   <button
                     type="button"
-                    className="btn"
+                    className="btn ghost"
                     style={{
-                      background: "rgba(56, 189, 248, 0.1)",
-                      color: "#38BDF8",
-                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      background: "#ffffff",
+                      color: "var(--k)",
+                      border: "1.5px solid #ded9d0",
                       padding: "12px 22px",
                       fontSize: "14px",
                       fontWeight: 700,
@@ -5257,7 +5257,7 @@ export default function TicketWalaPage() {
                   {/* Summary Metric Cards (4 Metrics) */}
                   <div className="profile-summary-grid">
                     <div className="profile-summary-card">
-                      <div className="profile-summary-icon" style={{ background: "rgba(56, 189, 248, 0.12)", color: "#38BDF8" }}>
+                      <div className="profile-summary-icon" style={{ background: "rgba(255, 107, 53, 0.12)", color: "var(--o)" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
                         </svg>
@@ -5270,7 +5270,7 @@ export default function TicketWalaPage() {
                     </div>
 
                     <div className="profile-summary-card">
-                      <div className="profile-summary-icon" style={{ background: "rgba(168, 85, 247, 0.12)", color: "#C084FC" }}>
+                      <div className="profile-summary-icon" style={{ background: "rgba(147, 51, 234, 0.12)", color: "#9333EA" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M9 18V5l12-2v13" />
                           <circle cx="6" cy="18" r="3" />
@@ -5285,7 +5285,7 @@ export default function TicketWalaPage() {
                     </div>
 
                     <div className="profile-summary-card">
-                      <div className="profile-summary-icon" style={{ background: "rgba(56, 189, 248, 0.12)", color: "#38BDF8" }}>
+                      <div className="profile-summary-icon" style={{ background: "rgba(2, 132, 199, 0.12)", color: "#0284C7" }}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.3-1.8 1.1l-.2.7 6.4 3.7-3.4 3.4-2.5-.6c-.5-.1-1 .1-1.3.5l-.3.4 3.2 2 2 3.2.4-.3c.4-.3.6-.8.5-1.3l-.6-2.5 3.4-3.4 3.7 6.4.7-.2c.8-.2 1.3-1 1.1-1.8z" />
                         </svg>
@@ -5813,9 +5813,9 @@ export default function TicketWalaPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", marginTop: "8px", paddingTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", marginTop: "8px", paddingTop: "16px", borderTop: "1px solid #f2eeea" }}>
                       {profileSuccessMsg && (
-                        <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 700 }}>{profileSuccessMsg}</span>
+                        <span style={{ color: "#27ae60", fontSize: "12px", fontWeight: 700 }}>{profileSuccessMsg}</span>
                       )}
                       <button
                         type="submit"
@@ -5951,7 +5951,7 @@ export default function TicketWalaPage() {
                           ></div>
                         </div>
                         <div className="pw-strength-label" style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginTop: "4px" }}>
-                          <span style={{ color: "#94A3B8" }}>Password Strength:</span>
+                          <span style={{ color: "#77736c" }}>Password Strength:</span>
                           <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
                         </div>
                       </div>
@@ -5959,7 +5959,7 @@ export default function TicketWalaPage() {
 
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", marginTop: "4px" }}>
                       {pwMsg && (
-                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#34D399" : "#F87171" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
                           {pwMsg}
                         </span>
                       )}
@@ -5974,11 +5974,11 @@ export default function TicketWalaPage() {
                   </form>
 
                   {/* Two-Factor Authentication */}
-                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid #f2eeea" }}>
                     <div className="toggle-setting-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div className="toggle-setting-info">
-                        <b style={{ color: "#F8FAFC", fontSize: "14px", display: "block" }}>Two-Factor Authentication (2FA)</b>
-                        <span style={{ color: "#94A3B8", fontSize: "12px" }}>Require SMS verification before accessing turnstile boarding passes.</span>
+                        <b style={{ color: "var(--k)", fontSize: "14px", display: "block" }}>Two-Factor Authentication (2FA)</b>
+                        <span style={{ color: "#77736c", fontSize: "12px" }}>Require SMS verification before accessing turnstile boarding passes.</span>
                       </div>
                       <label className="toggle-switch">
                         <input
@@ -5996,11 +5996,11 @@ export default function TicketWalaPage() {
                   </div>
 
                   {/* Active Sessions */}
-                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #f2eeea" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                       <div>
-                        <b style={{ fontSize: "14px", color: "#F8FAFC", display: "block" }}>Active Devices &amp; Sessions</b>
-                        <span style={{ fontSize: "12px", color: "#94A3B8" }}>Authorized devices accessing your TicketWala turnstile passes.</span>
+                        <b style={{ fontSize: "14px", color: "var(--k)", display: "block" }}>Active Devices &amp; Sessions</b>
+                        <span style={{ fontSize: "12px", color: "#77736c" }}>Authorized devices accessing your TicketWala turnstile passes.</span>
                       </div>
                       <button
                         type="button"
@@ -6013,7 +6013,7 @@ export default function TicketWalaPage() {
                     </div>
 
                     {sessionsRevokedMsg && (
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#34D399", marginBottom: "10px" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#27ae60", marginBottom: "10px" }}>
                         {sessionsRevokedMsg}
                       </div>
                     )}
@@ -6029,10 +6029,10 @@ export default function TicketWalaPage() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#F8FAFC" }}>Chrome on Windows 11</span>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--k)" }}>Chrome on Windows 11</span>
                             <span className="profile-session-current-pill">This Device</span>
                           </div>
-                          <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>
+                          <div style={{ fontSize: "11px", color: "#77736c", marginTop: "2px" }}>
                             Active session • Mumbai, India • IP 103.21.x.x
                           </div>
                         </div>
@@ -6047,9 +6047,9 @@ export default function TicketWalaPage() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#F8FAFC" }}>TicketWala iOS App</span>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--k)" }}>TicketWala iOS App</span>
                           </div>
-                          <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>
+                          <div style={{ fontSize: "11px", color: "#77736c", marginTop: "2px" }}>
                             iPhone 15 Pro • Last active 2 hours ago
                           </div>
                         </div>
