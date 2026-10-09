@@ -95,13 +95,16 @@ redis.call('HMSET', res_key,
 )
 
 -- 3. Append to event stream for eventual consistency
+
 local event_id = redis.call('XADD', KEYS[5], '*',
     'event_type', 'HOLD_CREATED',
     'reservation_id', ARGV[3],
     'unit_id', unit_id,
     'version', version,
-    'occurred_at', ARGV[6]
+    'occurred_at', ARGV[6],
+    'expires_at', expires_at
 )
+
 
 -- 4. Cache idempotency outcome (10 min TTL)
 local response = cjson.encode({

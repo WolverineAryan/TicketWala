@@ -61,10 +61,30 @@ async function runWorker() {
     const eventType = fields.event_type;
     const reservationId = fields.reservation_id;
     const unitId = fields.unit_id;
-    const version = parseInt(fields.version || "1", 10);
+    const version = Number(fields.version);
     const occurredAt = new Date(
-      fields.occurred_at ? parseInt(fields.occurred_at, 10) * 1000 : Date.now()
+      fields.occurred_at ? Number(fields.occurred_at) * 1000 : Date.now()
     );
+    const expiresAtSeconds = fields.expires_at
+      ? Number(fields.expires_at)
+      : null;
+
+    if (
+      !eventType ||
+      !reservationId ||
+      !unitId ||
+      !Number.isInteger(version) ||
+      version < 1
+    ) {
+      throw new Error(`Invalid reservation event: ${msgId}`);
+    }
+
+    if (
+      eventType === "HOLD_CREATED" &&
+      (expiresAtSeconds === null || !Number.isFinite(expiresAtSeconds))
+    ) {
+      throw new Error(`Invalid hold expiry timestamp: ${msgId}`);
+    }
 
     const client = await pgPool.connect();
 
@@ -98,14 +118,20 @@ async function runWorker() {
       if (eventType === "HOLD_CREATED") {
         const holdQuery = `
           INSERT INTO reservations (reservation_id, unit_id, event_id, status, version, hold_expires_at, created_at, updated_at)
-          VALUES ($1, $2, 'evt-main', 'HELD', $3, NOW() + INTERVAL '120 seconds', $4, $4)
+          VALUES ($1, $2, 'evt-main', 'HELD', $3, to_timestamp($4), $5, $5)
           ON CONFLICT (reservation_id) DO UPDATE
           SET status = 'HELD',
               version = EXCLUDED.version,
               updated_at = EXCLUDED.updated_at
           WHERE reservations.version <= EXCLUDED.version;
         `;
-        await client.query(holdQuery, [reservationId, unitId, version, occurredAt]);
+        await client.query(holdQuery, [
+          reservationId,
+          unitId,
+          version,
+          expiresAtSeconds,
+          occurredAt,
+        ]);
       } else if (eventType === "RESERVATION_CONFIRMED") {
         const confirmQuery = `
           UPDATE reservations
