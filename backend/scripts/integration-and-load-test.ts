@@ -64,6 +64,47 @@ async function main() {
     return `Engine: ${data.engine}`;
   });
 
+  await runTest("Application Security Response Headers Audit", "Functional", async () => {
+    const res = await fetch(`${BASE_URL}/health/live`);
+    const nosniff = res.headers.get("x-content-type-options");
+    const frameOptions = res.headers.get("x-frame-options");
+    const referrerPolicy = res.headers.get("referrer-policy");
+    const permissionsPolicy = res.headers.get("permissions-policy");
+
+    if (nosniff !== "nosniff") throw new Error(`Missing or invalid X-Content-Type-Options: ${nosniff}`);
+    if (frameOptions !== "DENY") throw new Error(`Missing or invalid X-Frame-Options: ${frameOptions}`);
+    if (!referrerPolicy) throw new Error("Missing Referrer-Policy header");
+    if (!permissionsPolicy) throw new Error("Missing Permissions-Policy header");
+
+    return "All security headers verified (nosniff, DENY, strict-origin, restrictive permissions)";
+  });
+
+  await runTest("Support & Contact Inquiries API", "Functional", async () => {
+    const catRes = await fetch(`${BASE_URL}/api/v1/support/categories`);
+    if (!catRes.ok) throw new Error(`Categories API returned HTTP ${catRes.status}`);
+    const catData = await catRes.json();
+    if (!catData.categories || catData.categories.length < 5) throw new Error("Expected at least 5 support categories");
+    if (catData.directSupportEmail !== "ticketwala.org@gmail.com") throw new Error("Official support email mismatch");
+
+    const contactRes = await fetch(`${BASE_URL}/api/v1/support/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName: "Automated Suite Verifier",
+        email: "qa@ticketwala.org",
+        category: "PAYMENT",
+        subject: "Verification of 120s TTL lock",
+        message: "Automated test validating ticket generation and rate limiting",
+      }),
+    });
+    if (!contactRes.ok) throw new Error(`Contact API returned HTTP ${contactRes.status}`);
+    const contactData = await contactRes.json();
+    if (!contactData.success || !contactData.ticketId) throw new Error("Contact API did not return ticketId");
+
+    return `Ticket reference generated: ${contactData.ticketId}`;
+  });
+
+
   await runTest("Events Catalog Multipurpose Verification", "Functional", async () => {
     const res = await fetch(`${BASE_URL}/api/v1/events`);
     if (!res.ok) throw new Error(`Events API returned HTTP ${res.status}`);

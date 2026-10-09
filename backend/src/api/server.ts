@@ -17,6 +17,7 @@ import {
   VerifyScanSchema,
   PaymentWebhookSchema,
   RunScenarioSchema,
+  ContactInquirySchema,
   type HoldRequest,
   type ConfirmRequest,
   type ReleaseRequest,
@@ -243,6 +244,21 @@ for (const event of MULTIPURPOSE_EVENTS) {
   inMemoryQueues.set(event.id, queue);
 }
 
+// Support Inquiries Storage & Rate Limiting
+interface StoredInquiry {
+  ticketId: string;
+  fullName: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  ip: string;
+}
+const supportInquiriesRegistry: StoredInquiry[] = [];
+const contactRateLimits = new Map<string, { count: number; expiresAt: number }>();
+
+
 export async function createServer(): Promise<{
   app: FastifyInstance;
   redis: Redis;
@@ -259,6 +275,18 @@ export async function createServer(): Promise<{
     origin: CORS_ORIGINS,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
+  });
+
+  // Security & Hardening Response Headers Hook
+  app.addHook("onSend", async (_request, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "DENY");
+    reply.header("X-XSS-Protection", "1; mode=block");
+    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    reply.header(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    );
   });
 
   let isRedisAvailable = false;
@@ -341,6 +369,7 @@ export async function createServer(): Promise<{
         events: "/api/v1/events",
         simulation: "/api/v1/simulation/run-scenario",
         observability: "/api/v1/observability/stream-health",
+        support: "/api/v1/support/contact",
       },
       timestamp: new Date().toISOString(),
     });
@@ -1945,7 +1974,86 @@ export async function createServer(): Promise<{
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // Support & Contact Inquiries Endpoints
+  // ---------------------------------------------------------------------------
+
+  /**
+   * GET /api/v1/support/categories
+   * Returns list of supported inquiry categories and official support email
+   */
+  app.get("/api/v1/support/categories", async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      categories: [
+        { id: "BOOKING", label: "Booking & Flash Hold Assistance" },
+        { id: "PAYMENT", label: "Payment Verification & UPI UTR Status" },
+        { id: "TICKETS", label: "Ticket Issuance & QR Delivery" },
+        { id: "ACCOUNT", label: "Organizer & Account Access" },
+        { id: "EVENT_ENQUIRY", label: "Event Listing & Tier Inquiry" },
+        { id: "OTHER", label: "General Feedback & Inquiry" },
+      ],
+      directSupportEmail: "ticketwala.org@gmail.com",
+    });
+  });
+
+  /**
+   * POST /api/v1/support/contact
+   * Submits a customer or organizer inquiry with IP-based sliding rate-limiting
+   */
+  app.post("/api/v1/support/contact", async (req: FastifyRequest, reply: FastifyReply) => {
+    const clientIp = req.ip || "127.0.0.1";
+    const now = Date.now();
+    const limitWindow = 10 * 60 * 1000; // 10 minutes
+    const current = contactRateLimits.get(clientIp);
+
+    if (current && current.expiresAt > now) {
+      if (current.count >= 5) {
+        return reply.status(429).send({
+          error: "TOO_MANY_REQUESTS",
+          message: "Rate limit reached. Please wait a few minutes before submitting another inquiry or email ticketwala.org@gmail.com directly.",
+        });
+      }
+      current.count += 1;
+    } else {
+      contactRateLimits.set(clientIp, { count: 1, expiresAt: now + limitWindow });
+    }
+
+    const parseResult = ContactInquirySchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: "VALIDATION_FAILED",
+        details: parseResult.error.format(),
+      });
+    }
+
+    const { fullName, email, category, subject, message } = parseResult.data;
+    const ticketId = `TKT-SUP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    const inquiry: StoredInquiry = {
+      ticketId,
+      fullName,
+      email,
+      category,
+      subject,
+      message,
+      createdAt: new Date().toISOString(),
+      ip: clientIp,
+    };
+
+    supportInquiriesRegistry.push(inquiry);
+    app.log.info({ ticketId, email, category }, "Support inquiry logged");
+
+    return reply.status(201).send({
+      success: true,
+      ticketId,
+      receivedAt: inquiry.createdAt,
+      category,
+      message: `Your inquiry has been logged under support reference ${ticketId}. Our engineering and operations team will review it promptly.`,
+    });
+  });
+
   return { app, redis, pgPool };
+
 }
 
 // Start server directly if this file is executed

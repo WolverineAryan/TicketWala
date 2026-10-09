@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Footer from "@/components/Footer";
 import {
   Zap,
   ShieldCheck,
@@ -632,18 +633,8 @@ export default function SimulationPage() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <span>🎟️ TicketWala FlashLock Lab • Production Commit <strong>6322f96</strong></span>
-          </div>
-          <div className="flex items-center gap-4 text-slate-400">
-            <Link href="/" className="hover:text-white transition">Landing Page</Link>
-            <Link href="/home" className="hover:text-white transition">Consumer Home</Link>
-            <Link href="/organizer" className="hover:text-white transition">Organizer Studio</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
+
