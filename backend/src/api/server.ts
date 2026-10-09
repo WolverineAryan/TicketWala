@@ -11,13 +11,21 @@ import {
   HoldRequestSchema,
   ConfirmRequestSchema,
   ReleaseRequestSchema,
+  CreateEventSchema,
+  UpdatePricingSchema,
+  VerifyPaymentRequestSchema,
   type HoldRequest,
   type ConfirmRequest,
   type ReleaseRequest,
+  type CreateEventRequest,
+  type UpdatePricingRequest,
+  type VerifyPaymentRequest,
   type EventDetails,
   type EventCategory,
   type InventoryUnitState,
 } from "../contracts/index.js";
+import { sendTicketEmail } from "../services/emailService.js";
+import { generateDynamicUpiPayment, verifyUpiTransaction } from "../services/paymentService.js";
 import {
   loadScripts,
   initializeInventory,
@@ -840,6 +848,333 @@ export async function createServer(): Promise<{
       userId,
       count: bookings.length,
       bookings,
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Zero-Cost Dynamic UPI Payment & Verification
+  // ---------------------------------------------------------------------------
+
+  /**
+   * GET /api/v1/reservations/:id/upi-qr
+   * Generates dynamic NPCI-compliant UPI QR code and intent URI
+   */
+  app.get("/api/v1/reservations/:id/upi-qr", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id: reservationId } = req.params as { id: string };
+    const query = req.query as { amount?: string; eventId?: string };
+
+    const eventId = query.eventId || "evt-flight-ai101";
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
+    const amount = query.amount ? parseFloat(query.amount) : event.basePrice;
+
+    const upiData = await generateDynamicUpiPayment({
+      amount,
+      reservationId,
+      pnr: `TW-${reservationId.substring(0, 6).toUpperCase()}`,
+      eventTitle: event.title,
+    });
+
+    return reply.status(200).send(upiData);
+  });
+
+  /**
+   * POST /api/v1/reservations/:id/verify-payment
+   * Verifies 12-digit UPI UTR, confirms hold, and auto-dispatches E-Ticket email
+   */
+  app.post("/api/v1/reservations/:id/verify-payment", async (req: FastifyRequest, reply: FastifyReply) => {
+    telemetry.totalRequests++;
+
+    const { id: reservationId } = req.params as { id: string };
+    const parseResult = VerifyPaymentRequestSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_REQUEST",
+          message: parseResult.error.errors.map((e) => e.message).join(", "),
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    const { holdToken, utr, passengerName, email, phone, paymentMethod } = parseResult.data;
+
+    // 1. Validate UTR (check length and replay attack)
+    const utrCheck = verifyUpiTransaction(utr);
+    if (!utrCheck.valid) {
+      return reply.status(400).send({
+        error: {
+          code: "INVALID_UTR",
+          message: utrCheck.error || "Invalid or duplicate UPI UTR reference number",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    // 2. Confirm Hold
+    let unitId = "unit-001";
+    let version = 1;
+    let confirmedAt = Math.floor(Date.now() / 1000);
+    const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
+
+    if (isRedisAvailable) {
+      const confirmResult = await confirmHold(redis, {
+        reservationId,
+        rawHoldToken: holdToken,
+        idempotencyKey,
+      });
+
+      if (confirmResult.error) {
+        return reply.status(confirmResult.code || 400).send({
+          error: {
+            code: confirmResult.error,
+            message: confirmResult.message,
+            retryable: false,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+      unitId = confirmResult.unitId;
+      version = confirmResult.version;
+      confirmedAt = confirmResult.confirmedAt;
+    } else {
+      const memRes = inMemoryReservations.get(reservationId);
+      if (!memRes) {
+        return reply.status(404).send({
+          error: { code: "NOT_FOUND", message: "Reservation hold not found", retryable: false, timestamp: new Date().toISOString() },
+        });
+      }
+
+      const tokenHash = crypto.createHash("sha256").update(holdToken).digest("hex");
+      if (memRes.holdTokenHash !== tokenHash) {
+        return reply.status(400).send({
+          error: { code: "INVALID_HOLD_TOKEN", message: "Invalid hold authorization token", retryable: false, timestamp: new Date().toISOString() },
+        });
+      }
+
+      memRes.status = "CONFIRMED";
+      memRes.version++;
+      unitId = memRes.unitId;
+      version = memRes.version;
+
+      const memUnit = inMemoryUnits.get(unitId);
+      if (memUnit) {
+        memUnit.status = "CONFIRMED";
+        memUnit.version++;
+        delete memUnit.expiresAt;
+      }
+    }
+
+    telemetry.holdsConfirmed++;
+
+    const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const paymentRef = `UPI-UTR-${utr}`;
+
+    const event = MULTIPURPOSE_EVENTS[0];
+    const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
+    let selectedTier = event.tiers[event.tiers.length - 1];
+    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
+      selectedTier = event.tiers[0];
+    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+      selectedTier = event.tiers[1];
+    }
+
+    const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
+
+    const confirmedTicketData = {
+      reservationId,
+      unitId,
+      status: "CONFIRMED",
+      version,
+      confirmedAt,
+      pnr: pnrCode,
+      eventId: event.id,
+      eventTitle: event.title,
+      venue: event.venue,
+      dateTime: event.dateTime,
+      passengerName: passengerName || "Verified Guest",
+      tierName: selectedTier.name,
+      amountPaid: selectedTier.price,
+      currency: event.currency,
+      qrCodePayload,
+      paymentRef,
+      verifiedUtr: utr,
+    };
+
+    // Store in user bookings
+    const defaultUser = email || "user-default";
+    const existing = userBookingsRegistry.get(defaultUser) || [];
+    userBookingsRegistry.set(defaultUser, [confirmedTicketData, ...existing]);
+
+    // 3. Automated Email Dispatch (Asynchronous, does not block HTTP response)
+    sendTicketEmail({
+      toEmail: email,
+      passengerName: passengerName || "Verified Guest",
+      pnr: pnrCode,
+      eventTitle: event.title,
+      categoryLabel: event.categoryLabel,
+      venue: event.venue,
+      dateTime: event.dateTime,
+      unitId,
+      tierName: selectedTier.name,
+      amountPaid: selectedTier.price,
+      currency: event.currency,
+      paymentRef,
+      qrCodePayload,
+    }).catch((err) => {
+      app.log.error(`Email dispatch error: ${err.message}`);
+    });
+
+    return reply.status(200).send({
+      ...confirmedTicketData,
+      emailDispatched: true,
+      recipientEmail: email,
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Organizer Management & Dynamic Surge Pricing Endpoints
+  // ---------------------------------------------------------------------------
+
+  /**
+   * POST /api/v1/organizer/events
+   * Allows registered organizers to host and create new events
+   */
+  app.post("/api/v1/organizer/events", async (req: FastifyRequest, reply: FastifyReply) => {
+    const parseResult = CreateEventSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_FAILED",
+          message: parseResult.error.errors.map((e) => e.message).join(", "),
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    const data = parseResult.data;
+    const newEventId = `evt-${data.category.toLowerCase()}-${uuidv4().substring(0, 8)}`;
+
+    const newEvent: EventDetails = {
+      ...data,
+      id: newEventId,
+      availableSeats: data.totalSeats,
+    };
+
+    MULTIPURPOSE_EVENTS.unshift(newEvent);
+
+    // Initialize units in in-memory storage
+    const unitIds: string[] = [];
+    for (let i = 1; i <= newEvent.totalSeats; i++) {
+      const uid = `unit-${String(i).padStart(3, "0")}`;
+      unitIds.push(uid);
+      inMemoryUnits.set(uid, {
+        status: "AVAILABLE",
+        version: 1,
+      });
+    }
+    inMemoryQueues.set(newEventId, unitIds);
+
+    // Seed Redis if reachable
+    if (isRedisAvailable) {
+      const qKey = `ticketwala:event:${newEventId}:available_queue`;
+      await redis.lpush(qKey, ...unitIds).catch(() => {});
+    }
+
+    return reply.status(201).send({
+      success: true,
+      event: newEvent,
+      message: `Event "${newEvent.title}" published successfully with ${newEvent.totalSeats} seats.`,
+    });
+  });
+
+  /**
+   * PUT /api/v1/organizer/events/:id/pricing
+   * Allows organizers to modify base prices and apply dynamic surge multipliers
+   */
+  app.put("/api/v1/organizer/events/:id/pricing", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id);
+    if (!event) {
+      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Event not found" } });
+    }
+
+    const parseResult = UpdatePricingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_FAILED",
+          message: parseResult.error.errors.map((e) => e.message).join(", "),
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    const { basePrice, surgeMultiplier = 1.0, tierPrices } = parseResult.data;
+
+    if (basePrice) {
+      event.basePrice = Math.round(basePrice * surgeMultiplier);
+    }
+
+    if (tierPrices) {
+      event.tiers = event.tiers.map((t) => ({
+        ...t,
+        price: tierPrices[t.id]
+          ? Math.round(tierPrices[t.id] * surgeMultiplier)
+          : Math.round(t.price * surgeMultiplier),
+      }));
+    } else if (surgeMultiplier !== 1.0) {
+      event.tiers = event.tiers.map((t) => ({
+        ...t,
+        price: Math.round(t.price * surgeMultiplier),
+      }));
+    }
+
+    return reply.status(200).send({
+      success: true,
+      eventId: event.id,
+      basePrice: event.basePrice,
+      surgeMultiplier,
+      tiers: event.tiers,
+      message: `Updated pricing for "${event.title}". Surge multiplier: ${surgeMultiplier}x applied.`,
+    });
+  });
+
+  /**
+   * GET /api/v1/organizer/events/:id/analytics
+   * Real-time sales analytics and occupancy telemetry for organizer
+   */
+  app.get("/api/v1/organizer/events/:id/analytics", async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id);
+    if (!event) {
+      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Event not found" } });
+    }
+
+    let availableCount = event.availableSeats;
+    if (isRedisAvailable) {
+      const qKey = `ticketwala:event:${id}:available_queue`;
+      availableCount = await redis.llen(qKey).catch(() => event.availableSeats);
+    } else {
+      const q = inMemoryQueues.get(id);
+      if (q) availableCount = q.length;
+    }
+
+    const soldCount = Math.max(0, event.totalSeats - availableCount);
+    const occupancyRate = ((soldCount / event.totalSeats) * 100).toFixed(1);
+    const estimatedRevenue = soldCount * event.basePrice;
+
+    return reply.status(200).send({
+      eventId: event.id,
+      title: event.title,
+      totalCapacity: event.totalSeats,
+      availableSeats: availableCount,
+      soldCount,
+      occupancyRate: `${occupancyRate}%`,
+      estimatedRevenue,
+      currency: event.currency,
+      timestamp: new Date().toISOString(),
     });
   });
 

@@ -106,6 +106,60 @@ export interface ReleaseResponse {
   version: number;
 }
 
+export interface DynamicUpiDetails {
+  upiId: string;
+  payeeName: string;
+  amount: number;
+  currency: string;
+  transactionRef: string;
+  note: string;
+  intentUrl: string;
+  qrCodeDataUrl: string;
+}
+
+export interface VerifyPaymentRequest {
+  holdToken: string;
+  utr: string;
+  passengerName: string;
+  email: string;
+  phone?: string;
+  paymentMethod?: "UPI" | "CARD" | "NETBANKING";
+}
+
+export interface CreateEventRequest {
+  title: string;
+  category: EventCategory;
+  categoryLabel: string;
+  venue: string;
+  location: string;
+  dateTime: string;
+  totalSeats: number;
+  basePrice: number;
+  currency: string;
+  badge?: string;
+  description: string;
+  organizerId: string;
+  tiers: SeatTier[];
+}
+
+export interface UpdatePricingRequest {
+  basePrice?: number;
+  surgeMultiplier?: number;
+  tierPrices?: Record<string, number>;
+}
+
+export interface OrganizerAnalytics {
+  eventId: string;
+  title: string;
+  totalCapacity: number;
+  availableSeats: number;
+  soldCount: number;
+  occupancyRate: string;
+  estimatedRevenue: number;
+  currency: string;
+  timestamp: string;
+}
+
 export interface StandardErrorResponse {
   error: {
     code: string;

@@ -1,237 +1,219 @@
 "use client";
 
-import React from "react";
-import { Ticket, Calendar, User, Compass, Sparkles, CheckCircle2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Ticket,
+  MapPin,
+  Search,
+  User as UserIcon,
+  PlusCircle,
+  LogIn,
+  LogOut,
+  Sparkles,
+  ChevronDown,
+} from "lucide-react";
+import { auth, signInWithGoogle, logOut } from "@/lib/firebase";
+import { onAuthStateChanged, User } from "firebase/auth";
 
-export type NavTab = "home" | "events" | "booking" | "profile";
+const CITIES = ["Mumbai", "Delhi-NCR", "Bengaluru", "Hyderabad", "Goa", "Pune", "Chennai"];
 
-interface NavbarProps {
-  activeTab: NavTab;
-  onSelectTab: (tab: NavTab) => void;
-  activeHoldCount?: number;
-  confirmedCount?: number;
-  selectedEventTitle?: string;
-}
+export default function Navbar() {
+  const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [selectedCity, setSelectedCity] = useState("Mumbai");
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
 
-export const Navbar: React.FC<NavbarProps> = ({
-  activeTab,
-  onSelectTab,
-  activeHoldCount = 0,
-  confirmedCount = 0,
-  selectedEventTitle,
-}) => {
+  useEffect(() => {
+    if (!auth) {
+      // Check localStorage for simulated user
+      const stored = localStorage.getItem("tw_user");
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored));
+        } catch (_) {}
+      }
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      if (user) {
+        localStorage.setItem("tw_user", JSON.stringify({
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+        }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    const { user, error } = await signInWithGoogle();
+    if (user) {
+      setCurrentUser(user);
+      localStorage.setItem("tw_user", JSON.stringify({
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      }));
+    } else if (error) {
+      alert(`Sign in: ${error}`);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await logOut();
+    setCurrentUser(null);
+    localStorage.removeItem("tw_user");
+  };
+
   return (
-    <header
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        backgroundColor: "rgba(255, 255, 255, 0.94)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderBottom: "1px solid #E6E5E3",
-        transition: "all 0.2s ease",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1320px",
-          margin: "0 auto",
-          padding: "14px 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "16px",
-        }}
-      >
-        {/* Brand / Logo */}
-        <div
-          onClick={() => onSelectTab("home")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            cursor: "pointer",
-            userSelect: "none",
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "12px",
-              backgroundColor: "#2B2A28",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(43, 42, 40, 0.15)",
-              position: "relative",
-            }}
-          >
-            <Ticket size={22} color="#FFFFFF" />
-            <div
-              style={{
-                position: "absolute",
-                top: "-3px",
-                right: "-3px",
-                width: "12px",
-                height: "12px",
-                borderRadius: "50%",
-                backgroundColor: "#FF6B35",
-                border: "2px solid #FFFFFF",
-              }}
-            />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 800,
-                  color: "#2B2A28",
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                Ticket<span style={{ color: "#FF6B35" }}>Wala</span>
-              </span>
-              <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  backgroundColor: "#FFF0EB",
-                  color: "#FF6B35",
-                  padding: "2px 7px",
-                  borderRadius: "9999px",
-                  border: "1px solid rgba(255, 107, 53, 0.2)",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Official
-              </span>
-            </div>
-            <p
-              style={{
-                fontSize: "11px",
-                color: "#8E8D88",
-                margin: 0,
-                letterSpacing: "-0.2px",
-              }}
-            >
-              Flights • Concerts • Sports • Cinema • Express Rail
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation Tabs (Home, Browse Events, Seat Booking, My Tickets) */}
-        <nav
-          style={{
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: "#F8F8F7",
-            padding: "4px",
-            borderRadius: "9999px",
-            border: "1px solid #E6E5E3",
-            gap: "2px",
-          }}
-        >
-          {[
-            { id: "home", label: "Home", icon: Compass },
-            { id: "events", label: "Browse Events", icon: Calendar },
-            {
-              id: "booking",
-              label: "Seat Booking",
-              icon: Ticket,
-              badge: activeHoldCount > 0 ? "1 HELD" : null,
-            },
-            {
-              id: "profile",
-              label: "My Tickets",
-              icon: User,
-              badge: confirmedCount > 0 ? `${confirmedCount}` : null,
-            },
-          ].map((item) => {
-            const isActive = activeTab === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectTab(item.id as NavTab)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "8px 16px",
-                  borderRadius: "9999px",
-                  border: "none",
-                  backgroundColor: isActive ? "#2B2A28" : "transparent",
-                  color: isActive ? "#FFFFFF" : "#5C5B57",
-                  fontSize: "13px",
-                  fontWeight: isActive ? 700 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  position: "relative",
-                }}
-              >
-                <Icon
-                  size={15}
-                  color={isActive ? (item.id === "booking" && activeHoldCount > 0 ? "#FF6B35" : "#FFFFFF") : "#8E8D88"}
-                />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 800,
-                      backgroundColor: item.id === "booking" ? "#FF6B35" : "#10B981",
-                      color: "#FFFFFF",
-                      padding: "1px 6px",
-                      borderRadius: "9999px",
-                      marginLeft: "2px",
-                    }}
-                  >
-                    {item.badge}
+    <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
+          
+          {/* Logo & City Selector */}
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+                <Ticket className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1.5">
+                  TicketWala
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    Live
                   </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+                </span>
+              </div>
+            </Link>
 
-        {/* User-friendly Trust Badge & Action */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 14px",
-              borderRadius: "9999px",
-              backgroundColor: "#ECFDF5",
-              border: "1px solid rgba(16, 185, 129, 0.2)",
-              fontSize: "12px",
-              color: "#065F46",
-              fontWeight: 600,
-            }}
-          >
-            <CheckCircle2 size={14} color="#10B981" />
-            <span>Instant Confirmation</span>
+            {/* City Selector (BookMyShow style) */}
+            <div className="relative hidden md:block">
+              <button
+                onClick={() => setShowCityDropdown(!showCityDropdown)}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition"
+              >
+                <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{selectedCity}</span>
+                <ChevronDown className="w-3 h-3 text-slate-500" />
+              </button>
+
+              {showCityDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-40 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl py-1.5 z-50">
+                  {CITIES.map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => {
+                        setSelectedCity(city);
+                        setShowCityDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-800 transition ${
+                        selectedCity === city ? "text-indigo-400 font-bold" : "text-slate-300"
+                      }`}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={() => onSelectTab("events")}
-            className="btn-primary"
-            style={{
-              padding: "8px 18px",
-              fontSize: "13px",
-              borderRadius: "9999px",
-            }}
-          >
-            <Sparkles size={14} fill="#FFFFFF" />
-            <span>Book Tickets</span>
-          </button>
+          {/* Search Bar (District by Zomato style) */}
+          <div className="flex-1 max-w-md hidden sm:block">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search movies, concerts, sports, flights..."
+                className="w-full bg-slate-900/80 border border-slate-800 text-xs rounded-xl pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+              />
+            </div>
+          </div>
+
+          {/* Navigation Links & User Actions */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/explore"
+              className={`text-xs font-medium px-3 py-2 rounded-lg transition ${
+                pathname === "/explore"
+                  ? "bg-slate-800 text-indigo-400 font-semibold"
+                  : "text-slate-300 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              Explore
+            </Link>
+
+            <Link
+              href="/profile"
+              className={`text-xs font-medium px-3 py-2 rounded-lg transition ${
+                pathname === "/profile"
+                  ? "bg-slate-800 text-indigo-400 font-semibold"
+                  : "text-slate-300 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              My Bookings
+            </Link>
+
+            {/* Organizer Portal CTA */}
+            <Link
+              href="/organizer"
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                pathname.startsWith("/organizer")
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                  : "bg-slate-900 text-indigo-300 border-indigo-500/30 hover:border-indigo-500 hover:bg-indigo-950/30"
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Host Event</span>
+            </Link>
+
+            {/* Google Authentication */}
+            {currentUser ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+                <div className="flex items-center gap-2">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={currentUser.displayName || "User"}
+                      className="w-7 h-7 rounded-full border border-indigo-500/50"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-indigo-600/30 flex items-center justify-center text-xs font-bold text-indigo-400">
+                      {currentUser.displayName?.[0] || "U"}
+                    </div>
+                  )}
+                  <span className="text-xs font-medium text-slate-200 hidden lg:inline-block max-w-[100px] truncate">
+                    {currentUser.displayName || currentUser.email?.split("@")[0]}
+                  </span>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/20"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
+
+          </div>
+
         </div>
       </div>
     </header>
   );
-};
+}
