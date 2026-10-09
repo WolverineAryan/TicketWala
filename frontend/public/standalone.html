@@ -472,6 +472,8 @@ function renderStandaloneProfile() {
   if (document.getElementById('pRibbonPassHolder')) document.getElementById('pRibbonPassHolder').textContent = u.passName || u.name;
   if (document.getElementById('pHeaderBookingsCount')) document.getElementById('pHeaderBookingsCount').textContent = (bookings ? bookings.length : 0);
   const bBadge = document.getElementById('tabBadgePasses'); if (bBadge) { bBadge.textContent = bookings ? bookings.length : 0; bBadge.style.display = bookings && bookings.length > 0 ? 'inline-block' : 'none'; }
+  if (document.getElementById('pHeaderBookingsCount')) document.getElementById('pHeaderBookingsCount').textContent = (bookings ? bookings.length : 0);
+  const bBadge = document.getElementById('tabBadgePasses'); if (bBadge) { bBadge.textContent = bookings ? bookings.length : 0; bBadge.style.display = bookings && bookings.length > 0 ? 'inline-block' : 'none'; }
   if (document.getElementById('pRibbonActiveBookings')) document.getElementById('pRibbonActiveBookings').textContent = (bookings ? bookings.length : 0) + ' Seats Confirmed';
 
   if (document.getElementById('pInputName')) document.getElementById('pInputName').value = u.name;
@@ -1270,6 +1272,7 @@ window.addEventListener('DOMContentLoaded', () => {
     </div>
   </section>
 </div>
+
 
 
 

@@ -3418,15 +3418,9 @@ export default function TicketWalaPage() {
 
                 <div className="profile-tickets-list">
                   {bookings.length > 0 ? (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
+                    <div className="profile-passes-grid">
                       {bookings.map((b, i) => (
-                        <div key={i} style={{
-                          background: "#fdfcfb",
-                          border: "1.5px solid #eae5dc",
-                          borderRadius: "16px",
-                          padding: "20px",
-                          boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
-                        }}>
+                        <div key={i} className="profile-pass-card">
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
                             <div>
                               <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
@@ -3583,7 +3577,7 @@ export default function TicketWalaPage() {
 
                 {/* Account Session & Danger Zone */}
                 <div style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid #f2f0ec" }}>
-                  <div className="danger-row">
+                  <div className="danger-box-pane">
                     <div>
                       <b style={{ display: "block", color: "var(--k)", fontSize: "14px" }}>Account Session &amp; Sign Out</b>
                       <span style={{ fontSize: "12px", color: "#77736c" }}>
