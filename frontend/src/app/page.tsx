@@ -1064,16 +1064,6 @@ export default function TicketWalaPage() {
   // Profile Form States (Streamlined 3-tab access-first architecture)
   const [profileTab, setProfileTab] = useState<"passes" | "personal" | "security">("passes");
   const [passFilterType, setPassFilterType] = useState<"all" | "events" | "travel">("all");
-  const [viewingQrPass, setViewingQrPass] = useState<{
-    pnr: string;
-    title: string;
-    category: string;
-    seat: string;
-    venueOrRoute: string;
-    dateStr: string;
-    passHolder: string;
-    price: number | string;
-  } | null>(null);
   const [profileName, setProfileName] = useState<string>("Demo Fan");
   const [profilePassName, setProfilePassName] = useState<string>("VIP Pass Holder");
   const [profilePhone, setProfilePhone] = useState<string>("+91 98201 23456");
@@ -1481,7 +1471,7 @@ export default function TicketWalaPage() {
 
   const handleDownload3DTicket = (ticket: Active3DTicketData) => {
     const passContent = `========================================\n` +
-      `TICKETWALA 3D PASS · OFFICIAL CONFIRMATION\n` +
+      `TICKETWALA PASS · OFFICIAL CONFIRMATION\n` +
       `========================================\n` +
       `PNR / BOOKING ID : ${ticket.bookingId}\n` +
       `TYPE             : ${ticket.ticketType.toUpperCase()}\n` +
@@ -1506,7 +1496,7 @@ export default function TicketWalaPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setEticketAlert(`3D Ticket Pass for ${ticket.bookingId} downloaded to device!`);
+    setEticketAlert(`Ticket Pass for ${ticket.bookingId} downloaded to device!`);
     setTimeout(() => setEticketAlert(""), 4500);
   };
 
@@ -3378,7 +3368,7 @@ export default function TicketWalaPage() {
                               });
                             }}
                           >
-                            ✨ View 3D Animated Ticket
+                            ✨ View Ticket Pass
                           </button>
                           <button className="btn k" style={{ width: "100%" }} onClick={() => navigateTo("profile")}>
                             View E-Ticket in Profile →
@@ -4337,7 +4327,7 @@ export default function TicketWalaPage() {
                                     });
                                   }}
                                 >
-                                  ✨ 3D Ticket
+                                  Pass
                                 </button>
 
                                 <button
@@ -4724,41 +4714,7 @@ export default function TicketWalaPage() {
                                   boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
                                 }}
                               >
-                                ✨ 3D Pass
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setViewingQrPass({
-                                    pnr: `TW-EVT-420${i + 1}`,
-                                    title: b.e,
-                                    category: b.tier || "VIP Event Pass",
-                                    seat: `Seat #${b.s}`,
-                                    venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-                                    dateStr: "Tomorrow, 07:00 PM (Gates 5:00 PM)",
-                                    passHolder: user.passName || profilePassName || user.name,
-                                    price: b.price || 1499,
-                                  })
-                                }
-                                style={{
-                                  background: "var(--k)",
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  padding: "6px 12px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                }}
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                                </svg>
-                                <span>Turnstile QR</span>
+                                Pass
                               </button>
 
                               <button
@@ -4875,41 +4831,7 @@ export default function TicketWalaPage() {
                                   boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
                                 }}
                               >
-                                ✨ 3D Pass
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setViewingQrPass({
-                                    pnr: tb.pnr,
-                                    title: tb.title,
-                                    category: tb.type.toUpperCase() + " BOARDING PASS",
-                                    seat: tb.passengers,
-                                    venueOrRoute: tb.subtitle || tb.fromToOrCity,
-                                    dateStr: tb.dateStr,
-                                    passHolder: user.passName || profilePassName || user.name,
-                                    price: tb.price,
-                                  })
-                                }
-                                style={{
-                                  background: "var(--k)",
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  padding: "6px 12px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                }}
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                                </svg>
-                                <span>Turnstile QR</span>
+                                Pass
                               </button>
 
                               <button
@@ -5330,178 +5252,6 @@ export default function TicketWalaPage() {
             </div>
           )}
         </div>
-
-        {/* TURNSTILE QR PASS POPUP MODAL */}
-        {viewingQrPass && (
-          <div
-            className="turnstile-qr-backdrop"
-            onClick={() => setViewingQrPass(null)}
-          >
-            <div
-              className="turnstile-qr-card"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="turnstile-qr-header">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: 800, letterSpacing: "1px", color: "var(--o)" }}>TICKETWALA</span>
-                  <span style={{ fontSize: "11px", opacity: 0.6 }}>• GATE TURNSTILE PASS</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setViewingQrPass(null)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#fff",
-                    cursor: "pointer",
-                    padding: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: 0.8
-                  }}
-                  title="Close Pass"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="turnstile-qr-body">
-                <div className="turnstile-live-tag">
-                  <span className="turnstile-live-dot"></span>
-                  <span>Turnstile Gate Access Granted</span>
-                </div>
-
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: "0 0 4px 0", lineHeight: 1.3 }}>
-                  {viewingQrPass.title}
-                </h3>
-                <p style={{ fontSize: "12px", color: "#77736c", margin: "0 0 14px 0" }}>
-                  {viewingQrPass.venueOrRoute} • {viewingQrPass.dateStr}
-                </p>
-
-                {/* SVG Turnstile Barcode Box */}
-                <div className="turnstile-qr-box">
-                  <svg width="200" height="200" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", margin: "0 auto" }}>
-                    <rect width="110" height="110" fill="#FFFFFF" rx="8" />
-                    <rect x="10" y="10" width="28" height="28" fill="#2B2A28" rx="4" />
-                    <rect x="14" y="14" width="20" height="20" fill="#FFFFFF" rx="2" />
-                    <rect x="18" y="18" width="12" height="12" fill="#2B2A28" rx="2" />
-
-                    <rect x="72" y="10" width="28" height="28" fill="#2B2A28" rx="4" />
-                    <rect x="76" y="14" width="20" height="20" fill="#FFFFFF" rx="2" />
-                    <rect x="80" y="18" width="12" height="12" fill="#2B2A28" rx="2" />
-
-                    <rect x="10" y="72" width="28" height="28" fill="#2B2A28" rx="4" />
-                    <rect x="14" y="76" width="20" height="20" fill="#FFFFFF" rx="2" />
-                    <rect x="18" y="80" width="12" height="12" fill="#2B2A28" rx="2" />
-
-                    <rect x="42" y="14" width="4" height="4" fill="#2B2A28" />
-                    <rect x="50" y="14" width="4" height="4" fill="#2B2A28" />
-                    <rect x="58" y="14" width="4" height="4" fill="#2B2A28" />
-                    <rect x="66" y="14" width="4" height="4" fill="#2B2A28" />
-
-                    <rect x="14" y="42" width="4" height="4" fill="#2B2A28" />
-                    <rect x="14" y="50" width="4" height="4" fill="#2B2A28" />
-                    <rect x="14" y="58" width="4" height="4" fill="#2B2A28" />
-                    <rect x="14" y="66" width="4" height="4" fill="#2B2A28" />
-
-                    <rect x="42" y="24" width="6" height="6" fill="#2B2A28" />
-                    <rect x="54" y="24" width="6" height="6" fill="#2B2A28" />
-                    <rect x="46" y="34" width="6" height="6" fill="#FF6B35" />
-                    <rect x="58" y="34" width="6" height="6" fill="#2B2A28" />
-                    
-                    <rect x="42" y="44" width="8" height="8" fill="#2B2A28" />
-                    <rect x="54" y="44" width="6" height="6" fill="#2B2A28" />
-                    <rect x="64" y="44" width="8" height="8" fill="#2B2A28" />
-                    <rect x="76" y="44" width="6" height="6" fill="#2B2A28" />
-                    <rect x="88" y="44" width="6" height="6" fill="#2B2A28" />
-
-                    <rect x="24" y="54" width="6" height="6" fill="#2B2A28" />
-                    <rect x="36" y="54" width="8" height="8" fill="#2B2A28" />
-                    <rect x="48" y="54" width="6" height="6" fill="#FF6B35" />
-                    <rect x="60" y="54" width="8" height="8" fill="#2B2A28" />
-                    <rect x="74" y="54" width="6" height="6" fill="#2B2A28" />
-                    <rect x="84" y="54" width="8" height="8" fill="#2B2A28" />
-
-                    <rect x="42" y="66" width="6" height="6" fill="#2B2A28" />
-                    <rect x="52" y="66" width="8" height="8" fill="#2B2A28" />
-                    <rect x="66" y="66" width="6" height="6" fill="#2B2A28" />
-                    <rect x="78" y="66" width="8" height="8" fill="#2B2A28" />
-                    <rect x="90" y="66" width="6" height="6" fill="#2B2A28" />
-
-                    <rect x="74" y="74" width="16" height="16" fill="#2B2A28" rx="3" />
-                    <rect x="78" y="78" width="8" height="8" fill="#FFFFFF" rx="1" />
-                    <rect x="80" y="80" width="4" height="4" fill="#2B2A28" />
-
-                    <rect x="44" y="78" width="6" height="6" fill="#2B2A28" />
-                    <rect x="56" y="78" width="8" height="8" fill="#2B2A28" />
-                    <rect x="42" y="90" width="8" height="8" fill="#2B2A28" />
-                    <rect x="54" y="90" width="6" height="6" fill="#2B2A28" />
-                    <rect x="66" y="90" width="8" height="8" fill="#2B2A28" />
-                  </svg>
-
-                  <div className="turnstile-barcode-lines">
-                    {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 2, 4, 1, 2, 3, 1, 2].map((w, idx) => (
-                      <span key={idx} className="barcode-bar" style={{ width: `${w}px` }}></span>
-                    ))}
-                  </div>
-
-                  <span style={{ fontSize: "11px", fontWeight: 800, fontFamily: "monospace", letterSpacing: "1px", color: "var(--k)" }}>
-                    {viewingQrPass.pnr}
-                  </span>
-                </div>
-
-                <div style={{
-                  background: "#f8f7f5",
-                  borderRadius: "12px",
-                  padding: "12px 14px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: "12px",
-                  color: "#555",
-                  marginBottom: "16px"
-                }}>
-                  <div style={{ textAlign: "left" }}>
-                    <span style={{ fontSize: "10px", color: "#8c8880", display: "block" }}>PASSENGER / FAN</span>
-                    <b style={{ color: "var(--k)" }}>{viewingQrPass.passHolder}</b>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <span style={{ fontSize: "10px", color: "#8c8880", display: "block" }}>SEAT / CLASS</span>
-                    <b style={{ color: "var(--o)" }}>{viewingQrPass.seat}</b>
-                  </div>
-                </div>
-
-                <p style={{ fontSize: "11px", color: "#8c8880", margin: "0 0 16px 0" }}>
-                  💡 Tip: Turn screen brightness to maximum for optical turnstile scanners.
-                </p>
-
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{ flex: 1, padding: "10px", fontSize: "13px" }}
-                    onClick={() => {
-                      handleDownloadTicket({ title: viewingQrPass.title, pnr: viewingQrPass.pnr });
-                      setViewingQrPass(null);
-                    }}
-                  >
-                    Download Pass PDF
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    style={{ padding: "10px 18px", fontSize: "13px" }}
-                    onClick={() => setViewingQrPass(null)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 5. LOGIN PAGE */}
         <div
@@ -6375,7 +6125,7 @@ export default function TicketWalaPage() {
           onClick={() => setActive3DTicket(null)}
           role="dialog"
           aria-modal="true"
-          aria-label="3D Ticket Pass"
+          aria-label="Ticket Pass"
         >
           {/* Action Bar / Controls */}
           <div
@@ -6427,7 +6177,7 @@ export default function TicketWalaPage() {
               type="button"
               className="ticket-ctrl-btn close"
               onClick={() => setActive3DTicket(null)}
-              title="Close 3D Ticket preview"
+              title="Close Ticket preview"
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -6462,7 +6212,7 @@ export default function TicketWalaPage() {
                 {/* Top Row: Tags & Domain */}
                 <div className="ticket-3d-top-row">
                   <div className="ticket-3d-tag-left">
-                    <span>3D MOCKUP</span>
+                    <span>MOCKUP</span>
                     <span className="ticket-3d-type-pill">
                       {active3DTicket.ticketType.toUpperCase()} PASS
                     </span>
@@ -6506,10 +6256,14 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
 
-                {/* Bottom Row: Embossed 3D Badge + Pricing */}
+                {/* Bottom Row: Embossed Badge + Pricing */}
                 <div className="ticket-3d-footer-row">
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <span className="ticket-3d-embossed-badge">3D</span>
+                    <span className="ticket-3d-embossed-badge">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <span className="ticket-3d-quality-tag">OFFICIAL VERIFIED PASS</span>
                   </div>
                   <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "0.5px" }}>
