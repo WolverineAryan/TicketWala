@@ -95,8 +95,10 @@ export default function Navbar() {
             {/* City Selector (BookMyShow style) */}
             <div className="relative hidden md:block">
               <button
+                type="button"
                 onClick={() => setShowCityDropdown(!showCityDropdown)}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition"
+                suppressHydrationWarning
               >
                 <MapPin className="w-3.5 h-3.5 text-indigo-400" />
                 <span>{selectedCity}</span>
@@ -108,6 +110,7 @@ export default function Navbar() {
                   {CITIES.map((city) => (
                     <button
                       key={city}
+                      type="button"
                       onClick={() => {
                         setSelectedCity(city);
                         setShowCityDropdown(false);
@@ -115,6 +118,7 @@ export default function Navbar() {
                       className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-800 transition ${
                         selectedCity === city ? "text-indigo-400 font-bold" : "text-slate-300"
                       }`}
+                      suppressHydrationWarning
                     >
                       {city}
                     </button>
@@ -132,6 +136,7 @@ export default function Navbar() {
                 type="text"
                 placeholder="Search movies, concerts, sports, flights..."
                 className="w-full bg-slate-900/80 border border-slate-800 text-xs rounded-xl pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                suppressHydrationWarning
               />
             </div>
           </div>
@@ -193,17 +198,21 @@ export default function Navbar() {
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={handleSignOut}
                   title="Sign Out"
                   className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-900 rounded-lg transition"
+                  suppressHydrationWarning
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
               <button
+                type="button"
                 onClick={handleSignIn}
                 className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm shadow-indigo-600/20"
+                suppressHydrationWarning
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Sign In</span>
