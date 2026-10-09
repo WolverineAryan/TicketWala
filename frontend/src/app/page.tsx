@@ -587,6 +587,21 @@ interface TravelBookingRecord {
   details: string;
 }
 
+interface Active3DTicketData {
+  ticketType: "Bus" | "Train" | "Flight" | "Cab" | "Hotel" | "Event";
+  bookingId: string;
+  customerName: string;
+  title: string;
+  subtitle?: string;
+  venueOrRoute: string;
+  dateStr: string;
+  timeStr: string;
+  seatOrClass: string;
+  price: number | string;
+  status: string;
+  sourceType: "travel" | "event";
+}
+
 const MOCK_TRANSPORT_LISTINGS: TravelTransportItem[] = [
   // Flights
   {
@@ -1038,6 +1053,8 @@ export default function TicketWalaPage() {
   const [bookingPassengerPhone, setBookingPassengerPhone] = useState<string>("");
   const [bookingPassengerEmail, setBookingPassengerEmail] = useState<string>("");
   const [confirmedTravelPass, setConfirmedTravelPass] = useState<TravelBookingRecord | null>(null);
+  const [active3DTicket, setActive3DTicket] = useState<Active3DTicketData | null>(null);
+  const [ticketTilt, setTicketTilt] = useState<{ x: number; y: number; glareX: number; glareY: number; glareOpacity: number }>({ x: 0, y: 0, glareX: 40, glareY: 30, glareOpacity: 0.6 });
   const [eticketAlert, setEticketAlert] = useState<string>("");
 
   // BookMyShow Home Interactive States
@@ -1441,6 +1458,69 @@ export default function TicketWalaPage() {
     setTimeout(() => setEticketAlert(""), 4500);
   };
 
+  const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const tiltX = -((y - centerY) / centerY) * 12;
+    const tiltY = ((x - centerX) / centerX) * 16;
+    const glareX = (x / rect.width) * 100;
+    const glareY = (y / rect.height) * 100;
+    setTicketTilt({ x: tiltX, y: tiltY, glareX, glareY, glareOpacity: 0.85 });
+  };
+
+  const handleTicketMouseLeave = () => {
+    setTicketTilt({ x: 0, y: 0, glareX: 40, glareY: 30, glareOpacity: 0.45 });
+  };
+
+  const handlePrintTicket = () => {
+    window.print();
+  };
+
+  const handleDownload3DTicket = (ticket: Active3DTicketData) => {
+    const passContent = `========================================\n` +
+      `TICKETWALA 3D PASS · OFFICIAL CONFIRMATION\n` +
+      `========================================\n` +
+      `PNR / BOOKING ID : ${ticket.bookingId}\n` +
+      `TYPE             : ${ticket.ticketType.toUpperCase()}\n` +
+      `TITLE            : ${ticket.title}\n` +
+      `ROUTE / VENUE    : ${ticket.venueOrRoute}\n` +
+      `PASSENGER / FAN  : ${ticket.customerName}\n` +
+      `SEAT / CLASS     : ${ticket.seatOrClass}\n` +
+      `DATE & TIME      : ${ticket.dateStr} · ${ticket.timeStr}\n` +
+      `STATUS           : ${ticket.status.toUpperCase()} (CONFIRMED)\n` +
+      `PRICE            : ₹${typeof ticket.price === "number" ? ticket.price.toLocaleString("en-IN") : ticket.price}\n` +
+      `VERIFICATION     : Cryptographically Signed by TicketWala\n` +
+      `========================================\n` +
+      `Scan at optical turnstiles or gate marshals.`;
+
+    const blob = new Blob([passContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `TicketWala_${ticket.bookingId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setEticketAlert(`3D Ticket Pass for ${ticket.bookingId} downloaded to device!`);
+    setTimeout(() => setEticketAlert(""), 4500);
+  };
+
+  const handleBackToBookings = (ticket: Active3DTicketData) => {
+    setActive3DTicket(null);
+    if (ticket.sourceType === "travel") {
+      setTravelSubTab("bookings");
+      navigateTo("travel");
+    } else {
+      setProfileTab("passes");
+      navigateTo("profile");
+    }
+  };
+
   // 1. Telemetry Dashboard & Sparkline Chart Loop
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1580,6 +1660,7 @@ export default function TicketWalaPage() {
       return copy;
     });
 
+    const newPnr = `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`;
     setBookings((prev) => [...prev, { s: seatLabel, e: eventName, tier: d.tier, price: d.price }]);
     addLog(`COMMIT seat ${seatLabel} (${d.tier}) → queued for DB write`, "ok");
 
@@ -1589,6 +1670,22 @@ export default function TicketWalaPage() {
 
     setMine(null);
     setStepNum(3);
+
+    // Automatically trigger the Premium Animated 3D Ticket!
+    setActive3DTicket({
+      ticketType: "Event",
+      bookingId: newPnr,
+      customerName: user?.name || profileName || "Demo Fan",
+      title: eventName,
+      subtitle: `${d.tier} · Seat #${seatLabel}`,
+      venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+      dateStr: "Tomorrow, 07:00 PM",
+      timeStr: "Gates 05:00 PM",
+      seatOrClass: `Seat ${seatLabel} (${d.tier})`,
+      price: d.price,
+      status: "Confirmed",
+      sourceType: "event",
+    });
   };
 
   const handleDrop = () => {
@@ -3243,9 +3340,50 @@ export default function TicketWalaPage() {
                         <p style={{ fontSize: "13px", opacity: 0.75, marginBottom: "16px" }}>
                           Your atomic lock was written to database asynchronously with sub-second consistency.
                         </p>
-                        <button className="btn k" style={{ width: "100%" }} onClick={() => navigateTo("profile")}>
-                          View E-Ticket in Profile →
-                        </button>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                          <button
+                            type="button"
+                            className="btn primary"
+                            style={{
+                              width: "100%",
+                              background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
+                              border: "none",
+                              padding: "11px 18px",
+                              fontSize: "14px",
+                              fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                            }}
+                            onClick={() => {
+                              const lastBooking = bookings[bookings.length - 1];
+                              const eventName = lastBooking ? lastBooking.e : events[currentEventIdx].name;
+                              const seatLabel = lastBooking ? lastBooking.s : "VIP";
+                              const tier = lastBooking ? lastBooking.tier : "VIP Lounge";
+                              const eventPrice = (lastBooking && lastBooking.price) ? lastBooking.price : 2499;
+                              setActive3DTicket({
+                                ticketType: "Event",
+                                bookingId: `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`,
+                                customerName: user?.name || profileName || "Aryan Sharma",
+                                title: eventName,
+                                subtitle: `${tier} · Seat #${seatLabel}`,
+                                venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+                                dateStr: "Tomorrow, 07:00 PM",
+                                timeStr: "Gates 05:00 PM",
+                                seatOrClass: `Seat ${seatLabel} (${tier})`,
+                                price: eventPrice,
+                                status: "Confirmed",
+                                sourceType: "event",
+                              });
+                            }}
+                          >
+                            ✨ View 3D Animated Ticket
+                          </button>
+                          <button className="btn k" style={{ width: "100%" }} onClick={() => navigateTo("profile")}>
+                            View E-Ticket in Profile →
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div>
@@ -4161,6 +4299,49 @@ export default function TicketWalaPage() {
                               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                 <button
                                   type="button"
+                                  className="btn primary"
+                                  style={{
+                                    padding: "6px 14px",
+                                    fontSize: "12px",
+                                    fontWeight: 700,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
+                                    border: "none",
+                                    boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
+                                  }}
+                                  onClick={() => {
+                                    setActive3DTicket({
+                                      ticketType:
+                                        b.type === "hotel"
+                                          ? "Hotel"
+                                          : b.type === "flight"
+                                          ? "Flight"
+                                          : b.type === "train"
+                                          ? "Train"
+                                          : b.type === "bus"
+                                          ? "Bus"
+                                          : "Cab",
+                                      bookingId: b.pnr,
+                                      customerName: b.passengers.split("(")[0].trim() || user?.name || "Aryan Sharma",
+                                      title: b.title,
+                                      subtitle: b.subtitle,
+                                      venueOrRoute: b.fromToOrCity || b.subtitle,
+                                      dateStr: b.dateStr.split("·")[0].trim(),
+                                      timeStr: b.dateStr.includes("·") ? b.dateStr.split("·")[1].trim() : "10:00 AM",
+                                      seatOrClass: b.details || "Confirmed Class",
+                                      price: b.price,
+                                      status: b.status,
+                                      sourceType: "travel",
+                                    });
+                                  }}
+                                >
+                                  ✨ 3D Ticket
+                                </button>
+
+                                <button
+                                  type="button"
                                   className="btn ghost"
                                   style={{ padding: "6px 14px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                                   onClick={() => {
@@ -4513,6 +4694,42 @@ export default function TicketWalaPage() {
                               <button
                                 type="button"
                                 onClick={() =>
+                                  setActive3DTicket({
+                                    ticketType: "Event",
+                                    bookingId: `TW-EVT-420${i + 1}`,
+                                    customerName: user?.name || profileName || "Aryan Sharma",
+                                    title: b.e,
+                                    subtitle: `${b.tier} · Seat #${b.s}`,
+                                    venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+                                    dateStr: "Tomorrow, 07:00 PM",
+                                    timeStr: "Gates 05:00 PM",
+                                    seatOrClass: `Seat #${b.s} (${b.tier})`,
+                                    price: b.price || 1499,
+                                    status: "Confirmed",
+                                    sourceType: "event",
+                                  })
+                                }
+                                style={{
+                                  background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  fontSize: "12px",
+                                  fontWeight: 700,
+                                  padding: "6px 12px",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
+                                }}
+                              >
+                                ✨ 3D Pass
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
                                   setViewingQrPass({
                                     pnr: `TW-EVT-420${i + 1}`,
                                     title: b.e,
@@ -4616,6 +4833,51 @@ export default function TicketWalaPage() {
                               PNR: {tb.pnr}
                             </span>
                             <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActive3DTicket({
+                                    ticketType:
+                                      tb.type === "hotel"
+                                        ? "Hotel"
+                                        : tb.type === "flight"
+                                        ? "Flight"
+                                        : tb.type === "train"
+                                        ? "Train"
+                                        : tb.type === "bus"
+                                        ? "Bus"
+                                        : "Cab",
+                                    bookingId: tb.pnr,
+                                    customerName: tb.passengers.split("(")[0].trim() || user?.name || "Aryan Sharma",
+                                    title: tb.title,
+                                    subtitle: tb.subtitle,
+                                    venueOrRoute: tb.fromToOrCity || tb.subtitle,
+                                    dateStr: tb.dateStr.split("·")[0].trim(),
+                                    timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
+                                    seatOrClass: tb.details || "Confirmed Pass",
+                                    price: tb.price,
+                                    status: tb.status || "Confirmed",
+                                    sourceType: "travel",
+                                  })
+                                }
+                                style={{
+                                  background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
+                                  color: "#fff",
+                                  border: "none",
+                                  borderRadius: "8px",
+                                  fontSize: "12px",
+                                  fontWeight: 700,
+                                  padding: "6px 12px",
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
+                                }}
+                              >
+                                ✨ 3D Pass
+                              </button>
+
                               <button
                                 type="button"
                                 onClick={() =>
@@ -5265,7 +5527,7 @@ export default function TicketWalaPage() {
                   </span>
 
                   <h2>
-                    Welcome back to the <em>fast lane</em>.
+                    Welcome back to the <em>TicketWala</em>.
                   </h2>
                   <p>
                     Log in to lock high-contention seats before the other 5,000 fans. Your active holds, e-tickets, and VIP queue status are waiting.
@@ -5986,7 +6248,28 @@ export default function TicketWalaPage() {
                     };
                     setTravelBookings([newRecord, ...travelBookings]);
                     setSelectedTravelItem(null);
-                    setConfirmedTravelPass(newRecord);
+                    setActive3DTicket({
+                      ticketType: (newRecord.type === "hotel"
+                        ? "Hotel"
+                        : newRecord.type === "flight"
+                        ? "Flight"
+                        : newRecord.type === "train"
+                        ? "Train"
+                        : newRecord.type === "bus"
+                        ? "Bus"
+                        : "Cab"),
+                      bookingId: newRecord.pnr,
+                      customerName: bookingPassengerName.trim() || user?.name || "Aryan Sharma",
+                      title: newRecord.title,
+                      subtitle: newRecord.subtitle,
+                      venueOrRoute: newRecord.fromToOrCity || newRecord.subtitle,
+                      dateStr: newRecord.dateStr.split("·")[0].trim(),
+                      timeStr: isTransport ? transportItem!.depTime : "12:00 PM Check-In",
+                      seatOrClass: isTransport ? (transportItem!.classType || "Confirmed Class") : "Deluxe Room",
+                      price: totalFare,
+                      status: "Confirmed",
+                      sourceType: "travel",
+                    });
                   }}
                 >
                   Confirm & Secure PNR
@@ -6078,6 +6361,255 @@ export default function TicketWalaPage() {
               >
                 Download Digital Pass & Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* PREMIUM ANIMATED 3D TICKET MODAL (INSPIRED BY REFERENCE IMAGE) */}
+      {/* ============================================================ */}
+      {active3DTicket && (
+        <div
+          className="ticket-3d-backdrop"
+          onClick={() => setActive3DTicket(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="3D Ticket Pass"
+        >
+          {/* Action Bar / Controls */}
+          <div
+            className="ticket-3d-controls-bar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="ticket-ctrl-btn"
+              onClick={() => handleBackToBookings(active3DTicket)}
+              title="Return to your reservations list"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back to Bookings</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-ctrl-btn"
+              onClick={handlePrintTicket}
+              title="Print your TicketWala boarding pass"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Print Ticket</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-ctrl-btn primary"
+              onClick={() => handleDownload3DTicket(active3DTicket)}
+              title="Save digital pass file to device"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Download Ticket</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-ctrl-btn close"
+              onClick={() => setActive3DTicket(null)}
+              title="Close 3D Ticket preview"
+              aria-label="Close"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Interactive 3D Perspective Stage */}
+          <div className="ticket-3d-stage" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="ticket-3d-card"
+              onMouseMove={handleTicketMouseMove}
+              onMouseLeave={handleTicketMouseLeave}
+              style={{
+                transform: `perspective(1200px) rotateX(${ticketTilt.x}deg) rotateY(${ticketTilt.y}deg) scale3d(1.02, 1.02, 1.02)`,
+                transition: ticketTilt.x === 0 && ticketTilt.y === 0 ? "transform 0.5s ease" : "transform 0.08s ease-out",
+              }}
+            >
+              {/* LEFT BODY: Signature TicketWala Orange Gradient Pass */}
+              <div className="ticket-3d-body">
+                {/* Dynamic Parallax Specular Glare Sheen */}
+                <div
+                  className="ticket-3d-glare"
+                  style={{
+                    background: `radial-gradient(circle at ${ticketTilt.glareX}% ${ticketTilt.glareY}%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.06) 50%, transparent 80%)`,
+                    opacity: ticketTilt.glareOpacity,
+                  }}
+                />
+
+                {/* Top Row: Tags & Domain */}
+                <div className="ticket-3d-top-row">
+                  <div className="ticket-3d-tag-left">
+                    <span>3D MOCKUP</span>
+                    <span className="ticket-3d-type-pill">
+                      {active3DTicket.ticketType.toUpperCase()} PASS
+                    </span>
+                  </div>
+                  <div className="ticket-3d-domain-right">
+                    TICKETWALA.COM
+                  </div>
+                </div>
+
+                {/* Big Center Display Title: Solid + Outline Dual Typography */}
+                <div className="ticket-3d-hero-title">
+                  <span className="ticket-title-filled">TICKET</span>
+                  <span className="ticket-title-outline">PASS</span>
+                </div>
+
+                {/* Subtitle / Venue Route Header */}
+                <div className="ticket-3d-subtitle">
+                  {active3DTicket.title}
+                  <span style={{ opacity: 0.85, fontWeight: 500, marginLeft: "8px" }}>
+                    · {active3DTicket.venueOrRoute}
+                  </span>
+                </div>
+
+                {/* 4-Column Metadata Chips Grid */}
+                <div className="ticket-3d-meta-grid">
+                  <div className="ticket-3d-meta-item">
+                    <small>PASSENGER / HOLDER</small>
+                    <b>{active3DTicket.customerName}</b>
+                  </div>
+                  <div className="ticket-3d-meta-item">
+                    <small>DATE &amp; TIME</small>
+                    <b>{active3DTicket.dateStr} · {active3DTicket.timeStr}</b>
+                  </div>
+                  <div className="ticket-3d-meta-item">
+                    <small>SEAT / CLASS</small>
+                    <b>{active3DTicket.seatOrClass}</b>
+                  </div>
+                  <div className="ticket-3d-meta-item">
+                    <small>STATUS</small>
+                    <b style={{ color: "#ffffff" }}>✓ {active3DTicket.status}</b>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Embossed 3D Badge + Pricing */}
+                <div className="ticket-3d-footer-row">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <span className="ticket-3d-embossed-badge">3D</span>
+                    <span className="ticket-3d-quality-tag">OFFICIAL VERIFIED PASS</span>
+                  </div>
+                  <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "0.5px" }}>
+                    ₹{active3DTicket.price.toLocaleString("en-IN")} · 0 CONFLICT GUARANTEE
+                  </div>
+                </div>
+              </div>
+
+              {/* PERFORATED SEAM & NOTCHES */}
+              <div className="ticket-3d-seam">
+                <div className="ticket-notch top" />
+                <div className="ticket-perf-line" />
+                <div className="ticket-notch bottom" />
+              </div>
+
+              {/* RIGHT STUB: Off-white Paper Stub with QR Code */}
+              <div className="ticket-3d-stub">
+                <div className="ticket-stub-header">
+                  TICKET MOCKUP
+                </div>
+
+                {/* High Density Scalable SVG QR Code */}
+                <div className="ticket-stub-qr-box">
+                  <svg width="96" height="96" viewBox="0 0 100 100" fill="none">
+                    {/* QR Finder Corners */}
+                    <rect x="6" y="6" width="24" height="24" rx="4" fill="#181716" />
+                    <rect x="10" y="10" width="16" height="16" rx="2" fill="#ffffff" />
+                    <rect x="13" y="13" width="10" height="10" rx="1.5" fill="#181716" />
+
+                    <rect x="70" y="6" width="24" height="24" rx="4" fill="#181716" />
+                    <rect x="74" y="10" width="16" height="16" rx="2" fill="#ffffff" />
+                    <rect x="77" y="13" width="10" height="10" rx="1.5" fill="#181716" />
+
+                    <rect x="6" y="70" width="24" height="24" rx="4" fill="#181716" />
+                    <rect x="10" y="74" width="16" height="16" rx="2" fill="#ffffff" />
+                    <rect x="13" y="77" width="10" height="10" rx="1.5" fill="#181716" />
+
+                    {/* Timing Tracks */}
+                    <rect x="34" y="16" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="42" y="16" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="50" y="16" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="58" y="16" width="4" height="4" rx="1" fill="#181716" />
+
+                    <rect x="16" y="34" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="16" y="42" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="16" y="50" width="4" height="4" rx="1" fill="#181716" />
+                    <rect x="16" y="58" width="4" height="4" rx="1" fill="#181716" />
+
+                    {/* QR Data Matrix Bits */}
+                    <rect x="36" y="36" width="6" height="6" rx="1.5" fill="#FF5126" />
+                    <rect x="44" y="36" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="52" y="36" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="60" y="36" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="70" y="36" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="80" y="36" width="5" height="5" rx="1" fill="#181716" />
+
+                    <rect x="36" y="45" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="45" y="45" width="8" height="8" rx="2" fill="#181716" />
+                    <rect x="57" y="45" width="5" height="5" rx="1" fill="#FF5126" />
+                    <rect x="66" y="45" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="75" y="45" width="6" height="6" rx="1.5" fill="#181716" />
+
+                    <rect x="36" y="57" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="46" y="57" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="55" y="57" width="7" height="7" rx="1.5" fill="#181716" />
+                    <rect x="66" y="57" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="75" y="57" width="5" height="5" rx="1" fill="#181716" />
+
+                    <rect x="36" y="68" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="45" y="68" width="6" height="6" rx="1.5" fill="#FF5126" />
+                    <rect x="55" y="68" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="64" y="68" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="74" y="68" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="83" y="68" width="5" height="5" rx="1" fill="#181716" />
+
+                    <rect x="36" y="78" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="46" y="78" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="55" y="78" width="7" height="7" rx="1.5" fill="#181716" />
+                    <rect x="66" y="78" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="75" y="78" width="6" height="6" rx="1.5" fill="#FF5126" />
+                    <rect x="85" y="78" width="5" height="5" rx="1" fill="#181716" />
+
+                    <rect x="6" y="38" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="6" y="48" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="6" y="58" width="6" height="6" rx="1.5" fill="#181716" />
+
+                    <rect x="70" y="48" width="5" height="5" rx="1" fill="#181716" />
+                    <rect x="78" y="58" width="6" height="6" rx="1.5" fill="#181716" />
+                    <rect x="86" y="48" width="5" height="5" rx="1" fill="#181716" />
+                  </svg>
+                </div>
+
+                <div className="ticket-stub-pnr">
+                  {active3DTicket.bookingId}
+                </div>
+
+                <div className="ticket-stub-sub">
+                  SCAN AT GATE / TURNSTILE
+                </div>
+              </div>
             </div>
           </div>
         </div>
