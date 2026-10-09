@@ -1077,7 +1077,7 @@ export default function TicketWalaPage() {
 
   // Profile Form States (Streamlined 3-tab access-first architecture)
   const [profileTab, setProfileTab] = useState<"passes" | "personal" | "security">("passes");
-  const [passFilterType, setPassFilterType] = useState<"all" | "events" | "travel">("all");
+  const [passFilterType, setPassFilterType] = useState<"all" | "events" | "flight" | "train" | "hotel" | "travel">("all");
   const [profileName, setProfileName] = useState<string>("Demo Fan");
   const [profilePassName, setProfilePassName] = useState<string>("VIP Pass Holder");
   const [profilePhone, setProfilePhone] = useState<string>("+91 98201 23456");
@@ -4977,23 +4977,36 @@ export default function TicketWalaPage() {
           {!user ? (
             /* ACCESS PORTAL FOR UNLOGGED USERS */
             <div className="profile-dash-wrap">
-              <div className="profile-access-gate-card">
-                <div className="access-gate-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <div className="profile-access-card-dark">
+                <div className="profile-access-icon-wrapper">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </div>
                 <h2>Access Your Passes &amp; Boarding Tickets</h2>
                 <p>
-                  Access your confirmed live event tickets, travel boarding passes, and instant turnstile QR codes backed by offline verification.
+                  Access your confirmed live event tickets, travel boarding passes, and instant turnstile QR credentials with cryptographic verification.
                 </p>
 
-                <div className="access-gate-actions">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="btn"
-                    style={{ padding: "12px 26px", fontSize: "14px", display: "inline-flex", alignItems: "center", gap: "8px" }}
+                    style={{
+                      background: "linear-gradient(135deg, #FF6B35 0%, #FF5126 100%)",
+                      color: "#fff",
+                      border: "none",
+                      padding: "12px 24px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      borderRadius: "12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      boxShadow: "0 4px 16px rgba(255, 81, 38, 0.35)",
+                      cursor: "pointer",
+                    }}
                     onClick={handleQuickDemoLogin}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -5004,29 +5017,38 @@ export default function TicketWalaPage() {
 
                   <button
                     type="button"
-                    className="btn ghost"
-                    style={{ padding: "12px 22px", fontSize: "14px" }}
+                    className="btn"
+                    style={{
+                      background: "rgba(56, 189, 248, 0.1)",
+                      color: "#38BDF8",
+                      border: "1px solid rgba(56, 189, 248, 0.3)",
+                      padding: "12px 22px",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      borderRadius: "12px",
+                      cursor: "pointer",
+                    }}
                     onClick={() => navigateTo("login")}
                   >
                     Sign In with Email
                   </button>
                 </div>
 
-                <div className="access-gate-features">
-                  <div className="ag-feature">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="3">
+                <div className="profile-access-features">
+                  <div className="profile-access-feat-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span>Instant Turnstile QR Codes</span>
                   </div>
-                  <div className="ag-feature">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="3">
+                  <div className="profile-access-feat-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span>Offline PDF E-Tickets</span>
                   </div>
-                  <div className="ag-feature">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="3">
+                  <div className="profile-access-feat-item">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span>Zero Double-Booking Guarantee</span>
@@ -5035,13 +5057,16 @@ export default function TicketWalaPage() {
               </div>
             </div>
           ) : (
-            /* STREAMLINED LOGGED-IN PROFILE DASHBOARD */
+            /* MODERN PREMIUM TWO-COLUMN DASHBOARD UI */
             <div className="profile-dash-wrap">
-              {/* 1. Access-First Header Card */}
-              <div className="profile-hero-card" style={{ marginBottom: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
-                    <div className="profile-avatar-wrapper">
+              <div className="profile-dashboard-layout">
+                {/* ---------------------------------------------------- */}
+                {/* LEFT COLUMN: COMPACT PROFILE SIDEBAR                 */}
+                {/* ---------------------------------------------------- */}
+                <aside className="profile-sidebar">
+                  {/* User Identity Card */}
+                  <div className="profile-user-card">
+                    <div className="profile-avatar-container">
                       {profileAvatar ? (
                         <img src={profileAvatar} alt="Profile" className="profile-avatar-img" />
                       ) : (
@@ -5068,43 +5093,12 @@ export default function TicketWalaPage() {
                       </label>
                     </div>
 
-                    <div className="profile-identity">
-                      <div className="profile-name-row">
-                        <h2>{user.name}</h2>
-                        <span className="profile-verified-badge">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          Verified VIP Account
-                        </span>
-                      </div>
-                      <div className="profile-meta-row">
-                        <span>{user.email}</span>
-                        <span className="dot-sep">•</span>
-                        <span>{user.phone || profilePhone || "+91 98201 23456"}</span>
-                        <span className="dot-sep">•</span>
-                        <span className="pass-pill">TW-9024-VIP</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                      <span style={{ fontSize: "12px", color: "#77736c", fontWeight: 600 }}>
-                        Active Passes: <b style={{ color: "var(--k)", fontSize: "14px" }}>{bookings.length + travelBookings.length}</b>
-                      </span>
-                      <span style={{
-                        fontSize: "10px",
-                        fontWeight: 800,
-                        color: "#27ae60",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        marginTop: "2px"
-                      }}>
-                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#27ae60" }}></span>
-                        Turnstile Ready
-                      </span>
+                    <h3 className="profile-user-name">{user.name}</h3>
+                    <div className="profile-user-badge">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Verified VIP Member</span>
                     </div>
 
                     {profileAvatar && (
@@ -5112,23 +5106,112 @@ export default function TicketWalaPage() {
                         type="button"
                         onClick={handleRemoveAvatar}
                         style={{
-                          background: "#f9f8f5",
-                          border: "1px solid #ded9d0",
-                          borderRadius: "8px",
+                          background: "transparent",
+                          border: "none",
+                          color: "#94A3B8",
                           fontSize: "11px",
-                          fontWeight: 600,
-                          color: "#77736c",
-                          padding: "6px 10px",
                           cursor: "pointer",
+                          marginBottom: "10px",
+                          textDecoration: "underline",
                         }}
                       >
-                        Reset Photo
+                        Reset Avatar
                       </button>
                     )}
 
+                    <div className="profile-contact-list">
+                      <div className="profile-contact-chip" title={user.email}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                        <span>{user.email}</span>
+                      </div>
+                      <div className="profile-contact-chip">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <span>{user.phone || profilePhone || "+91 98201 23456"}</span>
+                      </div>
+                      <div className="profile-contact-chip">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{CITIES.find(c => c.id === profileCity)?.name || "Mumbai"}, India</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sidebar Quick Stats */}
+                  <div className="profile-quick-stats">
+                    <div className="profile-quick-stat-box">
+                      <small>Member ID</small>
+                      <b>TW-VIP-9024</b>
+                    </div>
+                    <div className="profile-quick-stat-box">
+                      <small>Active Passes</small>
+                      <b>{bookings.length + travelBookings.length}</b>
+                    </div>
+                  </div>
+
+                  {/* Sidebar Navigation Tabs */}
+                  <nav className="profile-nav-list">
                     <button
                       type="button"
-                      className="btn-logout-header"
+                      className={`profile-nav-btn ${profileTab === "passes" ? "active" : ""}`}
+                      onClick={() => setProfileTab("passes")}
+                    >
+                      <div className="profile-nav-btn-content">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                        </svg>
+                        <span>My Passes &amp; Tickets</span>
+                      </div>
+                      {(bookings.length + travelBookings.length) > 0 && (
+                        <span className="profile-nav-badge">{bookings.length + travelBookings.length}</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`profile-nav-btn ${profileTab === "personal" ? "active" : ""}`}
+                      onClick={() => setProfileTab("personal")}
+                    >
+                      <div className="profile-nav-btn-content">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span>Profile &amp; Contact</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`profile-nav-btn ${profileTab === "security" ? "active" : ""}`}
+                      onClick={() => setProfileTab("security")}
+                    >
+                      <div className="profile-nav-btn-content">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span>Security &amp; Access</span>
+                      </div>
+                    </button>
+                  </nav>
+
+                  {/* Sidebar Footer */}
+                  <div className="profile-sidebar-footer">
+                    <div className="profile-fastlane-badge">
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#34D399" }} />
+                      <span>Turnstile Fast Lane Active</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="profile-logout-btn"
                       onClick={handleLogout}
                       title="Sign Out of Session"
                     >
@@ -5140,343 +5223,458 @@ export default function TicketWalaPage() {
                       <span>Log Out</span>
                     </button>
                   </div>
-                </div>
-              </div>
+                </aside>
 
-              {/* 2. Streamlined 3-Tab Segmented Navigation */}
-              <div className="profile-tabs-bar">
-                <button
-                  type="button"
-                  className={`profile-tab-btn ${profileTab === "passes" ? "active" : ""}`}
-                  onClick={() => setProfileTab("passes")}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
-                  </svg>
-                  <span>My Passes &amp; Tickets</span>
-                  {(bookings.length + travelBookings.length) > 0 && (
-                    <span className="profile-tab-badge">{bookings.length + travelBookings.length}</span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  className={`profile-tab-btn ${profileTab === "personal" ? "active" : ""}`}
-                  onClick={() => setProfileTab("personal")}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span>Profile &amp; Contact</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`profile-tab-btn ${profileTab === "security" ? "active" : ""}`}
-                  onClick={() => setProfileTab("security")}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  <span>Security &amp; Access</span>
-                </button>
-              </div>
-
-              {/* 3. FOCUSED TAB VIEWS */}
+                {/* ---------------------------------------------------- */}
+                {/* RIGHT COLUMN: MAIN CONTENT PANES                     */}
+                {/* ---------------------------------------------------- */}
+                <main className="profile-main-pane">
 
               {/* TAB 1: PASSES & TICKETS (ACCESS FOCUS) */}
               {profileTab === "passes" && (
-                <div className="profile-section-pane">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
-                    <div>
-                      <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
-                        My Passes &amp; Boarding Tickets
-                      </h3>
-                      <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
-                        Instant turnstile-ready digital boarding passes backed by Redis TTL locks and offline QR verification.
-                      </p>
+                <div>
+                  {/* Pane Header */}
+                  <div className="profile-pane-header">
+                    <div className="profile-pane-title-group">
+                      <h2>Digital Passes &amp; Boarding Cards</h2>
+                      <p>Turnstile-ready passes backed by sub-second Redis locks &amp; cryptographic QR access.</p>
                     </div>
 
                     <button
                       type="button"
-                      className="btn ghost"
-                      style={{ padding: "6px 14px", fontSize: "12px" }}
+                      className="profile-btn-pass"
+                      style={{ padding: "8px 16px", fontSize: "13px" }}
                       onClick={() => navigateTo("home")}
                     >
-                      + Book Live Drop
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      <span>Book Live Drop</span>
                     </button>
                   </div>
 
-                  {/* Filter Pills */}
-                  <div className="pass-filter-bar">
+                  {/* Summary Metric Cards (4 Metrics) */}
+                  <div className="profile-summary-grid">
+                    <div className="profile-summary-card">
+                      <div className="profile-summary-icon" style={{ background: "rgba(56, 189, 248, 0.12)", color: "#38BDF8" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="profile-summary-info">
+                        <b>{bookings.length + travelBookings.length}</b>
+                        <span>Active Passes</span>
+                        <small>Total confirmed</small>
+                      </div>
+                    </div>
+
+                    <div className="profile-summary-card">
+                      <div className="profile-summary-icon" style={{ background: "rgba(168, 85, 247, 0.12)", color: "#C084FC" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M9 18V5l12-2v13" />
+                          <circle cx="6" cy="18" r="3" />
+                          <circle cx="18" cy="16" r="3" />
+                        </svg>
+                      </div>
+                      <div className="profile-summary-info">
+                        <b>{bookings.length + travelBookings.filter(tb => tb.type === "event").length}</b>
+                        <span>Live Concerts</span>
+                        <small>Stadium &amp; arena</small>
+                      </div>
+                    </div>
+
+                    <div className="profile-summary-card">
+                      <div className="profile-summary-icon" style={{ background: "rgba(56, 189, 248, 0.12)", color: "#38BDF8" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.3-1.8 1.1l-.2.7 6.4 3.7-3.4 3.4-2.5-.6c-.5-.1-1 .1-1.3.5l-.3.4 3.2 2 2 3.2.4-.3c.4-.3.6-.8.5-1.3l-.6-2.5 3.4-3.4 3.7 6.4.7-.2c.8-.2 1.3-1 1.1-1.8z" />
+                        </svg>
+                      </div>
+                      <div className="profile-summary-info">
+                        <b>{travelBookings.filter(tb => tb.type === "flight" || tb.type === "train" || tb.type === "bus" || tb.type === "cab").length}</b>
+                        <span>Transit &amp; Travel</span>
+                        <small>Flights, trains &amp; cabs</small>
+                      </div>
+                    </div>
+
+                    <div className="profile-summary-card">
+                      <div className="profile-summary-icon" style={{ background: "rgba(245, 158, 11, 0.12)", color: "#FBBF24" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M3 21h18" />
+                          <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+                          <path d="M9 7h1" />
+                          <path d="M9 11h1" />
+                          <path d="M9 15h1" />
+                          <path d="M14 7h1" />
+                          <path d="M14 11h1" />
+                          <path d="M14 15h1" />
+                        </svg>
+                      </div>
+                      <div className="profile-summary-info">
+                        <b>{travelBookings.filter(tb => tb.type === "hotel").length}</b>
+                        <span>Hotels &amp; Stays</span>
+                        <small>Resorts &amp; suites</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Filter Tabs */}
+                  <div className="profile-filter-tabs">
                     <button
                       type="button"
-                      className={`pass-filter-btn ${passFilterType === "all" ? "active" : ""}`}
+                      className={`profile-filter-pill ${passFilterType === "all" ? "active" : ""}`}
                       onClick={() => setPassFilterType("all")}
                     >
                       All Passes ({bookings.length + travelBookings.length})
                     </button>
                     <button
                       type="button"
-                      className={`pass-filter-btn ${passFilterType === "events" ? "active" : ""}`}
+                      className={`profile-filter-pill ${passFilterType === "events" ? "active" : ""}`}
                       onClick={() => setPassFilterType("events")}
                     >
-                      Live Events ({bookings.length})
+                      Events ({bookings.length + travelBookings.filter(tb => tb.type === "event").length})
                     </button>
                     <button
                       type="button"
-                      className={`pass-filter-btn ${passFilterType === "travel" ? "active" : ""}`}
+                      className={`profile-filter-pill ${passFilterType === "flight" ? "active" : ""}`}
+                      onClick={() => setPassFilterType("flight")}
+                    >
+                      Flights ({travelBookings.filter(tb => tb.type === "flight").length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`profile-filter-pill ${passFilterType === "train" ? "active" : ""}`}
+                      onClick={() => setPassFilterType("train")}
+                    >
+                      Trains ({travelBookings.filter(tb => tb.type === "train").length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`profile-filter-pill ${passFilterType === "hotel" ? "active" : ""}`}
+                      onClick={() => setPassFilterType("hotel")}
+                    >
+                      Hotels ({travelBookings.filter(tb => tb.type === "hotel").length})
+                    </button>
+                    <button
+                      type="button"
+                      className={`profile-filter-pill ${passFilterType === "travel" ? "active" : ""}`}
                       onClick={() => setPassFilterType("travel")}
                     >
-                      Travel &amp; Transit ({travelBookings.length})
+                      Transit ({travelBookings.filter(tb => tb.type === "bus" || tb.type === "cab").length})
                     </button>
                   </div>
 
                   {/* Tickets Grid */}
-                  <div className="profile-passes-grid">
+                  <div className="profile-tickets-grid">
                     {/* Event Bookings */}
                     {(passFilterType === "all" || passFilterType === "events") &&
-                      bookings.map((b, i) => (
-                        <div key={`evt-${i}`} className="profile-pass-card">
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                            <div>
-                              <span style={{ fontSize: "10px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                {b.tier || "VIP CONCERT PASS"}
-                              </span>
-                              <b style={{ display: "block", fontSize: "15px", color: "var(--k)", marginTop: "2px", lineHeight: 1.3 }}>
-                                {b.e}
-                              </b>
-                            </div>
-                            <span style={{
-                              background: "rgba(39, 174, 96, 0.12)",
-                              color: "#27ae60",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "6px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              flexShrink: 0
-                            }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                              Confirmed
-                            </span>
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "#77736c", padding: "10px 0", borderTop: "1px dashed #ded9d0", borderBottom: "1px dashed #ded9d0" }}>
-                            <span>SEAT <b>#{b.s}</b></span>
-                            <span>PASS: <b>{user.passName || profilePassName || user.name}</b></span>
-                            <span style={{ color: "var(--k)", fontWeight: 800, fontSize: "14px" }}>₹{b.price || 1499}</span>
-                          </div>
-
-                          <div style={{ marginTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: "10px", color: "#8c8880", fontFamily: "monospace" }}>
-                              PNR: TW-EVT-420{i + 1}
-                            </span>
-                            <div style={{ display: "flex", gap: "6px" }}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActive3DTicket({
-                                    ticketType: "Event",
-                                    bookingId: `TW-EVT-420${i + 1}`,
-                                    customerName: user?.name || profileName || "Aryan Sharma",
-                                    title: b.e,
-                                    subtitle: `${b.tier} · Seat #${b.s}`,
-                                    venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-                                    dateStr: "Tomorrow, 07:00 PM",
-                                    timeStr: "Gates 05:00 PM",
-                                    seatOrClass: `Seat #${b.s} (${b.tier})`,
-                                    price: b.price || 1499,
-                                    status: "Confirmed",
-                                    sourceType: "event",
-                                  })
-                                }
-                                style={{
-                                  background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  padding: "6px 12px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                  boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
-                                }}
-                              >
-                                Pass
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadTicket({ title: b.e, s: b.s, pnr: `TW-EVT-420${i + 1}` })}
-                                style={{
-                                  background: "#fff",
-                                  border: "1px solid #ded9d0",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  color: "var(--k)",
-                                  padding: "6px 10px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                }}
-                                title="Download E-Ticket Pass"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                      bookings.map((b, i) => {
+                        const pnrStr = b.pnr || `TW-EVT-420${i + 1}`;
+                        const holderName = b.passengerName || user.passName || profilePassName || user.name;
+                        return (
+                          <div key={`evt-${i}`} className="profile-ticket-card">
+                            <div className="profile-ticket-top">
+                              <span className="profile-category-pill event">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path d="M9 18V5l12-2v13" />
+                                  <circle cx="6" cy="18" r="3" />
+                                  <circle cx="18" cy="16" r="3" />
                                 </svg>
-                                <span>PDF</span>
-                              </button>
+                                <span>{b.tier || "LIVE CONCERT"}</span>
+                              </span>
+                              <span className="profile-ticket-confirmed-badge">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Confirmed</span>
+                              </span>
+                            </div>
+
+                            <div className="profile-ticket-main">
+                              <h4>{b.e}</h4>
+                              <p className="profile-ticket-subtitle">
+                                {b.tier || "VIP PASS"} · Turnstile Fast-Lane Entry
+                              </p>
+                            </div>
+
+                            <div className="profile-ticket-details-strip">
+                              <div className="profile-tds-col">
+                                <small>Seat</small>
+                                <span>#{b.s}</span>
+                              </div>
+                              <div className="profile-tds-col">
+                                <small>Pass Moniker</small>
+                                <span title={holderName}>{holderName}</span>
+                              </div>
+                              <div className="profile-tds-col price">
+                                <small>Total</small>
+                                <span>₹{(b.price || 1499).toLocaleString("en-IN")}</span>
+                              </div>
+                            </div>
+
+                            <div className="profile-ticket-bottom">
+                              <span className="profile-pnr-pill">PNR: {pnrStr}</span>
+                              <div className="profile-ticket-actions">
+                                <button
+                                  type="button"
+                                  className="profile-btn-pass"
+                                  onClick={() =>
+                                    setActive3DTicket({
+                                      ticketType: "Event",
+                                      bookingId: pnrStr,
+                                      customerName: holderName,
+                                      title: b.e,
+                                      subtitle: `${b.tier || "VIP Pass"} · Seat #${b.s}`,
+                                      venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+                                      dateStr: "Tomorrow, 07:00 PM",
+                                      timeStr: "Gates 05:00 PM",
+                                      seatOrClass: `Seat #${b.s} (${b.tier || "VIP"})`,
+                                      price: b.price || 1499,
+                                      status: "Confirmed",
+                                      sourceType: "event",
+                                    })
+                                  }
+                                  title="View Animated Boarding Pass"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                  </svg>
+                                  <span>Pass</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="profile-btn-pdf"
+                                  onClick={() => handleDownloadTicket({ title: b.e, s: b.s, pnr: pnrStr })}
+                                  title="Download E-Ticket PDF"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  <span>PDF</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                     {/* Travel Bookings */}
-                    {(passFilterType === "all" || passFilterType === "travel") &&
-                      travelBookings.map((tb, i) => (
-                        <div key={`trv-${i}`} className="profile-pass-card">
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                            <div>
-                              <span style={{ fontSize: "10px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                {tb.type === "flight" ? "FLIGHT PASS" : tb.type === "train" ? "TRAIN TICKET" : tb.type === "hotel" ? "HOTEL STAY" : "TRANSIT PASS"}
+                    {travelBookings
+                      .filter((tb) => {
+                        if (passFilterType === "all") return true;
+                        if (passFilterType === "events") return tb.type === "event";
+                        if (passFilterType === "flight") return tb.type === "flight";
+                        if (passFilterType === "train") return tb.type === "train";
+                        if (passFilterType === "hotel") return tb.type === "hotel";
+                        if (passFilterType === "travel") return tb.type === "bus" || tb.type === "cab";
+                        return true;
+                      })
+                      .map((tb, i) => {
+                        const isFlight = tb.type === "flight";
+                        const isTrain = tb.type === "train";
+                        const isHotel = tb.type === "hotel";
+                        const isBus = tb.type === "bus";
+                        const isCab = tb.type === "cab";
+
+                        const categoryClass = isFlight
+                          ? "flight"
+                          : isTrain
+                          ? "train"
+                          : isHotel
+                          ? "hotel"
+                          : isBus
+                          ? "bus"
+                          : isCab
+                          ? "cab"
+                          : "transit";
+
+                        const categoryLabel = isFlight
+                          ? "FLIGHT PASS"
+                          : isTrain
+                          ? "TRAIN TICKET"
+                          : isHotel
+                          ? "HOTEL STAY"
+                          : isBus
+                          ? "BUS PASS"
+                          : isCab
+                          ? "CAB RIDE"
+                          : "TRANSIT PASS";
+
+                        const ticket3DType: "Bus" | "Train" | "Flight" | "Cab" | "Hotel" | "Event" = isHotel
+                          ? "Hotel"
+                          : isFlight
+                          ? "Flight"
+                          : isTrain
+                          ? "Train"
+                          : isBus
+                          ? "Bus"
+                          : isCab
+                          ? "Cab"
+                          : "Event";
+
+                        return (
+                          <div key={`trv-${i}`} className="profile-ticket-card">
+                            <div className="profile-ticket-top">
+                              <span className={`profile-category-pill ${categoryClass}`}>
+                                {isFlight ? (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.3-1.8 1.1l-.2.7 6.4 3.7-3.4 3.4-2.5-.6c-.5-.1-1 .1-1.3.5l-.3.4 3.2 2 2 3.2.4-.3c.4-.3.6-.8.5-1.3l-.6-2.5 3.4-3.4 3.7 6.4.7-.2c.8-.2 1.3-1 1.1-1.8z" />
+                                  </svg>
+                                ) : isTrain ? (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <rect x="4" y="3" width="16" height="14" rx="2" />
+                                    <path d="M4 11h16" />
+                                    <path d="M12 3v8" />
+                                    <path d="m8 19-2 3" />
+                                    <path d="m16 19 2 3" />
+                                    <circle cx="8" cy="15" r="1" />
+                                    <circle cx="16" cy="15" r="1" />
+                                  </svg>
+                                ) : isHotel ? (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M3 21h18" />
+                                    <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+                                    <path d="M9 7h1" />
+                                    <path d="M9 11h1" />
+                                    <path d="M9 15h1" />
+                                    <path d="M14 7h1" />
+                                    <path d="M14 11h1" />
+                                    <path d="M14 15h1" />
+                                  </svg>
+                                ) : (
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <rect x="3" y="3" width="18" height="14" rx="2" />
+                                    <path d="M7 17v2" />
+                                    <path d="M17 17v2" />
+                                    <circle cx="7.5" cy="13.5" r="1" />
+                                    <circle cx="16.5" cy="13.5" r="1" />
+                                  </svg>
+                                )}
+                                <span>{categoryLabel}</span>
                               </span>
-                              <b style={{ display: "block", fontSize: "15px", color: "var(--k)", marginTop: "2px", lineHeight: 1.3 }}>
-                                {tb.title}
-                              </b>
-                              <span style={{ fontSize: "11px", color: "#77736c", display: "block", marginTop: "2px" }}>
-                                {tb.subtitle}
-                              </span>
-                            </div>
-                            <span style={{
-                              background: "rgba(39, 174, 96, 0.12)",
-                              color: "#27ae60",
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              padding: "3px 8px",
-                              borderRadius: "6px",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              flexShrink: 0
-                            }}>
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                              Confirmed
-                            </span>
-                          </div>
-
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "#77736c", padding: "10px 0", borderTop: "1px dashed #ded9d0", borderBottom: "1px dashed #ded9d0" }}>
-                            <span>{tb.dateStr}</span>
-                            <span><b>{tb.passengers}</b></span>
-                            <span style={{ color: "var(--k)", fontWeight: 800, fontSize: "14px" }}>₹{tb.price.toLocaleString("en-IN")}</span>
-                          </div>
-
-                          <div style={{ marginTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <span style={{ fontSize: "10px", color: "#8c8880", fontFamily: "monospace" }}>
-                              PNR: {tb.pnr}
-                            </span>
-                            <div style={{ display: "flex", gap: "6px" }}>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setActive3DTicket({
-                                    ticketType:
-                                      tb.type === "hotel"
-                                        ? "Hotel"
-                                        : tb.type === "flight"
-                                        ? "Flight"
-                                        : tb.type === "train"
-                                        ? "Train"
-                                        : tb.type === "bus"
-                                        ? "Bus"
-                                        : "Cab",
-                                    bookingId: tb.pnr,
-                                    customerName: tb.passengers.split("(")[0].trim() || user?.name || "Aryan Sharma",
-                                    title: tb.title,
-                                    subtitle: tb.subtitle,
-                                    venueOrRoute: tb.fromToOrCity || tb.subtitle,
-                                    dateStr: tb.dateStr.split("·")[0].trim(),
-                                    timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
-                                    seatOrClass: tb.details || "Confirmed Pass",
-                                    price: tb.price,
-                                    status: tb.status || "Confirmed",
-                                    sourceType: "travel",
-                                  })
-                                }
-                                style={{
-                                  background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  padding: "6px 12px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                  boxShadow: "0 2px 6px rgba(255, 107, 53, 0.25)",
-                                }}
-                              >
-                                Pass
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleDownloadTicket({ title: tb.title, pnr: tb.pnr })}
-                                style={{
-                                  background: "#fff",
-                                  border: "1px solid #ded9d0",
-                                  borderRadius: "8px",
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  color: "var(--k)",
-                                  padding: "6px 10px",
-                                  cursor: "pointer",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "5px",
-                                }}
-                                title="Download Travel Pass"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                              <span className="profile-ticket-confirmed-badge">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <polyline points="20 6 9 17 4 12" />
                                 </svg>
-                                <span>PDF</span>
-                              </button>
+                                <span>Confirmed</span>
+                              </span>
+                            </div>
+
+                            <div className="profile-ticket-main">
+                              <h4>{tb.title}</h4>
+                              <p className="profile-ticket-subtitle">{tb.subtitle}</p>
+                            </div>
+
+                            <div className="profile-ticket-details-strip">
+                              <div className="profile-tds-col">
+                                <small>Schedule</small>
+                                <span title={tb.dateStr}>{tb.dateStr}</span>
+                              </div>
+                              <div className="profile-tds-col">
+                                <small>{isHotel ? "Guests" : "Moniker"}</small>
+                                <span title={tb.passengers}>{tb.passengers}</span>
+                              </div>
+                              <div className="profile-tds-col price">
+                                <small>Total</small>
+                                <span>₹{tb.price.toLocaleString("en-IN")}</span>
+                              </div>
+                            </div>
+
+                            <div className="profile-ticket-bottom">
+                              <span className="profile-pnr-pill">PNR: {tb.pnr}</span>
+                              <div className="profile-ticket-actions">
+                                <button
+                                  type="button"
+                                  className="profile-btn-pass"
+                                  onClick={() =>
+                                    setActive3DTicket({
+                                      ticketType: ticket3DType,
+                                      bookingId: tb.pnr,
+                                      customerName: tb.passengers.split("(")[0].trim() || user?.name || "Aryan Sharma",
+                                      title: tb.title,
+                                      subtitle: tb.subtitle,
+                                      venueOrRoute: tb.fromToOrCity || tb.subtitle,
+                                      dateStr: tb.dateStr.split("·")[0].trim(),
+                                      timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
+                                      seatOrClass: tb.details || "Confirmed Pass",
+                                      price: tb.price,
+                                      status: tb.status || "Confirmed",
+                                      sourceType: "travel",
+                                    })
+                                  }
+                                  title="View Animated Boarding Pass"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                  </svg>
+                                  <span>Pass</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="profile-btn-pdf"
+                                  onClick={() => handleDownloadTicket({ title: tb.title, pnr: tb.pnr })}
+                                  title="Download Travel Pass PDF"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  <span>PDF</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                   </div>
 
                   {/* Empty State */}
-                  {bookings.length === 0 && travelBookings.length === 0 && (
-                    <div className="no-tickets-box">
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b8b4ad" strokeWidth="1.8" style={{ margin: "0 auto 12px", display: "block" }}>
+                  {((passFilterType === "all" && bookings.length === 0 && travelBookings.length === 0) ||
+                    (passFilterType === "events" && bookings.length === 0 && travelBookings.filter(tb => tb.type === "event").length === 0) ||
+                    (passFilterType === "flight" && travelBookings.filter(tb => tb.type === "flight").length === 0) ||
+                    (passFilterType === "train" && travelBookings.filter(tb => tb.type === "train").length === 0) ||
+                    (passFilterType === "hotel" && travelBookings.filter(tb => tb.type === "hotel").length === 0) ||
+                    (passFilterType === "travel" && travelBookings.filter(tb => tb.type === "bus" || tb.type === "cab").length === 0)) && (
+                    <div className="profile-empty-tickets-box">
+                      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="1.8" style={{ margin: "0 auto 12px", display: "block" }}>
                         <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
                       </svg>
-                      <b style={{ color: "var(--k)", display: "block", fontSize: "16px" }}>No passes claimed yet</b>
-                      <p style={{ margin: "8px 0 16px", fontSize: "13px" }}>Lock your seat before high-contention flash drops sell out!</p>
-                      <button type="button" className="btn" style={{ padding: "10px 22px", fontSize: "13px" }} onClick={() => navigateTo("home")}>
-                        Explore Live Drops →
-                      </button>
+                      <h3>No Passes Found</h3>
+                      <p>No active passes or boarding cards matching this category filter.</p>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+                        {passFilterType !== "all" && (
+                          <button
+                            type="button"
+                            className="profile-btn-pdf"
+                            style={{ padding: "8px 18px", fontSize: "13px" }}
+                            onClick={() => setPassFilterType("all")}
+                          >
+                            View All Passes
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="profile-btn-pass"
+                          style={{ padding: "8px 20px", fontSize: "13px" }}
+                          onClick={() => navigateTo("home")}
+                        >
+                          Explore Live Drops →
+                        </button>
+                      </div>
                     </div>
                   )}
 
                   {/* Turnstile Gate Access Guide */}
-                  <div className="gate-guide-card">
-                    <div className="gate-guide-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--o)" strokeWidth="2.2">
+                  <div className="profile-gate-guide">
+                    <div className="profile-gate-guide-header">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="16" x2="12" y2="12" />
                         <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -5484,34 +5682,42 @@ export default function TicketWalaPage() {
                       <span>Turnstile Gate Access Guide</span>
                     </div>
 
-                    <div className="gate-guide-grid">
-                      <div className="gate-guide-item">
+                    <div className="profile-gate-guide-grid">
+                      <div className="profile-gate-guide-item">
                         <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                           Offline Gate Ready
                         </b>
-                        <span>Screenshots and saved PDF e-tickets are valid at all venue entry turnstiles.</span>
+                        <span>Screenshots and saved PDF passes are valid at all venue entry turnstiles.</span>
                       </div>
 
-                      <div className="gate-guide-item">
+                      <div className="profile-gate-guide-item">
                         <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                           Screen Brightness
                         </b>
-                        <span>Turn screen brightness to 100% and hold QR 15 cm from the optical laser reader.</span>
+                        <span>Turn screen brightness to 100% and hold QR 15 cm from optical laser readers.</span>
                       </div>
 
-                      <div className="gate-guide-item">
+                      <div className="profile-gate-guide-item">
                         <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                           Photo ID Verification
                         </b>
                         <span>Keep government photo ID matching your ticket pass moniker ready for marshals.</span>
                       </div>
 
-                      <div className="gate-guide-item">
+                      <div className="profile-gate-guide-item">
                         <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                           Gate Helpdesk 24/7
                         </b>
                         <span>In case of scan issues, quote your 10-digit PNR at Turnstile Gate Support.</span>
@@ -5523,17 +5729,15 @@ export default function TicketWalaPage() {
 
               {/* TAB 2: PROFILE & CONTACT */}
               {profileTab === "personal" && (
-                <div className="profile-section-pane">
-                  <div style={{ marginBottom: "22px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
-                      Profile &amp; Contact Details
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
-                      Manage your legal identity, printed boarding pass moniker, and verified phone contact.
-                    </p>
+                <div>
+                  <div className="profile-pane-header">
+                    <div className="profile-pane-title-group">
+                      <h2>Profile &amp; Contact Details</h2>
+                      <p>Manage your verified legal identity, printed boarding pass moniker, and contact info.</p>
+                    </div>
                   </div>
 
-                  <form className="profile-form" onSubmit={handleSaveProfile}>
+                  <form className="profile-form-dark" onSubmit={handleSaveProfile}>
                     <div className="form-row-2">
                       <div className="input-field-group">
                         <label className="input-field-label">Full Legal Name</label>
@@ -5563,9 +5767,9 @@ export default function TicketWalaPage() {
 
                     <div className="form-row-2">
                       <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                        <label className="input-field-label">
                           <span>Primary Mobile Phone</span>
-                          <span style={{ color: "#27ae60", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
+                          <span style={{ color: "#34D399", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
                         </label>
                         <div className="input-field-box">
                           <input
@@ -5578,11 +5782,11 @@ export default function TicketWalaPage() {
                       </div>
 
                       <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                        <label className="input-field-label">
                           <span>Registered Account Email</span>
-                          <span style={{ color: "#8c8880", fontSize: "10px", fontWeight: 700 }}>Primary</span>
+                          <span style={{ color: "#64748B", fontSize: "10px", fontWeight: 700 }}>Primary</span>
                         </label>
-                        <div className="input-field-box" style={{ background: "#f8f7f5", opacity: 0.85 }}>
+                        <div className="input-field-box">
                           <input
                             className="input-field-input"
                             value={user.email}
@@ -5599,7 +5803,6 @@ export default function TicketWalaPage() {
                           className="input-field-input"
                           value={profileCity}
                           onChange={(e) => setProfileCity(e.target.value)}
-                          style={{ background: "transparent", border: "none", outline: "none" }}
                         >
                           {CITIES.map((c) => (
                             <option key={c.id} value={c.id}>
@@ -5610,11 +5813,15 @@ export default function TicketWalaPage() {
                       </div>
                     </div>
 
-                    <div className="form-actions-row" style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f2f0ec" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", marginTop: "8px", paddingTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
                       {profileSuccessMsg && (
-                        <span className="profile-success-text">{profileSuccessMsg}</span>
+                        <span style={{ color: "#34D399", fontSize: "12px", fontWeight: 700 }}>{profileSuccessMsg}</span>
                       )}
-                      <button type="submit" className="btn" style={{ padding: "10px 24px" }}>
+                      <button
+                        type="submit"
+                        className="profile-btn-pass"
+                        style={{ padding: "10px 24px", fontSize: "13px" }}
+                      >
                         Save Profile Changes
                       </button>
                     </div>
@@ -5624,20 +5831,18 @@ export default function TicketWalaPage() {
 
               {/* TAB 3: SECURITY & ACCESS */}
               {profileTab === "security" && (
-                <div className="profile-section-pane">
-                  <div style={{ marginBottom: "22px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
-                      Security &amp; Password
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
-                      Update account password, enable two-factor protection, and manage device sessions.
-                    </p>
+                <div>
+                  <div className="profile-pane-header">
+                    <div className="profile-pane-title-group">
+                      <h2>Security, Credentials &amp; Sessions</h2>
+                      <p>Update credentials, enable two-factor protection, and manage device sessions.</p>
+                    </div>
                   </div>
 
-                  <form className="profile-form" onSubmit={handleUpdatePassword}>
+                  <form className="profile-form-dark" onSubmit={handleUpdatePassword}>
                     <div className="input-field-group">
                       <label className="input-field-label">Current Password</label>
-                      <div className="input-field-box input-with-eye">
+                      <div className="input-field-box input-with-eye" style={{ position: "relative" }}>
                         <input
                           type={showOldPw ? "text" : "password"}
                           className="input-field-input"
@@ -5648,6 +5853,7 @@ export default function TicketWalaPage() {
                         <button
                           type="button"
                           className="pw-eye-btn"
+                          style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}
                           onClick={() => setShowOldPw((prev) => !prev)}
                           title={showOldPw ? "Hide password" : "Show password"}
                         >
@@ -5669,7 +5875,7 @@ export default function TicketWalaPage() {
                     <div className="form-row-2">
                       <div className="input-field-group">
                         <label className="input-field-label">New Password</label>
-                        <div className="input-field-box input-with-eye">
+                        <div className="input-field-box input-with-eye" style={{ position: "relative" }}>
                           <input
                             type={showNewPw ? "text" : "password"}
                             className="input-field-input"
@@ -5680,6 +5886,7 @@ export default function TicketWalaPage() {
                           <button
                             type="button"
                             className="pw-eye-btn"
+                            style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}
                             onClick={() => setShowNewPw((prev) => !prev)}
                             title={showNewPw ? "Hide password" : "Show password"}
                           >
@@ -5700,7 +5907,7 @@ export default function TicketWalaPage() {
 
                       <div className="input-field-group">
                         <label className="input-field-label">Confirm New Password</label>
-                        <div className="input-field-box input-with-eye">
+                        <div className="input-field-box input-with-eye" style={{ position: "relative" }}>
                           <input
                             type={showConfirmPw ? "text" : "password"}
                             className="input-field-input"
@@ -5711,6 +5918,7 @@ export default function TicketWalaPage() {
                           <button
                             type="button"
                             className="pw-eye-btn"
+                            style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer" }}
                             onClick={() => setShowConfirmPw((prev) => !prev)}
                             title={showConfirmPw ? "Hide password" : "Show password"}
                           >
@@ -5742,31 +5950,35 @@ export default function TicketWalaPage() {
                             }}
                           ></div>
                         </div>
-                        <div className="pw-strength-label">
-                          <span>Password Strength:</span>
+                        <div className="pw-strength-label" style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginTop: "4px" }}>
+                          <span style={{ color: "#94A3B8" }}>Password Strength:</span>
                           <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
                         </div>
                       </div>
                     )}
 
-                    <div className="form-actions-row">
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px", marginTop: "4px" }}>
                       {pwMsg && (
-                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#34D399" : "#F87171" }}>
                           {pwMsg}
                         </span>
                       )}
-                      <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
+                      <button
+                        type="submit"
+                        className="profile-btn-pdf"
+                        style={{ padding: "10px 22px", fontSize: "13px" }}
+                      >
                         Update Password
                       </button>
                     </div>
                   </form>
 
                   {/* Two-Factor Authentication */}
-                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
-                    <div className="toggle-setting-row">
+                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div className="toggle-setting-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div className="toggle-setting-info">
-                        <b>Two-Factor Authentication (2FA)</b>
-                        <span>Require SMS verification before accessing turnstile boarding passes.</span>
+                        <b style={{ color: "#F8FAFC", fontSize: "14px", display: "block" }}>Two-Factor Authentication (2FA)</b>
+                        <span style={{ color: "#94A3B8", fontSize: "12px" }}>Require SMS verification before accessing turnstile boarding passes.</span>
                       </div>
                       <label className="toggle-switch">
                         <input
@@ -5784,15 +5996,16 @@ export default function TicketWalaPage() {
                   </div>
 
                   {/* Active Sessions */}
-                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                       <div>
-                        <b style={{ fontSize: "14px", color: "var(--k)", display: "block" }}>Active Devices &amp; Sessions</b>
-                        <span style={{ fontSize: "12px", color: "#77736c" }}>Authorized devices accessing your TicketWala turnstile passes.</span>
+                        <b style={{ fontSize: "14px", color: "#F8FAFC", display: "block" }}>Active Devices &amp; Sessions</b>
+                        <span style={{ fontSize: "12px", color: "#94A3B8" }}>Authorized devices accessing your TicketWala turnstile passes.</span>
                       </div>
                       <button
                         type="button"
-                        className="btn-revoke-session"
+                        className="profile-logout-btn"
+                        style={{ width: "auto", padding: "6px 14px", fontSize: "12px" }}
                         onClick={handleRevokeSessions}
                       >
                         Terminate Others
@@ -5800,43 +6013,43 @@ export default function TicketWalaPage() {
                     </div>
 
                     {sessionsRevokedMsg && (
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60", marginBottom: "8px" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#34D399", marginBottom: "10px" }}>
                         {sessionsRevokedMsg}
                       </div>
                     )}
 
                     <div className="sessions-list">
-                      <div className="session-item-card">
-                        <div className="session-icon-box">
+                      <div className="profile-session-item">
+                        <div className="profile-session-icon">
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                             <line x1="8" y1="21" x2="16" y2="21" />
                             <line x1="12" y1="17" x2="12" y2="21" />
                           </svg>
                         </div>
-                        <div className="session-details">
-                          <div className="session-device-name">
-                            <span>Chrome on Windows 11</span>
-                            <span className="session-current-pill">This Device</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#F8FAFC" }}>Chrome on Windows 11</span>
+                            <span className="profile-session-current-pill">This Device</span>
                           </div>
-                          <div className="session-meta-text">
+                          <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>
                             Active session • Mumbai, India • IP 103.21.x.x
                           </div>
                         </div>
                       </div>
 
-                      <div className="session-item-card">
-                        <div className="session-icon-box">
+                      <div className="profile-session-item">
+                        <div className="profile-session-icon">
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
                             <line x1="12" y1="18" x2="12.01" y2="18" />
                           </svg>
                         </div>
-                        <div className="session-details">
-                          <div className="session-device-name">
-                            <span>TicketWala iOS App</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#F8FAFC" }}>TicketWala iOS App</span>
                           </div>
-                          <div className="session-meta-text">
+                          <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>
                             iPhone 15 Pro • Last active 2 hours ago
                           </div>
                         </div>
@@ -5845,6 +6058,8 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
               )}
+                </main>
+              </div>
             </div>
           )}
         </div>
