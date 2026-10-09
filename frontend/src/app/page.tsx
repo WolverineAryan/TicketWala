@@ -1,40 +1,73 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Navbar, type NavTab } from "@/components/Navbar";
 import { HeroAirplaneCabin } from "@/components/HeroAirplaneCabin";
 import { InteractiveSeatMap3D } from "@/components/InteractiveSeatMap3D";
 import { HoldCountdownCard } from "@/components/HoldCountdownCard";
 import { ConfirmedTicketPass } from "@/components/ConfirmedTicketPass";
-import { ConcurrencySimulator } from "@/components/ConcurrencySimulator";
-import { AuditReportModal } from "@/components/AuditReportModal";
-import { EventsCatalog } from "@/components/EventsCatalog";
+import { EventsCatalog, MULTIPURPOSE_CATALOG } from "@/components/EventsCatalog";
 import { UserProfileView } from "@/components/UserProfileView";
 
 import type {
   HoldResponse,
   ConfirmResponse,
-  MetricsResponse,
-  InvariantAuditReport,
   InventoryUnitState,
+  EventDetails,
 } from "@/types/api";
 
-import { Zap, ShieldCheck, Activity, RefreshCw, AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  Ticket,
+  Calendar,
+  MapPin,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Plane,
+  Music,
+  Trophy,
+  Film,
+  Train,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import confetti from "canvas-confetti";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Initial fallback inventory with 200 units
-function createInitialInventory(): InventoryUnitState[] {
-  return Array.from({ length: 200 }, (_, i) => {
+// Initial fallback inventory with seats
+function createInitialInventory(totalSeats: number = 192): InventoryUnitState[] {
+  return Array.from({ length: totalSeats }, (_, i) => {
     const id = `unit-${String(i + 1).padStart(3, "0")}`;
     let status: "AVAILABLE" | "HELD" | "CONFIRMED" = "AVAILABLE";
-    if (i < 14) status = "CONFIRMED";
-    else if (i >= 14 && i < 20) status = "HELD";
+    if (i < 12) status = "CONFIRMED";
+    else if (i >= 12 && i < 16) status = "HELD";
+
+    const row = Math.ceil((i + 1) / 6);
+    const colLetters = ["A", "B", "C", "D", "E", "F"];
+    const col = i % 6;
+    const seatLabel = `${row}${colLetters[col]}`;
+
+    let tierName = "Economy Comfort";
+    let price = 48500;
+    if (row <= 2) {
+      tierName = "First Class Suite";
+      price = 120000;
+    } else if (row <= 7) {
+      tierName = "Business Class Flatbed";
+      price = 75000;
+    }
+
     return {
       unitId: id,
+      seatLabel,
       status,
       version: 1,
+      tierName,
+      price,
+      row,
+      col: col + 1,
     };
   });
 }
@@ -46,106 +79,113 @@ export default function TicketWalaApp() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Customer State
+  // Multipurpose Event Selection
+  const [currentEvent, setCurrentEvent] = useState<EventDetails>(MULTIPURPOSE_CATALOG[0]);
+
+  // Customer Booking State
   const [activeHold, setActiveHold] = useState<HoldResponse | null>(null);
   const [confirmedBookings, setConfirmedBookings] = useState<ConfirmResponse[]>([]);
   const [latestConfirmed, setLatestConfirmed] = useState<ConfirmResponse | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(120);
   const [selectedUnitId, setSelectedUnitId] = useState<string>("");
 
-  // Inventory & Ops State
-  const [inventoryGrid, setInventoryGrid] = useState<InventoryUnitState[]>(createInitialInventory);
-  const [metrics, setMetrics] = useState<MetricsResponse | null>({
-    inventory: { total: 200, available: 180, held: 6, confirmed: 14 },
-    telemetry: {
-      totalRequests: 4210,
-      holdsCreated: 24,
-      holdsConfirmed: 14,
-      holdsReleased: 4,
-      holdsExpired: 6,
-      soldOutCount: 0,
-      rateLimitedCount: 12,
-    },
-    stream: { pendingEvents: 0, lastDeliveredId: "1728470000-0" },
-    serverTime: new Date().toISOString(),
-  });
-  const [auditReport, setAuditReport] = useState<InvariantAuditReport | null>(null);
-  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  // Inventory State
+  const [inventoryGrid, setInventoryGrid] = useState<InventoryUnitState[]>(() =>
+    createInitialInventory(MULTIPURPOSE_CATALOG[0].totalSeats)
+  );
 
-  // 1. Telemetry Fetching (backend or local fallback)
+  // 1. Fetch Live Telemetry & Seat Grid from API if available
   const fetchTelemetry = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/ops/metrics`, { signal: AbortSignal.timeout(1500) });
-      if (res.ok) {
-        const data = await res.json();
-        setMetrics(data);
+      const liveRes = await fetch(`${API_BASE}/health/live`, { cache: "no-store" });
+      if (liveRes.ok) {
         setIsApiConnected(true);
-      }
 
-      const invRes = await fetch(`${API_BASE}/api/v1/ops/inventory`, { signal: AbortSignal.timeout(1500) });
-      if (invRes.ok) {
-        const data = await invRes.json();
-        if (data.units && data.units.length > 0) {
-          setInventoryGrid(data.units);
+        // Fetch seat inventory for current event
+        const invRes = await fetch(`${API_BASE}/api/v1/events/${currentEvent.id}/seats`);
+        if (invRes.ok) {
+          const data = await invRes.json();
+          if (data.seats && data.seats.length > 0) {
+            setInventoryGrid(data.seats);
+          }
         }
+      } else {
+        setIsApiConnected(false);
       }
     } catch {
-      // Backend not running; client-side simulation engine seamlessly active
       setIsApiConnected(false);
     }
-  }, []);
+  }, [currentEvent.id]);
 
   useEffect(() => {
     fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 3500);
+    const interval = setInterval(fetchTelemetry, 4000);
     return () => clearInterval(interval);
   }, [fetchTelemetry]);
 
-  // 2. TTL Countdown for active hold
+  // When currentEvent changes, regenerate/refresh seat grid
   useEffect(() => {
-    if (!activeHold) return;
+    setInventoryGrid(createInitialInventory(currentEvent.totalSeats));
+    setSelectedUnitId("");
+    fetchTelemetry();
+  }, [currentEvent, fetchTelemetry]);
 
-    const interval = setInterval(() => {
-      const remaining = Math.max(0, activeHold.expiresAt - Math.floor(Date.now() / 1000));
-      setSecondsRemaining(remaining);
+  // 2. Countdown Timer for Active Hold Lease
+  useEffect(() => {
+    if (!activeHold?.expiresAt) return;
 
-      if (remaining === 0) {
-        // Hold timed out -> release back to queue
-        setErrorMessage(`Hold timer expired for ${activeHold.unitId}! Unit returned to FIFO queue.`);
-        setInventoryGrid((prev) =>
-          prev.map((u) => (u.unitId === activeHold.unitId ? { ...u, status: "AVAILABLE", version: u.version + 1 } : u))
-        );
+    const updateTimer = () => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const diff = Math.max(0, activeHold.expiresAt - nowSec);
+      setSecondsRemaining(diff);
+
+      if (diff === 0 && activeHold) {
+        setErrorMessage(`Hold expired on ${activeHold.unitId}. Seat was released back to the event pool.`);
         setActiveHold(null);
-        clearInterval(interval);
+        setSelectedUnitId("");
+        fetchTelemetry();
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
-  }, [activeHold]);
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, [activeHold, fetchTelemetry]);
 
-  // 3. Customer Actions
+  // 3. Customer Action: Claim Seat Hold (Specific or Auto FCFS)
   const handleClaimHold = async (targetUnitId?: string) => {
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
 
+    // If connected to live Fastify API
     if (isApiConnected) {
       try {
         const res = await fetch(`${API_BASE}/api/v1/reservations/hold`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: "evt-main" }),
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": `idemp-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          },
+          body: JSON.stringify({
+            eventId: currentEvent.id,
+            unitId: targetUnitId || selectedUnitId || undefined,
+          }),
         });
+
         const data = await res.json();
         if (!res.ok) {
           setErrorMessage(`[${data.error?.code || "HOLD_FAILED"}] ${data.error?.message || "Failed to claim seat"}`);
         } else {
-          setActiveHold(data as HoldResponse);
+          const hold = data as HoldResponse;
+          setActiveHold(hold);
+          setSelectedUnitId(hold.unitId);
           setLatestConfirmed(null);
-          setSuccessMessage(`⚡ Seat ${data.unitId} successfully locked under 120s TTL!`);
+          setSecondsRemaining(120);
+          setSuccessMessage(`⚡ Seat ${hold.unitId} locked exclusively for 120 seconds!`);
         }
       } catch (err: any) {
-        setErrorMessage(`Network error: ${err.message}`);
+        setErrorMessage(`Connection Error: ${err.message}`);
       } finally {
         setLoading(false);
         fetchTelemetry();
@@ -153,16 +193,15 @@ export default function TicketWalaApp() {
       return;
     }
 
-    // Client-side transactional broker fallback
-    await new Promise((r) => setTimeout(r, 220));
+    // Client-side fallback simulation
+    await new Promise((r) => setTimeout(r, 200));
 
-    // Find next available unit
     const unitToClaim = targetUnitId
       ? inventoryGrid.find((u) => u.unitId === targetUnitId && u.status === "AVAILABLE")
       : inventoryGrid.find((u) => u.status === "AVAILABLE");
 
     if (!unitToClaim) {
-      setErrorMessage("SOLD OUT: All seats are currently claimed or locked!");
+      setErrorMessage("SOLD OUT: All seats for this event are currently claimed or booked!");
       setLoading(false);
       return;
     }
@@ -175,40 +214,33 @@ export default function TicketWalaApp() {
       expiresAt,
       holdToken: `tok_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`,
       version: unitToClaim.version + 1,
-      eventId: "evt-main",
+      eventId: currentEvent.id,
+      eventTitle: currentEvent.title,
+      tierName: unitToClaim.tierName || "Standard",
+      price: unitToClaim.price || currentEvent.basePrice,
+      currency: "INR",
     };
 
     setActiveHold(holdData);
+    setSelectedUnitId(unitToClaim.unitId);
     setSecondsRemaining(120);
     setLatestConfirmed(null);
-    setSuccessMessage(`⚡ Seat ${unitToClaim.unitId} locked with FCFS priority!`);
+    setSuccessMessage(`⚡ Seat ${unitToClaim.seatLabel || unitToClaim.unitId} locked exclusively!`);
 
     setInventoryGrid((prev) =>
       prev.map((u) => (u.unitId === unitToClaim.unitId ? { ...u, status: "HELD", version: u.version + 1 } : u))
     );
 
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              available: Math.max(0, prev.inventory.available - 1),
-              held: prev.inventory.held + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              totalRequests: prev.telemetry.totalRequests + 1,
-              holdsCreated: prev.telemetry.holdsCreated + 1,
-            },
-          }
-        : null
-    );
-
     setLoading(false);
   };
 
-  const handleConfirm = async () => {
+  // 4. Customer Action: Confirm & Pay
+  const handleConfirm = async (passengerData: {
+    name: string;
+    email: string;
+    phone: string;
+    paymentMethod: "UPI" | "CARD" | "NETBANKING";
+  }) => {
     if (!activeHold) return;
     setLoading(true);
     setErrorMessage("");
@@ -219,17 +251,24 @@ export default function TicketWalaApp() {
         const res = await fetch(`${API_BASE}/api/v1/reservations/${activeHold.reservationId}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ holdToken: activeHold.holdToken }),
+          body: JSON.stringify({
+            holdToken: activeHold.holdToken,
+            passengerName: passengerData.name,
+            email: passengerData.email,
+            phone: passengerData.phone,
+            paymentMethod: passengerData.paymentMethod,
+          }),
         });
+
         const data = await res.json();
         if (!res.ok) {
-          setErrorMessage(`[${data.error?.code || "CONFIRM_FAILED"}] ${data.error?.message || "Failed to confirm"}`);
+          setErrorMessage(`[${data.error?.code || "CONFIRM_FAILED"}] ${data.error?.message || "Payment confirmation failed"}`);
         } else {
           const confirmed = data as ConfirmResponse;
           setLatestConfirmed(confirmed);
           setConfirmedBookings((prev) => [confirmed, ...prev]);
           setActiveHold(null);
-          setSuccessMessage(`🎉 Seat ${confirmed.unitId} confirmed and persisted to Postgres!`);
+          setSuccessMessage(`🎉 Booking confirmed! PNR: ${confirmed.pnr || "CONFIRMED"}`);
           triggerConfetti();
         }
       } catch (err: any) {
@@ -241,54 +280,48 @@ export default function TicketWalaApp() {
       return;
     }
 
-    // Client-side confirmation
-    await new Promise((r) => setTimeout(r, 260));
+    // Client-side confirmation fallback
+    await new Promise((r) => setTimeout(r, 250));
 
+    const pnrCode = `TW-${currentEvent.category.substring(0, 2)}-${Math.floor(Math.random() * 8999 + 1000)}`;
     const confirmed: ConfirmResponse = {
       reservationId: activeHold.reservationId,
       unitId: activeHold.unitId,
       status: "CONFIRMED",
       version: activeHold.version + 1,
       confirmedAt: Math.floor(Date.now() / 1000),
+      pnr: pnrCode,
+      eventId: currentEvent.id,
+      eventTitle: currentEvent.title,
+      venue: currentEvent.venue,
+      dateTime: currentEvent.dateTime,
+      passengerName: passengerData.name,
+      tierName: activeHold.tierName || "Standard",
+      amountPaid: (activeHold.price || currentEvent.basePrice) * 1.05,
+      currency: "INR",
+      qrCodePayload: `TICKETWALA:${pnrCode}:${activeHold.unitId}:${passengerData.name}`,
+      paymentRef: `PAY-${Date.now().toString(36).toUpperCase()}`,
     };
 
     setLatestConfirmed(confirmed);
     setConfirmedBookings((prev) => [confirmed, ...prev]);
     setActiveHold(null);
-    setSuccessMessage(`🎉 Seat ${confirmed.unitId} confirmed! Digital boarding pass generated.`);
+    setSuccessMessage(`🎉 Booking confirmed! PNR: ${pnrCode}`);
+    triggerConfetti();
 
     setInventoryGrid((prev) =>
-      prev.map((u) => (u.unitId === confirmed.unitId ? { ...u, status: "CONFIRMED", version: u.version + 1 } : u))
-    );
-
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              held: Math.max(0, prev.inventory.held - 1),
-              confirmed: prev.inventory.confirmed + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              holdsConfirmed: prev.telemetry.holdsConfirmed + 1,
-            },
-          }
-        : null
+      prev.map((u) => (u.unitId === activeHold.unitId ? { ...u, status: "CONFIRMED", version: u.version + 1 } : u))
     );
 
     setLoading(false);
-    triggerConfetti();
   };
 
+  // 5. Customer Action: Release / Cancel Hold
   const handleRelease = async () => {
     if (!activeHold) return;
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
-
-    const targetUnitId = activeHold.unitId;
 
     if (isApiConnected) {
       try {
@@ -302,7 +335,8 @@ export default function TicketWalaApp() {
           setErrorMessage(`[${data.error?.code || "RELEASE_FAILED"}] ${data.error?.message || "Failed to release"}`);
         } else {
           setActiveHold(null);
-          setSuccessMessage(`Seat ${targetUnitId} instantly released back to FIFO queue.`);
+          setSelectedUnitId("");
+          setSuccessMessage("Seat successfully released back to the event pool.");
         }
       } catch (err: any) {
         setErrorMessage(`Release Error: ${err.message}`);
@@ -314,93 +348,20 @@ export default function TicketWalaApp() {
     }
 
     // Client-side release
-    await new Promise((r) => setTimeout(r, 160));
-
-    setActiveHold(null);
-    setSuccessMessage(`Seat ${targetUnitId} released back to queue.`);
-
+    await new Promise((r) => setTimeout(r, 150));
     setInventoryGrid((prev) =>
-      prev.map((u) => (u.unitId === targetUnitId ? { ...u, status: "AVAILABLE", version: u.version + 1 } : u))
+      prev.map((u) => (u.unitId === activeHold.unitId ? { ...u, status: "AVAILABLE", version: u.version + 1 } : u))
     );
-
-    setMetrics((prev) =>
-      prev
-        ? {
-            ...prev,
-            inventory: {
-              ...prev.inventory,
-              held: Math.max(0, prev.inventory.held - 1),
-              available: prev.inventory.available + 1,
-            },
-            telemetry: {
-              ...prev.telemetry,
-              holdsReleased: prev.telemetry.holdsReleased + 1,
-            },
-          }
-        : null
-    );
-
+    setActiveHold(null);
+    setSelectedUnitId("");
+    setSuccessMessage("Seat successfully released back to available pool.");
     setLoading(false);
-  };
-
-  const handleRunAudit = async () => {
-    if (isApiConnected) {
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/ops/audit`, { method: "POST" });
-        const data = await res.json();
-        setAuditReport(data as InvariantAuditReport);
-        setIsAuditModalOpen(true);
-        return;
-      } catch {
-        // Fallback to local mathematical audit
-      }
-    }
-
-    // Client-side invariant verification
-    const total = inventoryGrid.length;
-    const available = inventoryGrid.filter((u) => u.status === "AVAILABLE").length;
-    const held = inventoryGrid.filter((u) => u.status === "HELD").length;
-    const confirmed = inventoryGrid.filter((u) => u.status === "CONFIRMED").length;
-
-    const report: InvariantAuditReport = {
-      passed: available + held + confirmed === total,
-      timestamp: new Date().toISOString(),
-      summary: {
-        totalConfiguredCapacity: total,
-        activeHolds: held,
-        confirmedBookings: confirmed,
-        availableQueueLength: available,
-        violationsCount: 0,
-      },
-      checks: {
-        singleOwnership: {
-          passed: true,
-          details: "100% Verified: Every inventory unit is mapped to exactly one owner or queue slot.",
-        },
-        capacityConservation: {
-          passed: available + held + confirmed === total,
-          details: `Sum: ${available} (queue) + ${held} (held) + ${confirmed} (confirmed) = ${available + held + confirmed} / ${total}`,
-        },
-        versionMonotonicity: {
-          passed: true,
-          details: "Monotonic counter fences strictly ascend per unit mutation.",
-        },
-        crossStoreConvergence: {
-          passed: true,
-          details: "Redis write cache and durable storage mirror consistent states.",
-        },
-      },
-      anomalies: [],
-    };
-
-    setAuditReport(report);
-    setIsAuditModalOpen(true);
   };
 
   const triggerConfetti = () => {
     try {
       confetti({
-        particleCount: 75,
+        particleCount: 80,
         spread: 80,
         origin: { y: 0.6 },
         colors: ["#FF6B35", "#2B2A28", "#10B981"],
@@ -418,6 +379,7 @@ export default function TicketWalaApp() {
         onSelectTab={setActiveTab}
         activeHoldCount={activeHold ? 1 : 0}
         confirmedCount={confirmedBookings.length}
+        selectedEventTitle={currentEvent.title}
       />
 
       {/* Global Alerts Banner */}
@@ -483,7 +445,7 @@ export default function TicketWalaApp() {
 
       {/* Main Tab Content */}
       <main style={{ flex: 1 }}>
-        {/* 1. HOME TAB: Custom Animated 3D Airplane Cabin Landing Page */}
+        {/* 1. HOME TAB */}
         {activeTab === "home" && (
           <div>
             <HeroAirplaneCabin
@@ -491,38 +453,91 @@ export default function TicketWalaApp() {
               onExploreEvents={() => setActiveTab("events")}
             />
 
-            {/* Quick Interactive Engine Strip */}
-            <section style={{ backgroundColor: "#F8F8F7", borderTop: "1px solid #E6E5E3", borderBottom: "1px solid #E6E5E3", padding: "48px 24px" }}>
-              <div style={{ maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
-                <span
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 800,
-                    backgroundColor: "#FFF0EB",
-                    color: "#FF6B35",
-                    padding: "4px 10px",
-                    borderRadius: "9999px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Distributed Concurrency Benchmark
-                </span>
-                <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#2B2A28", margin: "10px 0 16px 0" }}>
-                  Proven Against Extreme Contention
-                </h2>
-                <p style={{ color: "#5C5B57", maxWidth: "680px", margin: "0 auto 28px auto", fontSize: "14px" }}>
-                  When 5,000+ users hit a single ticket drop in the same millisecond, traditional ACID transactions deadlock.
-                  TicketWala moves the write frontier into single-threaded atomic Lua memory with monotonic fencing.
-                </p>
+            {/* Multipurpose Showcase Categories */}
+            <section style={{ backgroundColor: "#F8F8F7", borderTop: "1px solid #E6E5E3", borderBottom: "1px solid #E6E5E3", padding: "56px 24px" }}>
+              <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+                <div style={{ textAlign: "center", marginBottom: "36px" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 800,
+                      backgroundColor: "#FFF0EB",
+                      color: "#FF6B35",
+                      padding: "4px 10px",
+                      borderRadius: "9999px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Unified Multipurpose Ticketing
+                  </span>
+                  <h2 style={{ fontSize: "30px", fontWeight: 800, color: "#2B2A28", margin: "10px 0 10px 0" }}>
+                    One Platform for Every Experience
+                  </h2>
+                  <p style={{ color: "#64748B", maxWidth: "600px", margin: "0 auto", fontSize: "14px" }}>
+                    From international long-haul flights and sold-out stadium concerts to cricket playoff finals and IMAX premieres.
+                  </p>
+                </div>
 
-                <div style={{ display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
-                  <button onClick={() => setActiveTab("booking")} className="btn-primary" style={{ padding: "12px 28px" }}>
-                    <Zap size={16} fill="#FFFFFF" />
-                    <span>Launch Flash Engine Demo</span>
-                  </button>
-                  <button onClick={handleRunAudit} className="btn-secondary" style={{ padding: "12px 24px" }}>
-                    <ShieldCheck size={16} color="#10B981" />
-                    <span>Verify Invariants</span>
+                {/* 5 Multipurpose Categories Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "16px", marginBottom: "40px" }}>
+                  {[
+                    { title: "Flights & Transit", icon: Plane, count: "148 Available", color: "#3B82F6", cat: "FLIGHT" },
+                    { title: "Stadium Concerts", icon: Music, count: "34 Available", color: "#EC4899", cat: "CONCERT" },
+                    { title: "Sports & Cricket", icon: Trophy, count: "28 Available", color: "#10B981", cat: "SPORTS" },
+                    { title: "IMAX 70mm Cinema", icon: Film, count: "52 Available", color: "#8B5CF6", cat: "CINEMA" },
+                    { title: "Express Trains", icon: Train, count: "64 Available", color: "#F59E0B", cat: "TRANSIT" },
+                  ].map((item, idx) => {
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          const ev = MULTIPURPOSE_CATALOG.find((e) => e.category === item.cat);
+                          if (ev) setCurrentEvent(ev);
+                          setActiveTab("events");
+                        }}
+                        style={{
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: "16px",
+                          padding: "20px",
+                          border: "1.5px solid #E2E8F0",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "42px",
+                            height: "42px",
+                            borderRadius: "12px",
+                            backgroundColor: `${item.color}15`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: "14px",
+                          }}
+                        >
+                          <Icon size={22} color={item.color} />
+                        </div>
+                        <h4 style={{ fontSize: "15px", fontWeight: 800, color: "#1E293B", margin: "0 0 4px 0" }}>
+                          {item.title}
+                        </h4>
+                        <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>{item.count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ textAlign: "center" }}>
+                  <button
+                    onClick={() => setActiveTab("events")}
+                    className="btn-primary"
+                    style={{ padding: "12px 32px", fontSize: "15px" }}
+                  >
+                    <span>Browse All Available Events</span>
+                    <ArrowRight size={16} />
                   </button>
                 </div>
               </div>
@@ -530,68 +545,111 @@ export default function TicketWalaApp() {
           </div>
         )}
 
-        {/* 2. EVENTS TAB: High-contention drop catalog */}
+        {/* 2. EVENTS TAB: Multipurpose Catalog */}
         {activeTab === "events" && (
           <EventsCatalog
-            onJoinEvent={(_id) => {
+            selectedEventId={currentEvent.id}
+            onJoinEvent={(event) => {
+              setCurrentEvent(event);
               setActiveTab("booking");
             }}
           />
         )}
 
-        {/* 3. BOOKING TAB: The core High-Contention Flash Reservation Engine */}
+        {/* 3. BOOKING TAB: User-Friendly Seat Selection & Checkout */}
         {activeTab === "booking" && (
           <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "32px 24px 64px 24px" }}>
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "28px" }}>
+            {/* Header: Selected Event Banner */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "16px",
+                marginBottom: "28px",
+                padding: "20px 24px",
+                backgroundColor: "#F8FAFC",
+                borderRadius: "16px",
+                border: "1.5px solid #E2E8F0",
+              }}
+            >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                   <span
                     style={{
                       fontSize: "11px",
                       fontWeight: 800,
                       backgroundColor: "#FFF0EB",
                       color: "#FF6B35",
-                      padding: "3px 8px",
+                      padding: "2px 8px",
                       borderRadius: "9999px",
+                      textTransform: "uppercase",
                     }}
                   >
-                    FLASH DROP IN PROGRESS
+                    {currentEvent.categoryLabel}
                   </span>
-                  <span style={{ fontSize: "12px", color: isApiConnected ? "#10B981" : "#FF6B35", fontWeight: 700 }}>
-                    &bull; {isApiConnected ? "Fastify/Redis Live API" : "Simulated In-Memory Broker Active"}
+                  <span style={{ fontSize: "12px", color: "#10B981", fontWeight: 700 }}>
+                    ● {currentEvent.availableSeats} of {currentEvent.totalSeats} seats available
                   </span>
                 </div>
-                <h2 style={{ fontSize: "30px", fontWeight: 800, color: "#2B2A28", margin: "6px 0 0 0" }}>
-                  High-Contention Reservation &amp; Inventory Locking
+                <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#0F172A", margin: "2px 0 4px 0" }}>
+                  {currentEvent.title}
                 </h2>
-                <p style={{ fontSize: "14px", color: "#8E8D88", margin: "4px 0 0 0" }}>
-                  Strict FCFS allocation &bull; 120s TTL locks &bull; Zero race conditions guaranteed
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "13px", color: "#64748B" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <MapPin size={14} color="#FF6B35" />
+                    {currentEvent.venue}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <Calendar size={14} color="#3B82F6" />
+                    {currentEvent.dateTime}
+                  </span>
+                </div>
               </div>
 
-              {/* Fast Claim Button */}
-              {!activeHold && !latestConfirmed && (
+              {/* Action: Change Event / Auto Pick */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
-                  onClick={() => handleClaimHold()}
-                  disabled={loading}
-                  className="btn-primary"
-                  style={{ padding: "14px 28px", fontSize: "15px" }}
+                  onClick={() => setActiveTab("events")}
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #CBD5E1",
+                    backgroundColor: "#FFFFFF",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: "#334155",
+                    cursor: "pointer",
+                  }}
                 >
-                  <Zap size={18} fill="#FFFFFF" />
-                  <span>{loading ? "Acquiring Lock..." : "⚡ Claim Next Available Seat (FCFS)"}</span>
+                  Change Event
                 </button>
-              )}
+
+                {!activeHold && !latestConfirmed && (
+                  <button
+                    onClick={() => handleClaimHold()}
+                    disabled={loading}
+                    className="btn-primary"
+                    style={{ padding: "10px 20px", fontSize: "13px" }}
+                  >
+                    <Zap size={15} fill="#FFFFFF" />
+                    <span>{loading ? "Locking Seat..." : "Auto-Pick Best Seat"}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Main Booking Two-Column Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "28px", alignItems: "start" }}>
-              {/* Left Column: Interactive 3D Seat Map */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))", gap: "28px", alignItems: "start" }}>
+              {/* Left Column: Interactive Seat Map */}
               <div>
                 <InteractiveSeatMap3D
                   units={inventoryGrid}
                   selectedUnitId={selectedUnitId}
                   activeHoldUnitId={activeHold?.unitId}
+                  eventTitle={currentEvent.title}
+                  eventCategory={currentEvent.category}
                   onSelectUnit={(unitId) => {
                     setSelectedUnitId(unitId);
                     if (!activeHold && !latestConfirmed) {
@@ -602,9 +660,9 @@ export default function TicketWalaApp() {
                 />
               </div>
 
-              {/* Right Column: Active Hold / Confirmed / Concurrency Simulator */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                {/* Active Hold State */}
+              {/* Right Column: Checkout / Ticket Pass / Selection Guide */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {/* 1. Active Hold State: Complete Professional Checkout Card */}
                 {activeHold && (
                   <HoldCountdownCard
                     hold={activeHold}
@@ -616,29 +674,30 @@ export default function TicketWalaApp() {
                   />
                 )}
 
-                {/* Confirmed Pass State */}
+                {/* 2. Confirmed Booking State: Boarding Pass / E-Ticket */}
                 {latestConfirmed && (
                   <ConfirmedTicketPass
                     booking={latestConfirmed}
                     onBookAnother={() => {
                       setLatestConfirmed(null);
                       setSelectedUnitId("");
+                      fetchTelemetry();
                     }}
                   />
                 )}
 
-                {/* If idle (no hold, no confirmation), show Quick Claim Prompt */}
+                {/* 3. Idle State: Event Guide & Tier Pricing Card */}
                 {!activeHold && !latestConfirmed && (
                   <div
                     style={{
                       backgroundColor: "#FFFFFF",
                       borderRadius: "20px",
                       padding: "24px",
-                      border: "1.5px solid #E6E5E3",
-                      boxShadow: "0 8px 24px rgba(43, 42, 40, 0.04)",
+                      border: "1.5px solid #E2E8F0",
+                      boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
                       <div
                         style={{
                           width: "38px",
@@ -650,43 +709,67 @@ export default function TicketWalaApp() {
                           justifyContent: "center",
                         }}
                       >
-                        <Zap size={20} color="#FF6B35" />
+                        <Ticket size={20} color="#FF6B35" />
                       </div>
                       <div>
-                        <h4 style={{ fontSize: "16px", fontWeight: 800, color: "#2B2A28", margin: 0 }}>
-                          Strict FCFS Allocation Queue
+                        <h4 style={{ fontSize: "16px", fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                          Select Your Preferred Seat
                         </h4>
-                        <span style={{ fontSize: "12px", color: "#8E8D88" }}>
-                          Click any seat or hit the fast claim button
+                        <span style={{ fontSize: "12px", color: "#64748B" }}>
+                          Click any seat on the map to lock it with a 120s guarantee
                         </span>
                       </div>
                     </div>
-                    <p style={{ fontSize: "13px", color: "#5C5B57", lineHeight: 1.5, marginBottom: "18px" }}>
-                      Target identical high-velocity seats without deadlock. An exclusive 120-second lease will be issued with monotonic version fence.
+
+                    <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.5, marginBottom: "18px" }}>
+                      {currentEvent.description}
                     </p>
+
+                    {/* Tier Price Options */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+                      {currentEvent.tiers.map((t) => (
+                        <div
+                          key={t.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            backgroundColor: "#F8FAFC",
+                            border: "1px solid #E2E8F0",
+                          }}
+                        >
+                          <div>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#1E293B", display: "block" }}>
+                              {t.name}
+                            </span>
+                            <span style={{ fontSize: "11px", color: "#64748B" }}>{t.description}</span>
+                          </div>
+                          <span style={{ fontSize: "14px", fontWeight: 800, color: "#0F172A" }}>
+                            ₹{t.price.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
                     <button
                       onClick={() => handleClaimHold()}
                       disabled={loading}
                       className="btn-primary"
-                      style={{ width: "100%", padding: "12px" }}
+                      style={{ width: "100%", padding: "12px", borderRadius: "10px" }}
                     >
                       <Zap size={16} fill="#FFFFFF" />
-                      <span>⚡ Claim Next Available Unit</span>
+                      <span>Claim Next Best Available Seat</span>
                     </button>
                   </div>
                 )}
-
-                {/* Headless Concurrency Stress-Tester */}
-                <ConcurrencySimulator
-                  onRunAudit={handleRunAudit}
-                  onRefreshTelemetry={fetchTelemetry}
-                />
               </div>
             </div>
           </div>
         )}
 
-        {/* 4. PROFILE TAB: User Tickets & Wallet */}
+        {/* 4. PROFILE TAB: My Tickets & Passenger Info */}
         {activeTab === "profile" && (
           <UserProfileView
             confirmedBookings={confirmedBookings}
@@ -696,12 +779,6 @@ export default function TicketWalaApp() {
           />
         )}
       </main>
-
-      {/* Invariant Audit Modal */}
-      <AuditReportModal
-        report={auditReport}
-        onClose={() => setIsAuditModalOpen(false)}
-      />
 
       {/* Footer */}
       <footer
@@ -727,16 +804,20 @@ export default function TicketWalaApp() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span style={{ fontWeight: 800, color: "#2B2A28" }}>TicketWala</span>
-            <span>&bull;</span>
-            <span>High-Contention Flash Reservation Engine</span>
+            <span>•</span>
+            <span>Multipurpose Real-Time Ticketing Platform</span>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <span>Redis Lua Atomic Broker</span>
-            <span>&bull;</span>
-            <span>Sub-Second FCFS</span>
-            <span>&bull;</span>
-            <span style={{ color: "#FF6B35", fontWeight: 700 }}>Zero Double-Bookings</span>
+            <span>Flights</span>
+            <span>•</span>
+            <span>Concerts</span>
+            <span>•</span>
+            <span>Sports</span>
+            <span>•</span>
+            <span>Cinema</span>
+            <span>•</span>
+            <span style={{ color: "#10B981", fontWeight: 700 }}>100% Guaranteed Seat Allocation</span>
           </div>
         </div>
       </footer>

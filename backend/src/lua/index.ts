@@ -52,8 +52,21 @@ if cached_res then
     return cached_res
 end
 
--- 1. Pop next unit from FIFO List in exact arrival sequence (Strict FCFS)
-local unit_id = redis.call('RPOP', KEYS[1])
+-- 1. Pop next unit from FIFO List in exact arrival sequence (Strict FCFS) or claim specific unit
+local unit_id = nil
+if ARGV[7] and ARGV[7] ~= '' then
+    local req_unit_key = KEYS[2] .. ":" .. ARGV[7]
+    local req_status = redis.call('HGET', req_unit_key, 'status')
+    if req_status == 'AVAILABLE' then
+        unit_id = ARGV[7]
+        redis.call('LREM', KEYS[1], 1, unit_id)
+    else
+        return cjson.encode({ error = "SEAT_UNAVAILABLE", code = 409, message = "Selected seat is already held or booked" })
+    end
+else
+    unit_id = redis.call('RPOP', KEYS[1])
+end
+
 if not unit_id then
     return cjson.encode({ error = "SOLD_OUT", code = 409, message = "No available inventory units remain" })
 end
@@ -344,6 +357,7 @@ export interface ClaimHoldParams {
   reservationId: string;
   rawHoldToken: string;
   ttlSeconds: number;
+  requestedUnitId?: string;
 }
 
 export async function claimHoldFcfs(
@@ -375,6 +389,7 @@ export async function claimHoldFcfs(
       tokenHash,
       params.ttlSeconds,
       serverNowSec,
+      params.requestedUnitId || "",
     ]
   );
 

@@ -4,9 +4,53 @@
 
 export type ReservationStatus = "AVAILABLE" | "HELD" | "CONFIRMED" | "EXPIRED" | "RELEASED";
 
+export type EventCategory = "FLIGHT" | "CONCERT" | "SPORTS" | "CINEMA" | "TRANSIT";
+
+export interface SeatTier {
+  id: string;
+  name: string;
+  price: number;
+  color: string;
+  description: string;
+}
+
+export interface EventDetails {
+  id: string;
+  title: string;
+  category: EventCategory;
+  categoryLabel: string;
+  venue: string;
+  location: string;
+  dateTime: string;
+  totalSeats: number;
+  availableSeats: number;
+  basePrice: number;
+  currency: string;
+  badge?: string;
+  description: string;
+  tiers: SeatTier[];
+}
+
+export interface InventoryUnitState {
+  unitId: string;
+  status: ReservationStatus;
+  reservationId?: string;
+  expiresAt?: number;
+  version: number;
+  tierId?: string;
+  tierName?: string;
+  price?: number;
+  seatLabel?: string;
+  row?: number;
+  col?: number;
+}
+
 export interface HoldRequest {
   eventId?: string;
+  unitId?: string;
   category?: string;
+  tierId?: string;
+  passengerName?: string;
 }
 
 export interface HoldResponse {
@@ -17,10 +61,18 @@ export interface HoldResponse {
   holdToken: string;
   version: number;
   eventId: string;
+  eventTitle?: string;
+  tierName?: string;
+  price?: number;
+  currency?: string;
 }
 
 export interface ConfirmRequest {
   holdToken: string;
+  passengerName?: string;
+  email?: string;
+  phone?: string;
+  paymentMethod?: "UPI" | "CARD" | "NETBANKING";
 }
 
 export interface ConfirmResponse {
@@ -29,6 +81,17 @@ export interface ConfirmResponse {
   status: "CONFIRMED";
   version: number;
   confirmedAt: number;
+  pnr: string;
+  eventId: string;
+  eventTitle: string;
+  venue: string;
+  dateTime: string;
+  passengerName: string;
+  tierName: string;
+  amountPaid: number;
+  currency: string;
+  qrCodePayload: string;
+  paymentRef: string;
 }
 
 export interface ReleaseRequest {
@@ -49,14 +112,6 @@ export interface StandardErrorResponse {
     retryable: boolean;
     timestamp: string;
   };
-}
-
-export interface InventoryUnitState {
-  unitId: string;
-  status: ReservationStatus;
-  reservationId?: string;
-  expiresAt?: number;
-  version: number;
 }
 
 export interface MetricsResponse {

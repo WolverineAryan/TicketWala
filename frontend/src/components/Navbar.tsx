@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, Ticket, Calendar, User, ShieldCheck, Flame } from "lucide-react";
+import { Ticket, Calendar, User, Compass, Sparkles, CheckCircle2 } from "lucide-react";
 
 export type NavTab = "home" | "events" | "booking" | "profile";
 
@@ -10,6 +10,7 @@ interface NavbarProps {
   onSelectTab: (tab: NavTab) => void;
   activeHoldCount?: number;
   confirmedCount?: number;
+  selectedEventTitle?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   activeHoldCount = 0,
   confirmedCount = 0,
+  selectedEventTitle,
 }) => {
   return (
     <header
@@ -24,9 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         position: "sticky",
         top: 0,
         zIndex: 50,
-        backgroundColor: "rgba(255, 255, 255, 0.92)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
+        backgroundColor: "rgba(255, 255, 255, 0.94)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
         borderBottom: "1px solid #E6E5E3",
         transition: "all 0.2s ease",
       }}
@@ -55,9 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <div
             style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "10px",
+              width: "40px",
+              height: "40px",
+              borderRadius: "12px",
               backgroundColor: "#2B2A28",
               display: "flex",
               alignItems: "center",
@@ -66,7 +68,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               position: "relative",
             }}
           >
-            <Ticket size={20} color="#FFFFFF" />
+            <Ticket size={22} color="#FFFFFF" />
             <div
               style={{
                 position: "absolute",
@@ -84,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span
                 style={{
-                  fontSize: "20px",
+                  fontSize: "22px",
                   fontWeight: 800,
                   color: "#2B2A28",
                   letterSpacing: "-0.5px",
@@ -99,13 +101,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   textTransform: "uppercase",
                   backgroundColor: "#FFF0EB",
                   color: "#FF6B35",
-                  padding: "2px 6px",
+                  padding: "2px 7px",
                   borderRadius: "9999px",
                   border: "1px solid rgba(255, 107, 53, 0.2)",
                   letterSpacing: "0.5px",
                 }}
               >
-                Flash Engine
+                Official
               </span>
             </div>
             <p
@@ -116,12 +118,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 letterSpacing: "-0.2px",
               }}
             >
-              Zero-Double-Booking Architecture
+              Flights • Concerts • Sports • Cinema • Express Rail
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs (Home, Events, Booking, Profile) */}
+        {/* Navigation Tabs (Home, Browse Events, Seat Booking, My Tickets) */}
         <nav
           style={{
             display: "flex",
@@ -134,10 +136,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
         >
           {[
-            { id: "home", label: "Home", icon: Flame },
-            { id: "events", label: "Events", icon: Calendar },
-            { id: "booking", label: "Booking", icon: Zap, badge: activeHoldCount > 0 ? "HOLD" : null },
-            { id: "profile", label: "Profile", icon: User, badge: confirmedCount > 0 ? `${confirmedCount}` : null },
+            { id: "home", label: "Home", icon: Compass },
+            { id: "events", label: "Browse Events", icon: Calendar },
+            {
+              id: "booking",
+              label: "Seat Booking",
+              icon: Ticket,
+              badge: activeHoldCount > 0 ? "1 HELD" : null,
+            },
+            {
+              id: "profile",
+              label: "My Tickets",
+              icon: User,
+              badge: confirmedCount > 0 ? `${confirmedCount}` : null,
+            },
           ].map((item) => {
             const isActive = activeTab === item.id;
             const Icon = item.icon;
@@ -163,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Icon
                   size={15}
-                  color={isActive ? (item.id === "booking" ? "#FF6B35" : "#FFFFFF") : "#8E8D88"}
+                  color={isActive ? (item.id === "booking" && activeHoldCount > 0 ? "#FF6B35" : "#FFFFFF") : "#8E8D88"}
                 />
                 <span>{item.label}</span>
                 {item.badge && (
@@ -171,7 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     style={{
                       fontSize: "10px",
                       fontWeight: 800,
-                      backgroundColor: "#FF6B35",
+                      backgroundColor: item.id === "booking" ? "#FF6B35" : "#10B981",
                       color: "#FFFFFF",
                       padding: "1px 6px",
                       borderRadius: "9999px",
@@ -186,15 +198,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           })}
         </nav>
 
-        {/* Engine Status & CTA */}
+        {/* User-friendly Trust Badge & Action */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Health indicator */}
           <div
             style={{
-              display: "none",
+              display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "6px 12px",
+              gap: "6px",
+              padding: "6px 14px",
               borderRadius: "9999px",
               backgroundColor: "#ECFDF5",
               border: "1px solid rgba(16, 185, 129, 0.2)",
@@ -202,32 +213,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               color: "#065F46",
               fontWeight: 600,
             }}
-            className="md-flex"
           >
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: "#10B981",
-                display: "inline-block",
-                boxShadow: "0 0 8px #10B981",
-              }}
-            />
-            <span>5,000 req/s Armed</span>
+            <CheckCircle2 size={14} color="#10B981" />
+            <span>Instant Confirmation</span>
           </div>
 
-          {/* Quick flash booking CTA */}
           <button
-            onClick={() => onSelectTab("booking")}
+            onClick={() => onSelectTab("events")}
             className="btn-primary"
             style={{
               padding: "8px 18px",
               fontSize: "13px",
+              borderRadius: "9999px",
             }}
           >
-            <Zap size={14} fill="#FFFFFF" />
-            <span>Flash Drop Live</span>
+            <Sparkles size={14} fill="#FFFFFF" />
+            <span>Book Tickets</span>
           </button>
         </div>
       </div>

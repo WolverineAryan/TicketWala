@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { InventoryUnitState, ReservationStatus } from "@/types/api";
-import { Check, Lock, ShieldCheck, Eye, Layers } from "lucide-react";
+import type { InventoryUnitState, ReservationStatus, SeatTier } from "@/types/api";
+import { Check, Lock, Eye, Layers, Sparkles } from "lucide-react";
 
 interface InteractiveSeatMap3DProps {
   units: InventoryUnitState[];
@@ -10,6 +10,8 @@ interface InteractiveSeatMap3DProps {
   activeHoldUnitId?: string;
   onSelectUnit?: (unitId: string) => void;
   isLoading?: boolean;
+  eventTitle?: string;
+  eventCategory?: string;
 }
 
 export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
@@ -18,28 +20,63 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
   activeHoldUnitId,
   onSelectUnit,
   isLoading = false,
+  eventTitle = "Interactive Seating Plan",
+  eventCategory = "FLIGHT",
 }) => {
   const [is3DMode, setIs3DMode] = useState(true);
   const [hoveredUnit, setHoveredUnit] = useState<InventoryUnitState | null>(null);
 
   // Fallback generation if inventory is empty
-  const displayUnits: InventoryUnitState[] = units.length > 0
-    ? units
-    : Array.from({ length: 200 }, (_, i) => {
-        const id = `unit-${String(i + 1).padStart(3, "0")}`;
-        let status: ReservationStatus = "AVAILABLE";
-        if (i < 12) status = "CONFIRMED";
-        else if (i >= 12 && i < 18) status = "HELD";
-        return {
-          unitId: id,
-          status,
-          version: 1,
-        };
-      });
+  const displayUnits: InventoryUnitState[] =
+    units.length > 0
+      ? units
+      : Array.from({ length: 192 }, (_, i) => {
+          const id = `unit-${String(i + 1).padStart(3, "0")}`;
+          let status: ReservationStatus = "AVAILABLE";
+          if (i < 12) status = "CONFIRMED";
+          else if (i >= 12 && i < 18) status = "HELD";
+
+          const row = Math.ceil((i + 1) / 6);
+          const colLetters = ["A", "B", "C", "D", "E", "F"];
+          const col = i % 6;
+          const seatLabel = `${row}${colLetters[col]}`;
+
+          let tierName = "Economy";
+          let price = 48500;
+          if (row <= 2) {
+            tierName = "First Class";
+            price = 120000;
+          } else if (row <= 7) {
+            tierName = "Business Class";
+            price = 75000;
+          }
+
+          return {
+            unitId: id,
+            seatLabel,
+            status,
+            version: 1,
+            tierName,
+            price,
+            row,
+            col: col + 1,
+          };
+        });
 
   const availableCount = displayUnits.filter((u) => u.status === "AVAILABLE").length;
   const heldCount = displayUnits.filter((u) => u.status === "HELD").length;
   const confirmedCount = displayUnits.filter((u) => u.status === "CONFIRMED").length;
+
+  const stageLabel =
+    eventCategory === "FLIGHT"
+      ? "🛫 Cockpit & Flight Direction"
+      : eventCategory === "CONCERT"
+      ? "🎤 Main Stage & Sound Pod"
+      : eventCategory === "SPORTS"
+      ? "🏏 Pitch & Center Wicket"
+      : eventCategory === "CINEMA"
+      ? "📽️ IMAX Curved 70mm Screen"
+      : "🚆 Engine / Driver Cab";
 
   return (
     <div
@@ -60,7 +97,7 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: "14px",
-          marginBottom: "20px",
+          marginBottom: "18px",
           paddingBottom: "16px",
           borderBottom: "1px solid #E6E5E3",
         }}
@@ -68,7 +105,7 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#2B2A28", margin: 0 }}>
-              Flight & Arena Inventory Matrix
+              {eventTitle}
             </h3>
             <span
               style={{
@@ -80,15 +117,15 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
                 borderRadius: "9999px",
               }}
             >
-              200 Contended Units
+              {displayUnits.length} Seats
             </span>
           </div>
           <p style={{ fontSize: "12px", color: "#8E8D88", margin: "4px 0 0 0" }}>
-            Real-time in-memory inventory broker synchronized via atomic Lua locks
+            Click any seat to lock it with a 120-second lease guarantee
           </p>
         </div>
 
-        {/* 3D View Toggle & Counts */}
+        {/* 3D View Toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button
             onClick={() => setIs3DMode(!is3DMode)}
@@ -153,7 +190,7 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
               boxShadow: "0 0 6px rgba(255, 107, 53, 0.5)",
             }}
           />
-          <span style={{ color: "#FF6B35", fontWeight: 700 }}>Held / Locked ({heldCount})</span>
+          <span style={{ color: "#FF6B35", fontWeight: 700 }}>Held ({heldCount})</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -162,11 +199,11 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
               width: "14px",
               height: "14px",
               borderRadius: "4px",
-              backgroundColor: "#2B2A28",
+              backgroundColor: "#CBD5E1",
               display: "inline-block",
             }}
           />
-          <span style={{ color: "#5C5B57", fontWeight: 600 }}>Confirmed ({confirmedCount})</span>
+          <span style={{ color: "#64748B", fontWeight: 500 }}>Booked ({confirmedCount})</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -175,172 +212,169 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
               width: "14px",
               height: "14px",
               borderRadius: "4px",
-              backgroundColor: "#FFF0EB",
-              border: "2px solid #FF6B35",
+              backgroundColor: "#2563EB",
               display: "inline-block",
             }}
           />
-          <span style={{ color: "#2B2A28", fontWeight: 700 }}>Your Active Hold</span>
+          <span style={{ color: "#2563EB", fontWeight: 700 }}>Your Selection</span>
         </div>
       </div>
 
-      {/* The 3D Aircraft / Arena Seat Matrix */}
+      {/* Screen / Stage Orientation Indicator */}
       <div
         style={{
-          perspective: is3DMode ? "900px" : "none",
-          padding: "16px 0",
+          textAlign: "center",
+          padding: "8px",
+          backgroundColor: "#F1F5F9",
+          borderRadius: "10px",
+          border: "1.5px dashed #CBD5E1",
+          marginBottom: "24px",
+          fontSize: "12px",
+          fontWeight: 700,
+          color: "#475569",
+          letterSpacing: "0.5px",
+        }}
+      >
+        {stageLabel}
+      </div>
+
+      {/* Interactive Grid Canvas */}
+      <div
+        style={{
+          perspective: is3DMode ? "1000px" : "none",
           overflowX: "auto",
+          padding: "16px 8px 32px 8px",
+          display: "flex",
+          justifyContent: "center",
         }}
       >
         <div
           style={{
-            transform: is3DMode ? "rotateX(22deg) scale(0.96)" : "none",
-            transformOrigin: "center top",
-            transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
-            backgroundColor: "#F8F8F7",
-            borderRadius: "16px",
-            padding: "20px",
-            border: "1.5px solid #E6E5E3",
-            boxShadow: is3DMode ? "0 20px 40px -10px rgba(43, 42, 40, 0.15)" : "none",
+            transform: is3DMode ? "rotateX(24deg) scale(0.96)" : "none",
+            transformOrigin: "top center",
+            transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+            display: "grid",
+            gridTemplateColumns: "repeat(6, 48px)",
+            gap: "10px",
+            justifyContent: "center",
           }}
         >
-          {/* Airplane Cockpit / Stage Indicator */}
-          <div
-            style={{
-              textAlign: "center",
-              paddingBottom: "14px",
-              marginBottom: "16px",
-              borderBottom: "1px dashed #D4D3CF",
-              color: "#8E8D88",
-              fontSize: "11px",
-              fontWeight: 700,
-              letterSpacing: "1px",
-              textTransform: "uppercase",
-            }}
-          >
-            ✈️ Flight Nose / Concert Stage Front (Aisle A &bull; FCFS Head)
-          </div>
+          {displayUnits.map((u, index) => {
+            const isHeldByMe = activeHoldUnitId === u.unitId;
+            const isSelected = selectedUnitId === u.unitId;
+            const isAvailable = u.status === "AVAILABLE";
+            const isHeldOther = u.status === "HELD" && !isHeldByMe;
+            const isConfirmed = u.status === "CONFIRMED";
 
-          {/* Seat Grid - 20 rows of 10 seats (200 units) */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(10, minmax(28px, 1fr))",
-              gap: "6px",
-              maxHeight: "360px",
-              overflowY: "auto",
-              padding: "4px",
-            }}
-          >
-            {displayUnits.map((unit) => {
-              const isHeld = unit.status === "HELD";
-              const isConfirmed = unit.status === "CONFIRMED";
-              const isAvailable = unit.status === "AVAILABLE";
-              const isMyHold = activeHoldUnitId === unit.unitId;
-              const isSelected = selectedUnitId === unit.unitId;
+            let bg = "#FFFFFF";
+            let borderColor = "#CBD5E1";
+            let textColor = "#1E293B";
+            let cursor = "pointer";
 
-              let bg = "#FFFFFF";
-              let textColor = "#2B2A28";
-              let border = "1.5px solid #D4D3CF";
-              let boxShadow = "none";
+            if (isHeldByMe || isSelected) {
+              bg = "#2563EB";
+              borderColor = "#1D4ED8";
+              textColor = "#FFFFFF";
+            } else if (isHeldOther) {
+              bg = "#FF6B35";
+              borderColor = "#EA580C";
+              textColor = "#FFFFFF";
+              cursor = "not-allowed";
+            } else if (isConfirmed) {
+              bg = "#E2E8F0";
+              borderColor = "#CBD5E1";
+              textColor = "#94A3B8";
+              cursor = "not-allowed";
+            }
 
-              if (isConfirmed) {
-                bg = "#2B2A28";
-                textColor = "#8E8D88";
-                border = "1.5px solid #2B2A28";
-              } else if (isMyHold) {
-                bg = "#FFF0EB";
-                textColor = "#FF6B35";
-                border = "2px solid #FF6B35";
-                boxShadow = "0 0 10px rgba(255, 107, 53, 0.6)";
-              } else if (isHeld) {
-                bg = "#FF6B35";
-                textColor = "#FFFFFF";
-                border = "1.5px solid #FF6B35";
-                boxShadow = "0 0 6px rgba(255, 107, 53, 0.4)";
-              } else if (isSelected) {
-                border = "2px solid #2B2A28";
-                boxShadow = "0 0 8px rgba(43, 42, 40, 0.2)";
-              }
+            const label = u.seatLabel || u.unitId.replace("unit-", "");
 
-              return (
-                <button
-                  key={unit.unitId}
-                  onClick={() => onSelectUnit && onSelectUnit(unit.unitId)}
-                  onMouseEnter={() => setHoveredUnit(unit)}
-                  onMouseLeave={() => setHoveredUnit(null)}
-                  disabled={isLoading}
-                  style={{
-                    backgroundColor: bg,
-                    color: textColor,
-                    border,
-                    borderRadius: "6px",
-                    padding: "6px 2px",
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    cursor: isAvailable ? "pointer" : "default",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "2px",
-                    minHeight: "38px",
-                    boxShadow,
-                    transition: "all 0.15s ease",
-                    transform: hoveredUnit?.unitId === unit.unitId ? "scale(1.15) translateZ(10px)" : "none",
-                    zIndex: hoveredUnit?.unitId === unit.unitId ? 20 : 1,
-                  }}
-                >
-                  <span>{unit.unitId.replace("unit-", "")}</span>
-                  {isConfirmed && <Check size={10} color="#8E8D88" />}
-                  {isHeld && !isMyHold && <Lock size={9} color="#FFFFFF" />}
-                  {isMyHold && <span style={{ fontSize: "8px", fontWeight: 900 }}>YOU</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            style={{
-              textAlign: "center",
-              paddingTop: "14px",
-              marginTop: "16px",
-              borderTop: "1px dashed #D4D3CF",
-              color: "#8E8D88",
-              fontSize: "11px",
-              fontWeight: 600,
-            }}
-          >
-            Aft Cabin / Grandstand Rear (Row T) &bull; Units auto-requeued to FIFO head upon hold abandonment
-          </div>
+            return (
+              <button
+                key={u.unitId}
+                disabled={isLoading || !isAvailable}
+                onClick={() => isAvailable && onSelectUnit && onSelectUnit(u.unitId)}
+                onMouseEnter={() => setHoveredUnit(u)}
+                onMouseLeave={() => setHoveredUnit(null)}
+                style={{
+                  width: "48px",
+                  height: "44px",
+                  borderRadius: "8px",
+                  border: `1.5px solid ${borderColor}`,
+                  backgroundColor: bg,
+                  color: textColor,
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor,
+                  transition: "all 0.15s ease",
+                  transform: isSelected ? "translateY(-4px)" : "none",
+                  boxShadow: isSelected
+                    ? "0 8px 16px rgba(37, 99, 235, 0.3)"
+                    : isHeldOther
+                    ? "0 4px 10px rgba(255, 107, 53, 0.25)"
+                    : "0 2px 4px rgba(0,0,0,0.02)",
+                  position: "relative",
+                  outline: "none",
+                  marginRight: (index % 6 === 2) ? "18px" : "0", // Aisle gap in middle
+                }}
+              >
+                <span>{label}</span>
+                {u.price && (
+                  <span style={{ fontSize: "8px", opacity: 0.8, fontWeight: 600 }}>
+                    ₹{Math.round(u.price / 1000)}k
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Floating Hover Unit Details Banner */}
+      {/* Hover Info Tooltip */}
       {hoveredUnit && (
         <div
           style={{
-            marginTop: "14px",
-            backgroundColor: "#2B2A28",
-            borderRadius: "10px",
+            position: "absolute",
+            bottom: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "#0F172A",
+            color: "#FFFFFF",
             padding: "8px 16px",
+            borderRadius: "9999px",
+            fontSize: "12px",
+            fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            color: "#FFFFFF",
-            fontSize: "12px",
+            gap: "10px",
+            boxShadow: "0 10px 25px rgba(15, 23, 42, 0.25)",
+            zIndex: 10,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 800, color: "#FF6B35" }}>Unit #{hoveredUnit.unitId}</span>
-            <span style={{ color: "#8E8D88" }}>|</span>
-            <span>Status: <strong>{hoveredUnit.status}</strong></span>
-            <span style={{ color: "#8E8D88" }}>|</span>
-            <span>Version: v{hoveredUnit.version}</span>
-          </div>
-          <div style={{ color: "#8E8D88", fontSize: "11px" }}>
-            {hoveredUnit.status === "AVAILABLE" ? "Ready for instant FCFS hold" : "Atomic lock active"}
-          </div>
+          <span>Seat {hoveredUnit.seatLabel || hoveredUnit.unitId}</span>
+          <span style={{ opacity: 0.4 }}>•</span>
+          <span>{hoveredUnit.tierName || "Standard"}</span>
+          <span style={{ opacity: 0.4 }}>•</span>
+          <span style={{ color: "#38BDF8" }}>
+            {hoveredUnit.price ? `₹${hoveredUnit.price.toLocaleString("en-IN")}` : "Available"}
+          </span>
+          <span style={{ opacity: 0.4 }}>•</span>
+          <span
+            style={{
+              color:
+                hoveredUnit.status === "AVAILABLE"
+                  ? "#10B981"
+                  : hoveredUnit.status === "HELD"
+                  ? "#FF6B35"
+                  : "#94A3B8",
+            }}
+          >
+            {hoveredUnit.status}
+          </span>
         </div>
       )}
     </div>
