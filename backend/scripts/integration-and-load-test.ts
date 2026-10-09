@@ -1,16 +1,56 @@
 import { performance } from "perf_hooks";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:8000";
+const DEMO_EVENT_ID = "evt-demo-collision-200";
 
 interface TestReport {
   name: string;
   category: "Functional" | "Integration" | "Load & Contention" | "Evidence & Observability";
   passed: boolean;
+  skipped?: boolean;
   durationMs: number;
   details?: string;
 }
 
 const reports: TestReport[] = [];
+const outstandingHolds = new Map<string, string>();
+const confirmedReservations = new Set<string>();
+
+class TestSkippedError extends Error {}
+
+function requireSetup(value: string, description: string): string {
+  if (!value) throw new TestSkippedError(`Skipped because ${description} did not pass`);
+  return value;
+}
+
+function trackHold(data: { reservationId?: string; holdToken?: string }) {
+  if (data.reservationId && data.holdToken) {
+    outstandingHolds.set(data.reservationId, data.holdToken);
+  }
+}
+
+function markConfirmed(reservationId: string) {
+  if (reservationId) confirmedReservations.add(reservationId);
+}
+
+function assertSafeTarget() {
+  const target = new URL(BASE_URL);
+  const isLoopback = ["localhost", "127.0.0.1", "::1", "[::1]"].includes(target.hostname);
+
+  if (process.env.RUN_INTEGRATION_TESTS !== "YES") {
+    throw new Error(
+      "This suite mutates demo inventory, confirms test bookings, and creates an organizer event. " +
+      "Set RUN_INTEGRATION_TESTS=YES only for an isolated test API."
+    );
+  }
+  if (!isLoopback &&
+      (process.env.ALLOW_REMOTE_TARGET !== "YES" || process.env.CONFIRM_DEMO_TARGET !== "YES")) {
+    throw new Error(
+      "Remote targets require both ALLOW_REMOTE_TARGET=YES and CONFIRM_DEMO_TARGET=YES. " +
+      "Use a dedicated demo deployment, never a production booking API."
+    );
+  }
+}
 
 async function runTest(
   name: string,
@@ -31,25 +71,42 @@ async function runTest(
     console.log(`  ✅ [PASS] ${name} (${durationMs}ms) ${detail ? `-> ${detail}` : ""}`);
   } catch (err: any) {
     const durationMs = Math.round(performance.now() - start);
+    const skipped = err instanceof TestSkippedError;
     reports.push({
       name,
       category,
       passed: false,
+      skipped,
       durationMs,
-      details: err.message,
+      details: err instanceof Error ? err.message : String(err),
     });
-    console.error(`  ❌ [FAIL] ${name} (${durationMs}ms):`, err.message);
+    if (skipped) {
+      console.warn(`  ⏭️ [SKIP] ${name} (${durationMs}ms): ${err.message}`);
+    } else {
+      console.error(`  ❌ [FAIL] ${name} (${durationMs}ms):`, err instanceof Error ? err.message : String(err));
+    }
   }
 }
 
 async function main() {
+  assertSafeTarget();
   console.log("\n==================================================================");
   console.log("🧪 TicketWala FlashLock Evidence-Driven Verification Test Suite");
   console.log(`🎯 Target API: ${BASE_URL}`);
   console.log("==================================================================\n");
 
-  // Clean reset demo sandbox event at start
-  await fetch(`${BASE_URL}/api/v1/simulation/reset`, { method: "POST" }).catch(() => {});
+  const engineResponse = await fetch(`${BASE_URL}/api/v1/observability/stream-health`);
+  if (!engineResponse.ok) throw new Error(`Could not verify test engine (HTTP ${engineResponse.status})`);
+  const engineData = await engineResponse.json();
+  if (engineData.engine !== "in_memory_event_channel") {
+    throw new Error(
+      "This suite requires the embedded in-memory test engine because the simulation reset endpoint " +
+      "does not reset Redis inventory. Start the API without Redis for an isolated test run."
+    );
+  }
+
+  const resetResponse = await fetch(`${BASE_URL}/api/v1/simulation/reset`, { method: "POST" });
+  if (!resetResponse.ok) throw new Error(`Could not reset demo inventory (HTTP ${resetResponse.status})`);
 
   // ---------------------------------------------------------------------------
   // 1. Functional Tests
@@ -63,6 +120,47 @@ async function main() {
     if (data.status !== "alive") throw new Error("Health status not alive");
     return `Engine: ${data.engine}`;
   });
+
+  await runTest("Application Security Response Headers Audit", "Functional", async () => {
+    const res = await fetch(`${BASE_URL}/health/live`);
+    const nosniff = res.headers.get("x-content-type-options");
+    const frameOptions = res.headers.get("x-frame-options");
+    const referrerPolicy = res.headers.get("referrer-policy");
+    const permissionsPolicy = res.headers.get("permissions-policy");
+
+    if (nosniff !== "nosniff") throw new Error(`Missing or invalid X-Content-Type-Options: ${nosniff}`);
+    if (frameOptions !== "DENY") throw new Error(`Missing or invalid X-Frame-Options: ${frameOptions}`);
+    if (!referrerPolicy) throw new Error("Missing Referrer-Policy header");
+    if (!permissionsPolicy) throw new Error("Missing Permissions-Policy header");
+
+    return "All security headers verified (nosniff, DENY, strict-origin, restrictive permissions)";
+  });
+
+  await runTest("Support & Contact Inquiries API", "Functional", async () => {
+    const catRes = await fetch(`${BASE_URL}/api/v1/support/categories`);
+    if (!catRes.ok) throw new Error(`Categories API returned HTTP ${catRes.status}`);
+    const catData = await catRes.json();
+    if (!catData.categories || catData.categories.length < 5) throw new Error("Expected at least 5 support categories");
+    if (catData.directSupportEmail !== "ticketwala.org@gmail.com") throw new Error("Official support email mismatch");
+
+    const contactRes = await fetch(`${BASE_URL}/api/v1/support/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName: "Automated Suite Verifier",
+        email: "qa@ticketwala.org",
+        category: "PAYMENT",
+        subject: "Verification of 120s TTL lock",
+        message: "Automated test validating ticket generation and rate limiting",
+      }),
+    });
+    if (!contactRes.ok) throw new Error(`Contact API returned HTTP ${contactRes.status}`);
+    const contactData = await contactRes.json();
+    if (!contactData.success || !contactData.ticketId) throw new Error("Contact API did not return ticketId");
+
+    return `Ticket reference generated: ${contactData.ticketId}`;
+  });
+
 
   await runTest("Events Catalog Multipurpose Verification", "Functional", async () => {
     const res = await fetch(`${BASE_URL}/api/v1/events`);
@@ -82,7 +180,7 @@ async function main() {
   });
 
   await runTest("Mathematical Invariant Conservation Audit", "Functional", async () => {
-    const res = await fetch(`${BASE_URL}/api/v1/inventory/audit/evt-demo-collision-200`);
+    const res = await fetch(`${BASE_URL}/api/v1/inventory/audit/${DEMO_EVENT_ID}`);
     if (!res.ok) throw new Error(`Audit returned HTTP ${res.status}`);
     const data = await res.json();
     if (!data.passed) throw new Error(`Invariant audit failed: ${JSON.stringify(data.checks)}`);
@@ -103,19 +201,21 @@ async function main() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        eventId: "evt-demo-collision-200",
+        eventId: DEMO_EVENT_ID,
         unitId: "unit-018",
       }),
     });
     if (!res.ok) throw new Error(`Hold failed HTTP ${res.status}`);
     const data = await res.json();
     if (!data.reservationId || !data.holdToken) throw new Error("Missing reservationId or holdToken");
+    trackHold(data);
     heldReservationId = data.reservationId;
     heldToken = data.holdToken;
     return `Locked Seat ${data.unitId} (Lease TTL: 120s)`;
   });
 
   await runTest("Dynamic NPCI UPI QR & Intent Generation", "Integration", async () => {
+    requireSetup(heldReservationId, "the flash hold was not created");
     const res = await fetch(`${BASE_URL}/api/v1/reservations/${heldReservationId}/upi-qr`);
     if (!res.ok) throw new Error(`UPI QR generation failed HTTP ${res.status}`);
     const data = await res.json();
@@ -126,27 +226,31 @@ async function main() {
     return `Generated dynamic QR for ${data.upiId} (Amount: ₹${data.amount})`;
   });
 
-  const uniqueUtr = `987654321${Math.floor(100 + Math.random() * 900)}`;
+  const uniqueUtr = `987${Date.now().toString().slice(-9)}`;
 
-  await runTest("Zero-Cost Payment Verification & Email Dispatch", "Integration", async () => {
+  await runTest("Payment Verification & Test Email Sink", "Integration", async () => {
+    requireSetup(heldReservationId, "the flash hold was not created");
+    requireSetup(heldToken, "the flash hold token is missing");
     const res = await fetch(`${BASE_URL}/api/v1/reservations/${heldReservationId}/verify-payment`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         holdToken: heldToken,
         utr: uniqueUtr,
-        passengerName: "Captain Vikram Batra",
-        email: "ticketwala.org@gmail.com",
+        passengerName: "TicketWala Integration Test",
+        email: `ticketwala-test-${Date.now()}@example.invalid`,
       }),
     });
     if (!res.ok) throw new Error(`Payment verification failed HTTP ${res.status}`);
     const data = await res.json();
     if (!data.pnr || data.status !== "CONFIRMED") throw new Error("Booking confirmation failed");
+    markConfirmed(heldReservationId);
     issuedPnr = data.pnr;
-    return `Issued PNR ${data.pnr} -> Dispatched to ${data.recipientEmail}`;
+    return `Issued PNR ${data.pnr}; test email recipient: ${data.recipientEmail}`;
   });
 
   await runTest("Single-Use QR Admission & Duplicate Entry Rejection", "Integration", async () => {
+    requireSetup(issuedPnr, "payment confirmation did not issue a PNR");
     // 1st scan: valid
     const scan1Res = await fetch(`${BASE_URL}/api/v1/tickets/verify-scan`, {
       method: "POST",
@@ -172,13 +276,22 @@ async function main() {
 
   await runTest("Payment Webhook Deduplication & Idempotent Safety", "Integration", async () => {
     const providerEventId = `wh-evt-${Date.now()}`;
+    const holdRes = await fetch(`${BASE_URL}/api/v1/reservations/hold`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventId: DEMO_EVENT_ID }),
+    });
+    if (holdRes.status !== 201) throw new Error(`Webhook test hold failed HTTP ${holdRes.status}`);
+    const hold = await holdRes.json();
+    if (!hold.reservationId || !hold.holdToken) throw new Error("Webhook test hold is missing reservation credentials");
+    trackHold(hold);
     const webhookPayload = {
       providerEventId,
-      reservationId: `res-wh-${Date.now()}`,
-      holdToken: "token-sample",
+      reservationId: hold.reservationId,
+      holdToken: hold.holdToken,
       status: "PAYMENT_SUCCESS",
-      amount: 4500,
-      currency: "INR",
+      amount: hold.price,
+      currency: hold.currency,
     };
 
     // 1st delivery
@@ -187,8 +300,12 @@ async function main() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(webhookPayload),
     });
+    if (!wh1Res.ok) throw new Error(`First webhook delivery failed HTTP ${wh1Res.status}`);
     const wh1 = await wh1Res.json();
-    if (wh1.duplicate !== false) throw new Error("First delivery was marked as duplicate");
+    if (wh1.duplicate !== false || wh1.status !== "TICKET_ISSUED" || !wh1.pnr) {
+      throw new Error(`First webhook delivery did not issue a ticket: ${JSON.stringify(wh1)}`);
+    }
+    markConfirmed(hold.reservationId);
 
     // 2nd delivery (Simulated webhook retry / network duplication)
     const wh2Res = await fetch(`${BASE_URL}/api/v1/payments/webhook`, {
@@ -196,6 +313,7 @@ async function main() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(webhookPayload),
     });
+    if (!wh2Res.ok) throw new Error(`Webhook retry failed HTTP ${wh2Res.status}`);
     const wh2 = await wh2Res.json();
     if (wh2.duplicate !== true || wh2.status !== "ALREADY_PROCESSED") {
       throw new Error(`Second delivery did not handle duplicate idempotently: ${JSON.stringify(wh2)}`);
@@ -209,9 +327,12 @@ async function main() {
     const holdRes1 = await fetch(`${BASE_URL}/api/v1/reservations/hold`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId: "evt-demo-collision-200" }),
+      body: JSON.stringify({ eventId: DEMO_EVENT_ID }),
     });
+    if (holdRes1.status !== 201) throw new Error(`First replay-test hold failed HTTP ${holdRes1.status}`);
     const hold1 = await holdRes1.json();
+    if (!hold1.reservationId || !hold1.holdToken) throw new Error("First replay-test hold is missing credentials");
+    trackHold(hold1);
 
     const replayUtr = `777${Date.now().toString().slice(-9)}`;
 
@@ -223,18 +344,26 @@ async function main() {
         holdToken: hold1.holdToken,
         utr: replayUtr,
         passengerName: "Legitimate Buyer",
-        email: "buyer@test.com",
+        email: `ticketwala-replay-test-${Date.now()}@example.invalid`,
       }),
     });
-    if (!pay1Res.ok) throw new Error("First payment failed");
+    if (!pay1Res.ok) throw new Error(`First payment failed HTTP ${pay1Res.status}`);
+    const payment1 = await pay1Res.json();
+    if (payment1.status !== "CONFIRMED" || !payment1.pnr) {
+      throw new Error(`First payment did not confirm a booking: ${JSON.stringify(payment1)}`);
+    }
+    markConfirmed(hold1.reservationId);
 
     // Second hold attempts to reuse the same UTR
     const holdRes2 = await fetch(`${BASE_URL}/api/v1/reservations/hold`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eventId: "evt-demo-collision-200" }),
+      body: JSON.stringify({ eventId: DEMO_EVENT_ID }),
     });
+    if (holdRes2.status !== 201) throw new Error(`Second replay-test hold failed HTTP ${holdRes2.status}`);
     const hold2 = await holdRes2.json();
+    if (!hold2.reservationId || !hold2.holdToken) throw new Error("Second replay-test hold is missing credentials");
+    trackHold(hold2);
 
     const replayRes = await fetch(`${BASE_URL}/api/v1/reservations/${hold2.reservationId}/verify-payment`, {
       method: "POST",
@@ -243,7 +372,7 @@ async function main() {
         holdToken: hold2.holdToken,
         utr: replayUtr, // Replayed!
         passengerName: "Attacker",
-        email: "attack@test.com",
+        email: `ticketwala-replay-test-${Date.now()}@example.invalid`,
       }),
     });
 
@@ -256,11 +385,12 @@ async function main() {
   let createdEventId = "";
 
   await runTest("Organizer Studio: Publish Event & Apply Dynamic Surge Pricing", "Integration", async () => {
+    const testEventTitle = `TicketWala Integration Test ${Date.now()}`;
     const createRes = await fetch(`${BASE_URL}/api/v1/organizer/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: "Test Integration Symphony 2026",
+        title: testEventTitle,
         category: "CONCERT",
         categoryLabel: "Live Symphony",
         venue: "NCPA Mumbai",
@@ -278,6 +408,7 @@ async function main() {
     });
     if (!createRes.ok) throw new Error("Failed to create organizer event");
     const createData = await createRes.json();
+    if (!createData.event?.id) throw new Error("Event creation response is missing the event ID");
     createdEventId = createData.event.id;
 
     const surgeRes = await fetch(`${BASE_URL}/api/v1/organizer/events/${createdEventId}/pricing`, {
@@ -287,16 +418,21 @@ async function main() {
     });
     if (!surgeRes.ok) throw new Error("Failed to update surge pricing");
     const surgeData = await surgeRes.json();
+    if (!Array.isArray(surgeData.tiers) || surgeData.tiers[0]?.price !== 6500) {
+      throw new Error("Surge pricing response did not apply the expected 1.3x VIP price");
+    }
 
     return `Created Event ${createdEventId} -> Applied 1.3x Surge Multiplier (VIP: ₹${surgeData.tiers[0].price})`;
   });
 
-  await runTest("Stream & Worker Observability", "Evidence & Observability", async () => {
+  await runTest("Stream Health Diagnostics Shape", "Evidence & Observability", async () => {
     const res = await fetch(`${BASE_URL}/api/v1/observability/stream-health`);
     if (!res.ok) throw new Error(`Observability API returned HTTP ${res.status}`);
     const data = await res.json();
-    if (data.status !== "HEALTHY") throw new Error("Worker stream not healthy");
-    return `Engine: ${data.engine} | Worker Lag: ${data.stream.workerLag} | Pending: ${data.stream.pendingCount}`;
+    if (data.status !== "HEALTHY" || !data.stream || typeof data.stream.pendingCount !== "number") {
+      throw new Error("Stream health response is missing required diagnostics");
+    }
+    return `Engine: ${data.engine} | Lag: ${data.stream.workerLag} | Pending: ${data.stream.pendingCount}`;
   });
 
   // ---------------------------------------------------------------------------
@@ -347,7 +483,9 @@ async function main() {
 
   await runTest("Single-Seat High Contention Storm (100 Simultaneous Requests -> 1 Seat)", "Load & Contention", async () => {
     // Reset sandbox
-    await fetch(`${BASE_URL}/api/v1/simulation/reset`, { method: "POST" });
+    const resetRes = await fetch(`${BASE_URL}/api/v1/simulation/reset`, { method: "POST" });
+    if (!resetRes.ok) throw new Error(`Could not reset contention inventory (HTTP ${resetRes.status})`);
+    outstandingHolds.clear();
     const contestedSeat = "unit-042";
     const totalRequests = 100;
 
@@ -359,10 +497,11 @@ async function main() {
           "Idempotency-Key": `client-${idx}-${Date.now()}`,
         },
         body: JSON.stringify({
-          eventId: "evt-demo-collision-200",
+          eventId: DEMO_EVENT_ID,
           unitId: contestedSeat,
         }),
       });
+      if (res.status === 201) trackHold(await res.json());
       return res.status;
     });
 
@@ -370,10 +509,12 @@ async function main() {
     const successes = statuses.filter((s) => s === 201).length;
     const rejections = statuses.filter((s) => s === 409).length;
 
-    if (successes > 1) {
-      throw new Error(`CRITICAL INVARIANT VIOLATION: Double booking detected! ${successes} holds created for 1 seat!`);
+    if (successes !== 1) {
+      throw new Error(`Expected exactly one winner for one seat; received ${successes}`);
     }
-
+    if (rejections !== totalRequests - 1 || statuses.length !== totalRequests) {
+      throw new Error(`Expected ${totalRequests - 1} HTTP 409 responses; statuses were ${statuses.join(", ")}`);
+    }
     return `Contention results: Exactly ${successes} Winner (HTTP 201), ${rejections} Graceful Rejections (HTTP 409). Double-bookings: 0`;
   });
 
@@ -387,9 +528,10 @@ async function main() {
       const res = await fetch(`${BASE_URL}/api/v1/reservations/hold`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: "evt-demo-collision-200" }),
+        body: JSON.stringify({ eventId: DEMO_EVENT_ID }),
       });
       latencies.push(performance.now() - reqStart);
+      if (res.status === 201) trackHold(await res.json());
       return res.status;
     });
 
@@ -403,8 +545,34 @@ async function main() {
     const p99 = latencies[Math.floor(latencies.length * 0.99)].toFixed(1);
 
     const holdsGranted = results.filter((s) => s === 201).length;
+    const unexpectedStatuses = results.filter((status) => ![201, 409, 429].includes(status));
+    if (results.length !== totalBenchmarkRequests || unexpectedStatuses.length > 0) {
+      throw new Error(
+        `Benchmark received unexpected HTTP statuses: ${unexpectedStatuses.join(", ") || "incomplete results"}`
+      );
+    }
+    if (holdsGranted !== totalBenchmarkRequests) {
+      throw new Error(`Expected all ${totalBenchmarkRequests} benchmark holds to succeed; granted ${holdsGranted}`);
+    }
 
-    return `RPS: ${rps} req/sec | Latencies: p50=${p50}ms, p95=${p95}ms, p99=${p99}ms | Holds granted: ${holdsGranted}`;
+    return `RPS: ${rps} req/sec | Latencies: p50=${p50}ms, p95=${p95}ms, p99=${p99}ms | Holds granted: ${holdsGranted}/${totalBenchmarkRequests}`;
+  });
+
+  await runTest("Release Remaining Test Holds", "Integration", async () => {
+    const pending = [...outstandingHolds.entries()].filter(([reservationId]) =>
+      !confirmedReservations.has(reservationId)
+    );
+    const failures: string[] = [];
+    for (const [reservationId, holdToken] of pending) {
+      const res = await fetch(`${BASE_URL}/api/v1/reservations/${reservationId}/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ holdToken }),
+      });
+      if (!res.ok) failures.push(`${reservationId}: HTTP ${res.status}`);
+    }
+    if (failures.length) throw new Error(`Could not release test holds: ${failures.join("; ")}`);
+    return `Released ${pending.length} unconfirmed holds; confirmed test bookings remain in the in-memory sandbox`;
   });
 
   // ---------------------------------------------------------------------------
@@ -414,10 +582,17 @@ async function main() {
   console.log("📊 FULL TEST SUITE SUMMARY");
   console.log("==================================================================");
   const passedCount = reports.filter((r) => r.passed).length;
+  const skippedCount = reports.filter((r) => r.skipped).length;
+  const failedCount = reports.length - passedCount - skippedCount;
   console.log(`Total Tests Run: ${reports.length}`);
-  console.log(`Passed:          ${passedCount} / ${reports.length} (100% Pass Rate)`);
-  console.log(`Failed:          ${reports.length - passedCount}`);
+  console.log(`Passed:          ${passedCount}`);
+  console.log(`Skipped:         ${skippedCount}`);
+  console.log(`Failed:          ${failedCount}`);
   console.log("==================================================================\n");
+  if (failedCount > 0) process.exitCode = 1;
 }
 
-main().catch(console.error);
+main().catch((err: unknown) => {
+  console.error("Integration suite aborted:", err instanceof Error ? err.message : String(err));
+  process.exitCode = 1;
+});

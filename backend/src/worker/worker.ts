@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import path from "path";
 import { releaseHold } from "../lua/index.js";
+import { persistReservationEvent, type WorkerCounters } from "./persistence.js";
 
 dotenv.config();
 dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
@@ -20,12 +21,47 @@ const DATABASE_URL =
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
 const STREAM_KEY = "ticketwala:events";
+const DEAD_LETTER_STREAM_KEY = "ticketwala:events:dead-letter";
 const GROUP_NAME = "ticketwala_workers";
 const WORKER_ID = `worker-${process.pid}-${Math.random().toString(36).substring(7)}`;
 const BATCH_SIZE = parseInt(process.env.WORKER_BATCH_SIZE || "50", 10);
 const CLAIM_INTERVAL = parseInt(process.env.WORKER_CLAIM_INTERVAL_MS || "5000", 10);
+const MAX_PROCESSING_ATTEMPTS = parseInt(process.env.WORKER_MAX_ATTEMPTS || "5", 10);
+const WORKER_HEARTBEATS_KEY = "ticketwala:workers:heartbeat";
+const workerStatusKey = `ticketwala:worker:${WORKER_ID}`;
 
 let isRunning = true;
+const workerCounters: WorkerCounters = {
+  processed: 0,
+  retried: 0,
+  deadLettered: 0,
+  databaseAttempts: 0,
+  databaseTimeMs: 0,
+  lastDatabaseDurationMs: 0,
+  lastDatabaseAt: 0,
+};
+
+if (!Number.isInteger(MAX_PROCESSING_ATTEMPTS) || MAX_PROCESSING_ATTEMPTS < 1) {
+  throw new Error("WORKER_MAX_ATTEMPTS must be a positive integer.");
+}
+
+async function publishWorkerHeartbeat(redis: Redis) {
+  const now = Date.now();
+  await redis.zremrangebyscore(WORKER_HEARTBEATS_KEY, "-inf", now - 60000);
+  await redis.zadd(WORKER_HEARTBEATS_KEY, now, WORKER_ID);
+  await redis.hset(workerStatusKey, {
+    status: isRunning ? "running" : "stopping",
+    last_seen: String(now),
+    processed: String(workerCounters.processed),
+    retried: String(workerCounters.retried),
+    dead_lettered: String(workerCounters.deadLettered),
+    database_attempts: String(workerCounters.databaseAttempts),
+    database_time_ms: String(workerCounters.databaseTimeMs),
+    last_database_duration_ms: String(workerCounters.lastDatabaseDurationMs),
+    last_database_at: String(workerCounters.lastDatabaseAt),
+  });
+  await redis.expire(workerStatusKey, 60);
+}
 
 async function runWorker() {
   console.log(`👷 Starting TicketWala Worker [${WORKER_ID}]...`);
@@ -50,105 +86,17 @@ async function runWorker() {
     if (err.message && err.message.includes("BUSYGROUP")) {
       console.log(`ℹ️ Consumer group [${GROUP_NAME}] already exists.`);
     } else {
-      console.warn(`⚠️ Warning on consumer group creation: ${err.message}`);
+      throw err;
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Message Processor (Idempotent SQL Transaction)
-  // ---------------------------------------------------------------------------
-  const processEvent = async (msgId: string, fields: Record<string, string>) => {
-    const eventType = fields.event_type;
-    const reservationId = fields.reservation_id;
-    const unitId = fields.unit_id;
-    const version = parseInt(fields.version || "1", 10);
-    const occurredAt = new Date(
-      fields.occurred_at ? parseInt(fields.occurred_at, 10) * 1000 : Date.now()
-    );
-
-    const client = await pgPool.connect();
-
-    try {
-      await client.query("BEGIN");
-
-      // Idempotency check: record event in reservation_events ledger
-      const insertEventQuery = `
-        INSERT INTO reservation_events (event_id, event_type, reservation_id, unit_id, version, occurred_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (event_id) DO NOTHING
-        RETURNING event_id;
-      `;
-      const eventRes = await client.query(insertEventQuery, [
-        msgId,
-        eventType,
-        reservationId,
-        unitId,
-        version,
-        occurredAt,
-      ]);
-
-      if (eventRes.rowCount === 0) {
-        // Event already processed in Postgres
-        await client.query("COMMIT");
-        await redis.xack(STREAM_KEY, GROUP_NAME, msgId);
-        return;
-      }
-
-      // Upsert into reservations table with version check
-      if (eventType === "HOLD_CREATED") {
-        const holdQuery = `
-          INSERT INTO reservations (reservation_id, unit_id, event_id, status, version, hold_expires_at, created_at, updated_at)
-          VALUES ($1, $2, 'evt-main', 'HELD', $3, NOW() + INTERVAL '120 seconds', $4, $4)
-          ON CONFLICT (reservation_id) DO UPDATE
-          SET status = 'HELD',
-              version = EXCLUDED.version,
-              updated_at = EXCLUDED.updated_at
-          WHERE reservations.version <= EXCLUDED.version;
-        `;
-        await client.query(holdQuery, [reservationId, unitId, version, occurredAt]);
-      } else if (eventType === "RESERVATION_CONFIRMED") {
-        const confirmQuery = `
-          UPDATE reservations
-          SET status = 'CONFIRMED',
-              version = $1,
-              confirmed_at = $2,
-              updated_at = $2
-          WHERE reservation_id = $3
-            AND version <= $1;
-        `;
-        await client.query(confirmQuery, [version, occurredAt, reservationId]);
-      } else if (eventType === "HOLD_EXPIRED" || eventType === "HOLD_RELEASED") {
-        const terminalStatus = eventType === "HOLD_EXPIRED" ? "EXPIRED" : "RELEASED";
-        const releaseQuery = `
-          UPDATE reservations
-          SET status = $1,
-              version = $2,
-              updated_at = $3
-          WHERE reservation_id = $4
-            AND version <= $2;
-        `;
-        await client.query(releaseQuery, [terminalStatus, version, occurredAt, reservationId]);
-      }
-
-      await client.query("COMMIT");
-
-      // Acknowledge stream message
-      await redis.xack(STREAM_KEY, GROUP_NAME, msgId);
-   
-    } catch (err: unknown) {
-      try {
-        await client.query("ROLLBACK");
-      } catch (rollbackErr) {
-        console.error("PostgreSQL rollback failed:", rollbackErr);
-      }
-
-      console.error(`Failed to process Redis event ${msgId}:`, err);
-      // Do not acknowledge the message on failure.
-      // Redis can redeliver it for retry/recovery.
-    } finally {
-      client.release();
-    }
-  };
+  const processEvent = (msgId: string, fields: Record<string, string>) =>
+    persistReservationEvent(redis, pgPool, msgId, fields, workerCounters, {
+      streamKey: STREAM_KEY,
+      groupName: GROUP_NAME,
+      deadLetterStreamKey: DEAD_LETTER_STREAM_KEY,
+      maxProcessingAttempts: MAX_PROCESSING_ATTEMPTS,
+    });
 
   // ---------------------------------------------------------------------------
   // XREADGROUP Main Event Loop
@@ -234,7 +182,13 @@ async function runWorker() {
         if (!isRunning) break;
 
         const now = Math.floor(Date.now() / 1000);
-        const keys = await redis.keys("ticketwala:unit:*");
+        const keys: string[] = [];
+        let cursor = "0";
+        do {
+          const [nextCursor, batch] = await redis.scan(cursor, "MATCH", "ticketwala:event:*:unit:*", "COUNT", 200);
+          cursor = nextCursor;
+          keys.push(...batch);
+        } while (cursor !== "0");
 
         for (const key of keys) {
           const unit = await redis.hgetall(key);
@@ -243,7 +197,6 @@ async function runWorker() {
             if (now >= expiresAt && unit.reservation_id) {
               console.log(`⏰ Reaping expired reservation [${unit.reservation_id}] for unit [${key}]`);
               await releaseHold(redis, {
-                eventId: "evt-main",
                 reservationId: unit.reservation_id,
                 isTimeoutJob: true,
               });
@@ -258,6 +211,12 @@ async function runWorker() {
   };
 
   // Start concurrent loops
+  await publishWorkerHeartbeat(redis);
+  const heartbeatInterval = setInterval(() => {
+    publishWorkerHeartbeat(redis).catch((err) => {
+      console.error("Worker heartbeat publish failed:", err);
+    });
+  }, 10000);
   Promise.all([consumeLoop(), recoveryLoop(), expirySweepLoop()]).catch((err) => {
     console.error("Fatal worker loop error:", err);
   });
@@ -266,6 +225,9 @@ async function runWorker() {
   const shutdown = async () => {
     console.log(`\n🛑 Shutting down TicketWala Worker [${WORKER_ID}]...`);
     isRunning = false;
+    clearInterval(heartbeatInterval);
+    await redis.zrem(WORKER_HEARTBEATS_KEY, WORKER_ID);
+    await redis.del(workerStatusKey);
     await redis.quit();
     await pgPool.end();
     console.log("👋 Worker shutdown complete.");

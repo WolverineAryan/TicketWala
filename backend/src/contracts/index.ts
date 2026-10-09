@@ -264,3 +264,34 @@ export const RunScenarioSchema = z.object({
   totalRequests: z.number().int().min(1).max(1000).optional().default(100),
 });
 export type RunScenarioRequest = z.infer<typeof RunScenarioSchema>;
+
+// -----------------------------------------------------------------------------
+// Support & Contact Us Contracts
+// -----------------------------------------------------------------------------
+export const ContactCategorySchema = z.enum([
+  "BOOKING",
+  "PAYMENT",
+  "TICKETS",
+  "ACCOUNT",
+  "EVENT_ENQUIRY",
+  "OTHER",
+]);
+export type ContactCategory = z.infer<typeof ContactCategorySchema>;
+
+export const ContactInquirySchema = z.object({
+  fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().trim().email("Valid email address is required").max(150),
+  category: ContactCategorySchema.default("BOOKING"),
+  subject: z.string().trim().min(3, "Subject must be at least 3 characters").max(200),
+  message: z.string().trim().min(10, "Message must be at least 10 characters").max(2000),
+});
+export type ContactInquiryRequest = z.infer<typeof ContactInquirySchema>;
+
+export interface ContactInquiryResponse {
+  success: boolean;
+  ticketId: string;
+  receivedAt: string;
+  category: string;
+  message: string;
+}
+

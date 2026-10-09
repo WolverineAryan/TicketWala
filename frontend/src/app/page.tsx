@@ -6125,70 +6125,43 @@ export default function TicketWalaPage() {
           onClick={() => setActive3DTicket(null)}
           role="dialog"
           aria-modal="true"
-          aria-label="Ticket Pass"
+          aria-label="Booking Confirmation"
         >
-          {/* Action Bar / Controls */}
-          <div
-            className="ticket-3d-controls-bar"
-            onClick={(e) => e.stopPropagation()}
+          {/* Subtle Top-Right Close Button */}
+          <button
+            type="button"
+            className="ticket-modal-close-btn"
+            onClick={() => setActive3DTicket(null)}
+            title="Close preview"
+            aria-label="Close"
           >
-            <button
-              type="button"
-              className="ticket-ctrl-btn"
-              onClick={() => handleBackToBookings(active3DTicket)}
-              title="Return to your reservations list"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              <span>Back to Bookings</span>
-            </button>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
 
-            <button
-              type="button"
-              className="ticket-ctrl-btn"
-              onClick={handlePrintTicket}
-              title="Print your TicketWala boarding pass"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 6 2 18 2 18 9" />
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                <rect x="6" y="14" width="12" height="8" />
-              </svg>
-              <span>Print Ticket</span>
-            </button>
+          {/* Center Showcase Stage */}
+          <div className="ticket-showcase-container" onClick={(e) => e.stopPropagation()}>
+            <div className="ticket-spotlight-glow" />
 
-            <button
-              type="button"
-              className="ticket-ctrl-btn primary"
-              onClick={() => handleDownload3DTicket(active3DTicket)}
-              title="Save digital pass file to device"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              <span>Download Ticket</span>
-            </button>
+            {/* Premium Success Header */}
+            <div className="ticket-success-header">
+              <div className="ticket-success-badge">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h2 className="ticket-success-title">Booking Confirmed!</h2>
+              <p className="ticket-success-subtitle">
+                <span>Booking Reference:</span>
+                <span className="ticket-pnr-pill">{active3DTicket.bookingId}</span>
+                <span>· Instant digital pass issued &amp; verified</span>
+              </p>
+            </div>
 
-            <button
-              type="button"
-              className="ticket-ctrl-btn close"
-              onClick={() => setActive3DTicket(null)}
-              title="Close Ticket preview"
-              aria-label="Close"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Interactive 3D Perspective Stage */}
-          <div className="ticket-3d-stage" onClick={(e) => e.stopPropagation()}>
+            {/* Interactive 3D Perspective Stage */}
+            <div className="ticket-3d-stage">
             <div
               className="ticket-3d-card"
               onMouseMove={handleTicketMouseMove}
@@ -6366,8 +6339,60 @@ export default function TicketWalaPage() {
               </div>
             </div>
           </div>
+
+          {/* Elegant Action Bar */}
+          <div className="ticket-actions-bar">
+            <button
+              type="button"
+              className="ticket-action-btn primary"
+              onClick={() => handleDownload3DTicket(active3DTicket)}
+              title="Save digital pass file to device"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Download Ticket</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-action-btn secondary"
+              onClick={handlePrintTicket}
+              title="Print official boarding ticket"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Print Ticket</span>
+            </button>
+
+            <button
+              type="button"
+              className="ticket-action-btn tertiary"
+              onClick={() => handleBackToBookings(active3DTicket)}
+              title="View your reservations list"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span>My Bookings</span>
+              <span style={{ fontSize: "14px", marginLeft: "2px" }}>→</span>
+            </button>
+          </div>
+
+          <div className="ticket-tilt-hint">
+            <span>💡 Tilt your mouse over the pass for 3D holographic parallax view</span>
+          </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* FLOATING TOAST NOTIFICATION */}
       {eticketAlert && (
