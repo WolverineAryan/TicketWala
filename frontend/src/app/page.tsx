@@ -1859,6 +1859,7 @@ export default function TicketWalaPage() {
             className="location-pill-btn"
             onClick={() => setShowCityModal(true)}
             title="Change City"
+            suppressHydrationWarning
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -1869,7 +1870,7 @@ export default function TicketWalaPage() {
           </button>
         </div>
 
-        <ul id="nav">
+        <ul id="nav" suppressHydrationWarning>
           <li>
             <a
               href="#home"
@@ -1880,6 +1881,7 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("home");
               }}
+              suppressHydrationWarning
             >
               Home
             </a>
@@ -1894,6 +1896,7 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("events");
               }}
+              suppressHydrationWarning
             >
               Events
             </a>
@@ -1908,6 +1911,7 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("booking");
               }}
+              suppressHydrationWarning
             >
               Booking
             </a>
@@ -1922,6 +1926,7 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("travel");
               }}
+              suppressHydrationWarning
             >
               Travel
             </a>
@@ -1936,6 +1941,7 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("landing");
               }}
+              suppressHydrationWarning
             >
               Architecture
             </a>
@@ -1950,13 +1956,14 @@ export default function TicketWalaPage() {
                 e.preventDefault();
                 navigateTo("profile");
               }}
+              suppressHydrationWarning
             >
               Profile
             </a>
           </li>
         </ul>
 
-        <div id="auth" style={{ display: "flex", alignItems: "center" }}>
+        <div id="auth" style={{ display: "flex", alignItems: "center" }} suppressHydrationWarning>
           {user ? (
             <>
               <button
@@ -1973,6 +1980,7 @@ export default function TicketWalaPage() {
                   padding: "4px 8px",
                   borderRadius: "99px",
                 }}
+                suppressHydrationWarning
               >
                 <div style={{
                   width: "28px",
@@ -1997,7 +2005,7 @@ export default function TicketWalaPage() {
                   {user.name.split(" ")[0]}
                 </span>
               </button>
-              <button type="button" className="btn ghost" style={{ padding: "8px 18px" }} onClick={handleLogout}>
+              <button type="button" className="btn ghost" style={{ padding: "8px 18px" }} onClick={handleLogout} suppressHydrationWarning>
                 Log out
               </button>
             </>
@@ -2008,10 +2016,11 @@ export default function TicketWalaPage() {
                 className="btn ghost"
                 style={{ padding: "8px 18px", marginRight: "6px" }}
                 onClick={() => navigateTo("login")}
+                suppressHydrationWarning
               >
                 Log in
               </button>
-              <button type="button" className="btn" style={{ padding: "8px 18px" }} onClick={() => navigateTo("signup")}>
+              <button type="button" className="btn" style={{ padding: "8px 18px" }} onClick={() => navigateTo("signup")} suppressHydrationWarning>
                 Sign up
               </button>
             </>
@@ -2020,7 +2029,7 @@ export default function TicketWalaPage() {
       </nav>
 
       {/* MAIN CONTENT PAGES */}
-      <main>
+      <main suppressHydrationWarning>
         {/* 1. BOOKMYSHOW-STYLE HOME PAGE */}
         <div
           className={`page ${activePage === "home" ? "on" : ""}`}
