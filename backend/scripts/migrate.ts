@@ -33,12 +33,16 @@ async function runMigrations() {
 
     client.release();
     console.log("🎉 All database migrations applied successfully.");
-  } catch (err: any) {
-    console.error("❌ Migration error:", err.message);
-    process.exit(1);
+
+  } catch (err: unknown) {
+    console.error("❌ Migration error:", err);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }
 }
 
-runMigrations();
+runMigrations().catch((err: unknown) => {
+  console.error("❌ Migration process failed:", err);
+  process.exitCode = 1;
+});

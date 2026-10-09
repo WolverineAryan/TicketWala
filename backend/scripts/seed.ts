@@ -27,10 +27,11 @@ async function seedAllInventory() {
       const result = await initializeInventory(redis, evt.id, evt.capacity);
       console.log(`✅ Inventory initialization result for ${evt.id}: ${JSON.stringify(result)}`);
     }
-    console.log(`🎉 All multipurpose events successfully initialized in Redis!`);
-  } catch (err: any) {
-    console.error("❌ Inventory seeding failed:", err.message);
-    process.exit(1);
+
+    console.log("🎉 All multipurpose events successfully initialized in Redis!");
+  } catch (err: unknown) {
+    console.error("❌ Inventory seeding failed:", err);
+    process.exitCode = 1;
   } finally {
     redis.disconnect();
   }

@@ -142,10 +142,17 @@ async function runWorker() {
 
       // Acknowledge stream message
       await redis.xack(STREAM_KEY, GROUP_NAME, msgId);
-    } catch (err: any) {
-      await client.query("ROLLBACK");
-      console.error(`❌ Error processing event [${msgId}]:`, err.message);
-      throw err;
+
+    } catch (err: unknown) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackErr) {
+        console.error("PostgreSQL rollback failed:", rollbackErr);
+      }
+
+      console.error(`Failed to process Redis event ${msgId}:`, err);
+      // Do not acknowledge the message on failure.
+      // Redis can redeliver it for retry/recovery.
     } finally {
       client.release();
     }

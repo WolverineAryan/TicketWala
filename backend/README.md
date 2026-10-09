@@ -70,12 +70,20 @@ ticketwala:event:{<eventId>}:idempotency:<scope>
 ticketwala:event:{<eventId>}:events
 ```
 
-`initializeInventory` creates `unit-001` through `unit-200`, rebuilding only the
-available queue. It never resets a `HELD` or `CONFIRMED` unit. Hold, confirm,
-release, and expiry state changes append `event_type`, `event_id_ref`,
-`reservation_id`, `unit_id`, `version`, `occurred_at`, and JSON `payload` fields
-to the event's `events` stream in the same Lua transaction. Run one worker per
-event (or configure a stream multiplexer) when processing multiple events.
+`initializeInventory` creates exactly 200 units by default (`unit-001` through
+`unit-200`) and is safe to rerun. It rebuilds only the available projection
+after validating the canonical unit hashes. It never resets a valid `HELD` or
+`CONFIRMED` unit, including its reservation ownership, token hash, expiry, or
+version. The available queue and membership set are rebuilt together, so each
+available unit appears exactly once in both and occupied units never appear in
+either projection. Ambiguous or corrupt unit state is rejected before those
+projections are mutated.
+
+Hold, confirm, release, and expiry state changes append `event_type`,
+`event_id_ref`, `reservation_id`, `unit_id`, `version`, `occurred_at`, and JSON
+`payload` fields to the event's `events` stream in the same Lua transaction.
+Run one worker per event (or configure a stream multiplexer) when processing
+multiple events.
 
 Expiry jobs must pass the reservation's expected version. A stale job is a
 successful no-op and cannot release a newer owner. The worker persists
@@ -85,3 +93,39 @@ The concurrency suite requires an isolated Redis instance. The API and worker
 also require PostgreSQL for readiness and persistence checks. The k6 scripts
 are benchmarks only; the 5,000+ request target is not considered achieved
 unless a real run is performed and its results are saved separately.
+
+## Manual demo traffic burst
+
+Run this from a terminal before the demo; it does not add a button or load
+traffic from visitors' browsers. It sends 5,000 hold requests to the selected
+API using up to 250 virtual users, after checking API health and that the event
+exists. This is 5,000 requests, not 5,000 simultaneous real users.
+
+Use a dedicated demo deployment and an event reserved for load testing. Each
+successful request creates a real temporary hold and consumes demo inventory
+until it expires; do not point this test at an event accepting real bookings.
+The script intentionally requires the target and event to be supplied and
+requires explicit confirmation for remote targets.
+
+PowerShell example:
+
+```powershell
+$env:BASE_URL = "https://your-demo-api.example.com"
+$env:EVENT_ID = "evt-flight-ai101"
+$env:CONFIRM_DEMO_TARGET = "YES"
+$env:ALLOW_REMOTE_TARGET = "YES"
+npm run bench:demo --workspace=ticketwala-backend
+```
+
+Optionally lower the load, up to the script limits of 5,000 total requests and
+250 virtual users:
+
+```powershell
+$env:TOTAL_REQUESTS = "1000"
+$env:VUS = "100"
+```
+
+Close the test terminal to stop a running test. Keep the demo website open for
+viewers; this script sends traffic directly to the API and does not make the
+browser display a load-test dashboard. Refresh the event/seat view to see
+availability changes if the page does not update automatically.
