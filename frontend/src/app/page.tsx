@@ -577,6 +577,7 @@ export default function TicketWalaPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Profile Form States
+  const [profileTab, setProfileTab] = useState<"personal" | "security" | "passes" | "preferences">("personal");
   const [profileName, setProfileName] = useState<string>("");
   const [profilePassName, setProfilePassName] = useState<string>("");
   const [profilePhone, setProfilePhone] = useState<string>("");
@@ -2852,10 +2853,10 @@ export default function TicketWalaPage() {
           style={{ display: activePage === "profile" ? "block" : "none" }}
         >
           <div className="profile-dash-wrap">
-            {/* Profile Hero Header */}
-            <div className="profile-hero-card">
-              <div className="profile-hero-top">
-                <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+            {/* 1. Sleek Profile Header */}
+            <div className="profile-hero-card" style={{ marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
                   <div className="profile-avatar-wrapper">
                     {profileAvatar ? (
                       <img src={profileAvatar} alt="Profile" className="profile-avatar-img" />
@@ -2898,273 +2899,339 @@ export default function TicketWalaPage() {
                       <span className="dot-sep">•</span>
                       <span>{user?.phone || profilePhone || "+91 98200 12345"}</span>
                       <span className="dot-sep">•</span>
-                      <span className="pass-pill">{user?.passName || profilePassName || "VIP Prime Fan Pass"}</span>
-                    </div>
-
-                    {/* Quick Avatar Management Row */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        onClick={() => setShowAvatarPresets((prev) => !prev)}
-                        style={{
-                          background: "transparent",
-                          border: "1px solid #ded9d0",
-                          borderRadius: "6px",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          color: "var(--k)",
-                          padding: "3px 8px",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "5px",
-                        }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                        <span>{showAvatarPresets ? "Hide Preset Avatars" : "Choose Preset Avatar"}</span>
-                      </button>
-
-                      {profileAvatar && (
-                        <button
-                          type="button"
-                          className="btn-remove-avatar"
-                          onClick={handleRemoveAvatar}
-                        >
-                          Remove Photo
-                        </button>
-                      )}
+                      <span className="pass-pill">TW-8849-VIP</span>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="btn-logout-header"
-                  onClick={handleLogout}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  <span>Log Out</span>
-                </button>
-              </div>
-
-              {/* Preset Avatars Drawer */}
-              {showAvatarPresets && (
-                <div className="avatar-presets-drawer">
-                  <div className="avatar-presets-label">
-                    <span>Curated Pass Avatars</span>
-                    <span style={{ fontSize: "10px", color: "var(--o)", fontWeight: 800 }}>CLICK TO APPLY</span>
-                  </div>
-                  <div className="avatar-presets-grid">
-                    {PRESET_AVATARS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        className={`avatar-preset-thumb ${profileAvatar === preset.url ? "active" : ""}`}
-                        title={preset.label}
-                        onClick={() => handleSelectPresetAvatar(preset.url)}
-                      >
-                        <img src={preset.url} alt={preset.label} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Digital Fan Pass Ribbon */}
-              <div className="digital-fan-pass-ribbon">
-                <div className="dfp-item">
-                  <small>PASS IDENTIFIER</small>
-                  <b>TW-8849-VIP</b>
-                </div>
-                <div className="dfp-item">
-                  <small>PASS HOLDER NAME</small>
-                  <b>{user?.passName || profilePassName || (user ? user.name : "Demo Fan")}</b>
-                </div>
-                <div className="dfp-item">
-                  <small>ACTIVE BOOKINGS</small>
-                  <b>{bookings.length} Seats Confirmed</b>
-                </div>
-                <div className="dfp-item">
-                  <small>REDIS HOLD GUARANTEE</small>
-                  <b style={{ color: "#27ae60" }}>0 Double-Bookings</b>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "12px", color: "#77736c", fontWeight: 600 }}>
+                    Active Bookings: <b style={{ color: "var(--k)" }}>{bookings.length}</b>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-logout-header"
+                    onClick={handleLogout}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Log Out</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Profile Content Grid */}
-            <div className="profile-content-grid">
-              {/* Left Column: Editable Details & Security */}
-              <div>
-                {/* Personal & Pass Details Card */}
-                <div className="profile-card">
-                  <div className="profile-card-header">
-                    <div className="profile-card-title">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
+            {/* 2. Clean Segmented Navigation Tabs */}
+            <div className="profile-tabs-bar">
+              <button
+                type="button"
+                className={`profile-tab-btn ${profileTab === "personal" ? "active" : ""}`}
+                onClick={() => setProfileTab("personal")}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>Personal &amp; Contact</span>
+              </button>
+
+              <button
+                type="button"
+                className={`profile-tab-btn ${profileTab === "security" ? "active" : ""}`}
+                onClick={() => setProfileTab("security")}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span>Security &amp; Password</span>
+              </button>
+
+              <button
+                type="button"
+                className={`profile-tab-btn ${profileTab === "passes" ? "active" : ""}`}
+                onClick={() => setProfileTab("passes")}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                </svg>
+                <span>My Reserved Passes</span>
+                {bookings.length > 0 && (
+                  <span className="profile-tab-badge">{bookings.length}</span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className={`profile-tab-btn ${profileTab === "preferences" ? "active" : ""}`}
+                onClick={() => setProfileTab("preferences")}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span>Preferences &amp; Sessions</span>
+              </button>
+            </div>
+
+            {/* 3. Focused Tab Content Views */}
+
+            {/* TAB 1: PERSONAL & CONTACT */}
+            {profileTab === "personal" && (
+              <div className="profile-section-pane">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+                  <div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
                       Personal &amp; Contact Details
-                    </div>
-                    <span className="profile-card-desc">
-                      Manage your official fan credentials, ticket pass display name, and emergency phone.
-                    </span>
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                      Manage your verified identity, ticket pass moniker, and contact details.
+                    </p>
                   </div>
 
-                  <form className="profile-form" onSubmit={handleSaveProfile}>
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label">Full Name</label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profileName}
-                            onChange={(e) => setProfileName(e.target.value)}
-                            placeholder="Your full name"
-                            required
-                          />
-                        </div>
-                      </div>
+                  {/* Photo Actions */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAvatarPresets((prev) => !prev)}
+                      style={{
+                        background: "#f9f8f5",
+                        border: "1px solid #ded9d0",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--k)",
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <span>{showAvatarPresets ? "Close Presets" : "Choose Preset Avatar"}</span>
+                    </button>
 
-                      <div className="input-field-group">
-                        <label className="input-field-label">Pass Name (on Tickets)</label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profilePassName}
-                            onChange={(e) => setProfilePassName(e.target.value)}
-                            placeholder="Name displayed on pass"
-                          />
-                        </div>
-                      </div>
+                    {profileAvatar && (
+                      <button
+                        type="button"
+                        className="btn-remove-avatar"
+                        onClick={handleRemoveAvatar}
+                        style={{ padding: "6px 10px", fontSize: "12px" }}
+                      >
+                        Reset to Monogram
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Avatar Preset Drawer */}
+                {showAvatarPresets && (
+                  <div className="avatar-presets-drawer" style={{ marginBottom: "22px" }}>
+                    <div className="avatar-presets-label">
+                      <span>Curated Persona Avatars</span>
+                      <span style={{ fontSize: "10px", color: "var(--o)", fontWeight: 800 }}>CLICK TO SELECT</span>
                     </div>
-
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span>Phone Number</span>
-                          <span style={{ color: "#27ae60", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
-                        </label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profilePhone}
-                            onChange={(e) => setProfilePhone(e.target.value)}
-                            placeholder="+91 98200 12345"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span>Registered Email</span>
-                          <span style={{ color: "#8c8880", fontSize: "10px", fontWeight: 700 }}>Primary Account</span>
-                        </label>
-                        <div className="input-field-box" style={{ background: "#f2f0ec", opacity: 0.85 }}>
-                          <input
-                            className="input-field-input"
-                            value={user ? user.email : "demo@ticketwala.com"}
-                            disabled
-                          />
-                        </div>
-                      </div>
+                    <div className="avatar-presets-grid">
+                      {PRESET_AVATARS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className={`avatar-preset-thumb ${profileAvatar === preset.url ? "active" : ""}`}
+                          title={preset.label}
+                          onClick={() => handleSelectPresetAvatar(preset.url)}
+                        >
+                          <img src={preset.url} alt={preset.label} />
+                        </button>
+                      ))}
                     </div>
+                  </div>
+                )}
 
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label">Date of Birth (Gate Age Verification)</label>
-                        <div className="input-field-box">
-                          <input
-                            type="date"
-                            className="input-field-input"
-                            value={profileDob}
-                            onChange={(e) => setProfileDob(e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label">Home Region / City</label>
-                        <div className="input-field-box">
-                          <select
-                            className="input-field-input"
-                            value={profileCity}
-                            onChange={(e) => setProfileCity(e.target.value)}
-                            style={{ background: "transparent", border: "none", outline: "none" }}
-                          >
-                            {CITIES.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.tagline})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
+                <form className="profile-form" onSubmit={handleSaveProfile}>
+                  <div className="form-row-2">
                     <div className="input-field-group">
-                      <label className="input-field-label">Companion / Emergency Contact Phone (Optional)</label>
+                      <label className="input-field-label">Full Legal Name</label>
                       <div className="input-field-box">
                         <input
                           className="input-field-input"
-                          value={profileEmergencyPhone}
-                          onChange={(e) => setProfileEmergencyPhone(e.target.value)}
-                          placeholder="+91 98765 43210 (Stadium Gate Backup)"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          placeholder="Your legal name"
+                          required
                         />
                       </div>
                     </div>
 
-                    <div className="form-actions-row">
-                      {profileSuccessMsg && (
-                        <span className="profile-success-text">{profileSuccessMsg}</span>
-                      )}
-                      <button type="submit" className="btn" style={{ padding: "10px 22px" }}>
-                        Save Profile Changes
-                      </button>
+                    <div className="input-field-group">
+                      <label className="input-field-label">Pass Moniker (Printed on Tickets)</label>
+                      <div className="input-field-box">
+                        <input
+                          className="input-field-input"
+                          value={profilePassName}
+                          onChange={(e) => setProfilePassName(e.target.value)}
+                          placeholder="Name displayed on boarding pass"
+                        />
+                      </div>
                     </div>
-                  </form>
-                </div>
-
-                {/* Password & Security Card */}
-                <div className="profile-card">
-                  <div className="profile-card-header">
-                    <div className="profile-card-title">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      Security &amp; Password
-                    </div>
-                    <span className="profile-card-desc">
-                      Manage password credentials with real-time strength validation and multi-factor security.
-                    </span>
                   </div>
 
-                  <form className="profile-form" onSubmit={handleUpdatePassword}>
+                  <div className="form-row-2">
                     <div className="input-field-group">
-                      <label className="input-field-label">Current Password</label>
+                      <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Primary Mobile Phone</span>
+                        <span style={{ color: "#27ae60", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
+                      </label>
+                      <div className="input-field-box">
+                        <input
+                          className="input-field-input"
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(e.target.value)}
+                          placeholder="+91 98200 12345"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-field-group">
+                      <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>Registered Account Email</span>
+                        <span style={{ color: "#8c8880", fontSize: "10px", fontWeight: 700 }}>Primary</span>
+                      </label>
+                      <div className="input-field-box" style={{ background: "#f8f7f5", opacity: 0.85 }}>
+                        <input
+                          className="input-field-input"
+                          value={user ? user.email : "demo@ticketwala.com"}
+                          disabled
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-row-2">
+                    <div className="input-field-group">
+                      <label className="input-field-label">Date of Birth (Gate Age Compliance)</label>
+                      <div className="input-field-box">
+                        <input
+                          type="date"
+                          className="input-field-input"
+                          value={profileDob}
+                          onChange={(e) => setProfileDob(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-field-group">
+                      <label className="input-field-label">Home Metro Region</label>
+                      <div className="input-field-box">
+                        <select
+                          className="input-field-input"
+                          value={profileCity}
+                          onChange={(e) => setProfileCity(e.target.value)}
+                          style={{ background: "transparent", border: "none", outline: "none" }}
+                        >
+                          {CITIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} — {c.tagline}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="input-field-group">
+                    <label className="input-field-label">Companion / Emergency Gate Phone (Optional)</label>
+                    <div className="input-field-box">
+                      <input
+                        className="input-field-input"
+                        value={profileEmergencyPhone}
+                        onChange={(e) => setProfileEmergencyPhone(e.target.value)}
+                        placeholder="+91 98765 43210 (Stadium Gate Backup Contact)"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-actions-row" style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f2f0ec" }}>
+                    {profileSuccessMsg && (
+                      <span className="profile-success-text">{profileSuccessMsg}</span>
+                    )}
+                    <button type="submit" className="btn" style={{ padding: "10px 24px" }}>
+                      Save Profile Changes
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 2: SECURITY & PASSWORD */}
+            {profileTab === "security" && (
+              <div className="profile-section-pane">
+                <div style={{ marginBottom: "24px" }}>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
+                    Security &amp; Password
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                    Update your password credentials and manage multi-factor authentication.
+                  </p>
+                </div>
+
+                <form className="profile-form" onSubmit={handleUpdatePassword}>
+                  <div className="input-field-group">
+                    <label className="input-field-label">Current Password</label>
+                    <div className="input-field-box input-with-eye">
+                      <input
+                        type={showOldPw ? "text" : "password"}
+                        className="input-field-input"
+                        value={oldPw}
+                        onChange={(e) => setOldPw(e.target.value)}
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        className="pw-eye-btn"
+                        onClick={() => setShowOldPw((prev) => !prev)}
+                        title={showOldPw ? "Hide password" : "Show password"}
+                      >
+                        {showOldPw ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="form-row-2">
+                    <div className="input-field-group">
+                      <label className="input-field-label">New Password</label>
                       <div className="input-field-box input-with-eye">
                         <input
-                          type={showOldPw ? "text" : "password"}
+                          type={showNewPw ? "text" : "password"}
                           className="input-field-input"
-                          value={oldPw}
-                          onChange={(e) => setOldPw(e.target.value)}
-                          placeholder="••••••••"
+                          value={newPw}
+                          onChange={(e) => setNewPw(e.target.value)}
+                          placeholder="At least 6 characters"
                         />
                         <button
                           type="button"
                           className="pw-eye-btn"
-                          onClick={() => setShowOldPw((prev) => !prev)}
-                          title={showOldPw ? "Hide password" : "Show password"}
+                          onClick={() => setShowNewPw((prev) => !prev)}
+                          title={showNewPw ? "Hide password" : "Show password"}
                         >
-                          {showOldPw ? (
+                          {showNewPw ? (
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                               <line x1="1" y1="1" x2="23" y2="23" />
@@ -3179,296 +3246,193 @@ export default function TicketWalaPage() {
                       </div>
                     </div>
 
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label">New Password</label>
-                        <div className="input-field-box input-with-eye">
-                          <input
-                            type={showNewPw ? "text" : "password"}
-                            className="input-field-input"
-                            value={newPw}
-                            onChange={(e) => setNewPw(e.target.value)}
-                            placeholder="At least 6 characters"
-                          />
-                          <button
-                            type="button"
-                            className="pw-eye-btn"
-                            onClick={() => setShowNewPw((prev) => !prev)}
-                            title={showNewPw ? "Hide password" : "Show password"}
-                          >
-                            {showNewPw ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                              </svg>
-                            ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label">Confirm New Password</label>
-                        <div className="input-field-box input-with-eye">
-                          <input
-                            type={showConfirmPw ? "text" : "password"}
-                            className="input-field-input"
-                            value={confirmPw}
-                            onChange={(e) => setConfirmPw(e.target.value)}
-                            placeholder="Repeat new password"
-                          />
-                          <button
-                            type="button"
-                            className="pw-eye-btn"
-                            onClick={() => setShowConfirmPw((prev) => !prev)}
-                            title={showConfirmPw ? "Hide password" : "Show password"}
-                          >
-                            {showConfirmPw ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                              </svg>
-                            ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Password Strength Meter */}
-                    {newPw && (
-                      <div className="pw-strength-wrap">
-                        <div className="pw-strength-track">
-                          <div
-                            className="pw-strength-bar"
-                            style={{
-                              width: `${getProfilePwStrength(newPw).percent}%`,
-                              backgroundColor: getProfilePwStrength(newPw).color,
-                            }}
-                          ></div>
-                        </div>
-                        <div className="pw-strength-label">
-                          <span>Password Strength</span>
-                          <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="form-actions-row">
-                      {pwMsg && (
-                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
-                          {pwMsg}
-                        </span>
-                      )}
-                      <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
-                        Update Password
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Two-Factor Authentication (2FA) */}
-                  <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid #f2f0ec" }}>
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>Two-Factor Authentication (2FA)</b>
-                        <span>Require SMS / Authenticator confirmation when locking high-contention VIP drops.</span>
-                      </div>
-                      <label className="toggle-switch">
+                    <div className="input-field-group">
+                      <label className="input-field-label">Confirm New Password</label>
+                      <div className="input-field-box input-with-eye">
                         <input
-                          type="checkbox"
-                          checked={twoFactorEnabled}
-                          onChange={(e) => {
-                            setTwoFactorEnabled(e.target.checked);
-                            setProfileSuccessMsg(e.target.checked ? "2FA Protection Enabled!" : "2FA Protection Disabled.");
-                            setTimeout(() => setProfileSuccessMsg(""), 3000);
-                          }}
+                          type={showConfirmPw ? "text" : "password"}
+                          className="input-field-input"
+                          value={confirmPw}
+                          onChange={(e) => setConfirmPw(e.target.value)}
+                          placeholder="Repeat new password"
                         />
-                        <span className="toggle-slider"></span>
-                      </label>
+                        <button
+                          type="button"
+                          className="pw-eye-btn"
+                          onClick={() => setShowConfirmPw((prev) => !prev)}
+                          title={showConfirmPw ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPw ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Active Login Sessions */}
-                  <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #f2f0ec" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                      <div>
-                        <b style={{ fontSize: "13px", color: "var(--k)", display: "block" }}>Active Devices &amp; Sessions</b>
-                        <span style={{ fontSize: "11px", color: "#77736c" }}>Signed in across devices for instant queue priority.</span>
+                  {/* Password Strength Line */}
+                  {newPw && (
+                    <div className="pw-strength-wrap">
+                      <div className="pw-strength-track">
+                        <div
+                          className="pw-strength-bar"
+                          style={{
+                            width: `${getProfilePwStrength(newPw).percent}%`,
+                            backgroundColor: getProfilePwStrength(newPw).color,
+                          }}
+                        ></div>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-revoke-session"
-                        onClick={handleRevokeSessions}
-                      >
-                        Terminate Others
-                      </button>
+                      <div className="pw-strength-label">
+                        <span>Password Strength:</span>
+                        <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-actions-row">
+                    {pwMsg && (
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
+                        {pwMsg}
+                      </span>
+                    )}
+                    <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
+                      Update Password
+                    </button>
+                  </div>
+                </form>
+
+                {/* Two-Factor Authentication */}
+                <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
+                  <div className="toggle-setting-row">
+                    <div className="toggle-setting-info">
+                      <b>Two-Factor Authentication (2FA)</b>
+                      <span>Require SMS or Authenticator verification for high-contention flash drops.</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={twoFactorEnabled}
+                        onChange={(e) => {
+                          setTwoFactorEnabled(e.target.checked);
+                          setProfileSuccessMsg(e.target.checked ? "2FA Protection Enabled!" : "2FA Protection Disabled.");
+                          setTimeout(() => setProfileSuccessMsg(""), 3000);
+                        }}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Active Sessions */}
+                <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div>
+                      <b style={{ fontSize: "14px", color: "var(--k)", display: "block" }}>Active Devices &amp; Sessions</b>
+                      <span style={{ fontSize: "12px", color: "#77736c" }}>Signed in across devices for instant queue priority.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-revoke-session"
+                      onClick={handleRevokeSessions}
+                    >
+                      Terminate Others
+                    </button>
+                  </div>
+
+                  {sessionsRevokedMsg && (
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60", marginBottom: "8px" }}>
+                      {sessionsRevokedMsg}
+                    </div>
+                  )}
+
+                  <div className="sessions-list">
+                    <div className="session-item-card">
+                      <div className="session-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                          <line x1="8" y1="21" x2="16" y2="21" />
+                          <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
+                      </div>
+                      <div className="session-details">
+                        <div className="session-device-name">
+                          <span>Chrome on Windows 11</span>
+                          <span className="session-current-pill">This Device</span>
+                        </div>
+                        <div className="session-meta-text">
+                          Active session • Mumbai, India • IP 103.21.x.x
+                        </div>
+                      </div>
                     </div>
 
-                    {sessionsRevokedMsg && (
-                      <div style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60", marginBottom: "8px" }}>
-                        {sessionsRevokedMsg}
+                    <div className="session-item-card">
+                      <div className="session-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                          <line x1="12" y1="18" x2="12.01" y2="18" />
+                        </svg>
                       </div>
-                    )}
-
-                    <div className="sessions-list">
-                      <div className="session-item-card">
-                        <div className="session-icon-box">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                            <line x1="8" y1="21" x2="16" y2="21" />
-                            <line x1="12" y1="17" x2="12" y2="21" />
-                          </svg>
+                      <div className="session-details">
+                        <div className="session-device-name">
+                          <span>TicketWala iOS App</span>
                         </div>
-                        <div className="session-details">
-                          <div className="session-device-name">
-                            <span>Chrome on Windows 11</span>
-                            <span className="session-current-pill">This Device</span>
-                          </div>
-                          <div className="session-meta-text">
-                            Active session • Mumbai, India • IP 103.21.x.x
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="session-item-card">
-                        <div className="session-icon-box">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                            <line x1="12" y1="18" x2="12.01" y2="18" />
-                          </svg>
-                        </div>
-                        <div className="session-details">
-                          <div className="session-device-name">
-                            <span>TicketWala iOS App</span>
-                          </div>
-                          <div className="session-meta-text">
-                            iPhone 15 Pro • Last active 2 hours ago
-                          </div>
+                        <div className="session-meta-text">
+                          iPhone 15 Pro • Last active 2 hours ago
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Right Column: Preferences, Passes & Danger Zone */}
-              <div>
-                {/* Notification & Drop Preferences Card */}
-                <div className="profile-card">
-                  <div className="profile-card-header">
-                    <div className="profile-card-title">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                      </svg>
-                      Drop &amp; Experience Preferences
-                    </div>
-                    <span className="profile-card-desc">
-                      Configure pre-drop alerts, TTL expiration chimes, and fast-lane checkout.
-                    </span>
-                  </div>
-
+            {/* TAB 3: MY PASSES */}
+            {profileTab === "passes" && (
+              <div className="profile-section-pane">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "22px", flexWrap: "wrap", gap: "10px" }}>
                   <div>
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>High-Velocity Flash Drop Alerts</b>
-                        <span>Instant WhatsApp &amp; SMS notification 5 minutes before headline ticket drops.</span>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={notifyDropAlert}
-                          onChange={(e) => setNotifyDropAlert(e.target.checked)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>Live TTL Hold Warning Audio Chime</b>
-                        <span>Play sound warning when 30s in-memory hold drops below 10 seconds.</span>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={notifyTtlAlarm}
-                          onChange={(e) => setNotifyTtlAlarm(e.target.checked)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>Automatic GST Tax Invoices &amp; PDF Passes</b>
-                        <span>Deliver digital pass PDF and official tax invoice immediately upon seat confirmation.</span>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={notifyEmailInvoice}
-                          onChange={(e) => setNotifyEmailInvoice(e.target.checked)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>Fast-Lane 1-Click Checkout</b>
-                        <span>Lock seats with pre-authenticated UPI handle to eliminate payment gateway contention.</span>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={fastLaneCheckout}
-                          onChange={(e) => setFastLaneCheckout(e.target.checked)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
+                      My Reserved Passes
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                      Instant digital boarding passes backed by Redis TTL validation and 0 double-booking guarantee.
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: "6px 14px", fontSize: "12px" }}
+                    onClick={() => navigateTo("home")}
+                  >
+                    + Book Another Drop
+                  </button>
                 </div>
 
-                {/* Tickets Card */}
-                <div className="profile-card">
-                  <div className="profile-card-header">
-                    <div className="profile-card-title">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
-                      </svg>
-                      My Reserved Passes
-                    </div>
-                    <span className="profile-card-desc">
-                      Instant digital boarding passes backed by Redis TTL validation.
-                    </span>
-                  </div>
-
-                  <div className="profile-tickets-list">
-                    {bookings.length > 0 ? (
-                      bookings.map((b, i) => (
-                        <div key={i} className="profile-ticket-item" style={{
+                <div className="profile-tickets-list">
+                  {bookings.length > 0 ? (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "16px" }}>
+                      {bookings.map((b, i) => (
+                        <div key={i} style={{
                           background: "#fdfcfb",
                           border: "1.5px solid #eae5dc",
-                          borderRadius: "14px",
-                          padding: "16px",
-                          marginBottom: "12px"
+                          borderRadius: "16px",
+                          padding: "20px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
                         }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
                             <div>
                               <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
-                                {b.tier || "VIP Prime"}
+                                {b.tier || "VIP Prime Pass"}
                               </span>
-                              <b style={{ display: "block", fontSize: "15px", color: "var(--k)", marginTop: "2px" }}>
+                              <b style={{ display: "block", fontSize: "16px", color: "var(--k)", marginTop: "2px" }}>
                                 {b.e}
                               </b>
                             </div>
@@ -3488,24 +3452,27 @@ export default function TicketWalaPage() {
                             </span>
                           </div>
 
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "#77736c", paddingTop: "8px", borderTop: "1px dashed #ded9d0" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "#77736c", padding: "10px 0", borderTop: "1px dashed #ded9d0", borderBottom: "1px dashed #ded9d0" }}>
                             <span>SEAT <b>#{b.s}</b></span>
                             <span>PASS: <b>{user?.passName || profilePassName || user?.name || "Fan"}</b></span>
-                            <span style={{ color: "var(--k)", fontWeight: 700 }}>₹{b.price || 1499}</span>
+                            <span style={{ color: "var(--k)", fontWeight: 800, fontSize: "14px" }}>₹{b.price || 1499}</span>
                           </div>
 
-                          <div style={{ marginTop: "10px", display: "flex", justifyContent: "flex-end" }}>
+                          <div style={{ marginTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "10px", color: "#8c8880", fontFamily: "monospace" }}>
+                              PNR: TW-8849-0{i + 1}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleDownloadTicket(b)}
                               style={{
                                 background: "#fff",
                                 border: "1px solid #ded9d0",
-                                borderRadius: "6px",
-                                fontSize: "11px",
-                                fontWeight: 600,
+                                borderRadius: "8px",
+                                fontSize: "12px",
+                                fontWeight: 700,
                                 color: "var(--k)",
-                                padding: "4px 10px",
+                                padding: "6px 14px",
                                 cursor: "pointer",
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -3513,7 +3480,7 @@ export default function TicketWalaPage() {
                                 transition: "all 0.2s",
                               }}
                             >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="7 10 12 15 17 10" />
                                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -3522,24 +3489,100 @@ export default function TicketWalaPage() {
                             </button>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="no-tickets-box">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b8b4ad" strokeWidth="1.8" style={{ margin: "0 auto 10px", display: "block" }}>
-                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
-                        </svg>
-                        <b style={{ color: "var(--k)", display: "block" }}>No passes claimed yet</b>
-                        <p style={{ margin: "8px 0 14px", fontSize: "13px" }}>Lock your seat before high-contention flash drops sell out!</p>
-                        <button type="button" className="btn" style={{ padding: "8px 18px", fontSize: "13px" }} onClick={() => navigateTo("booking")}>
-                          Grab Seats Now →
-                        </button>
-                      </div>
-                    )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-tickets-box">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#b8b4ad" strokeWidth="1.8" style={{ margin: "0 auto 12px", display: "block" }}>
+                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                      </svg>
+                      <b style={{ color: "var(--k)", display: "block", fontSize: "16px" }}>No passes claimed yet</b>
+                      <p style={{ margin: "8px 0 16px", fontSize: "13px" }}>Lock your seat before high-contention flash drops sell out!</p>
+                      <button type="button" className="btn" style={{ padding: "10px 22px", fontSize: "13px" }} onClick={() => navigateTo("home")}>
+                        Explore Live Drops →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: PREFERENCES & DANGER ZONE */}
+            {profileTab === "preferences" && (
+              <div className="profile-section-pane">
+                <div style={{ marginBottom: "22px" }}>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
+                    Drop &amp; Experience Preferences
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                    Configure pre-drop alerts, hold audio chimes, tax receipts, and session termination.
+                  </p>
+                </div>
+
+                <div>
+                  <div className="toggle-setting-row">
+                    <div className="toggle-setting-info">
+                      <b>High-Velocity Flash Drop Alerts</b>
+                      <span>Instant WhatsApp &amp; SMS notification 5 minutes before headline ticket drops.</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={notifyDropAlert}
+                        onChange={(e) => setNotifyDropAlert(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div className="toggle-setting-row">
+                    <div className="toggle-setting-info">
+                      <b>Live TTL Hold Warning Audio Chime</b>
+                      <span>Play sound warning when 30s in-memory hold drops below 10 seconds.</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={notifyTtlAlarm}
+                        onChange={(e) => setNotifyTtlAlarm(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div className="toggle-setting-row">
+                    <div className="toggle-setting-info">
+                      <b>Automatic GST Tax Invoices &amp; PDF Passes</b>
+                      <span>Deliver digital pass PDF and official tax invoice immediately upon seat confirmation.</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={notifyEmailInvoice}
+                        onChange={(e) => setNotifyEmailInvoice(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div className="toggle-setting-row">
+                    <div className="toggle-setting-info">
+                      <b>Fast-Lane 1-Click Checkout</b>
+                      <span>Lock seats with pre-authenticated UPI handle to eliminate gateway contention.</span>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={fastLaneCheckout}
+                        onChange={(e) => setFastLaneCheckout(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
                   </div>
                 </div>
 
-                {/* Account Danger Zone Card */}
-                <div className="profile-card danger-card">
+                {/* Account Session & Danger Zone */}
+                <div style={{ marginTop: "32px", paddingTop: "24px", borderTop: "1px solid #f2f0ec" }}>
                   <div className="danger-row">
                     <div>
                       <b style={{ display: "block", color: "var(--k)", fontSize: "14px" }}>Account Session &amp; Sign Out</b>
@@ -3558,7 +3601,7 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

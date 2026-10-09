@@ -367,6 +367,32 @@ footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-si
 .auth-image-tag{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:0.8px;color:#fff;text-transform:uppercase}
 .live-dot-sm{width:6px;height:6px;border-radius:50%;background:#FF6B35;box-shadow:0 0 6px #FF6B35}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+
+/* PROFILE SEGMENTED TABS & DE-CLUSTERED VIEWS */
+.profile-tabs-bar {
+  display: flex; align-items: center; gap: 8px; background: #f6f5f2;
+  padding: 6px; border-radius: 14px; border: 1.5px solid #eae5dc;
+  margin-bottom: 24px; overflow-x: auto;
+}
+.profile-tab-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+  border-radius: 10px; border: none; background: transparent; color: #77736c;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  white-space: nowrap; transition: all 0.2s ease;
+}
+.profile-tab-btn:hover { color: var(--k); background: rgba(255, 255, 255, 0.7); }
+.profile-tab-btn.active {
+  background: #ffffff; color: var(--k); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.profile-tab-btn.active svg { color: var(--o); }
+.profile-tab-badge { background: var(--o); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 99px; }
+.profile-section-pane {
+  background: #ffffff; border: 1px solid rgba(43, 42, 40, 0.1); border-radius: 20px;
+  padding: 32px 36px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+@media (max-width: 600px) { .profile-section-pane { padding: 20px 18px; } }
+
 </style>
 <script>
 window.go = function(p) {
@@ -404,6 +430,20 @@ const STANDALONE_PRESETS = [
   { id: "cyber-dj", label: "EDM Drops", url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80" },
 ];
 
+
+function switchStandaloneProfileTab(tabName) {
+  const tabs = ['personal', 'security', 'passes', 'preferences'];
+  tabs.forEach(t => {
+    const pane = document.getElementById('pane' + t.charAt(0).toUpperCase() + t.slice(1));
+    const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
+    if (btn) {
+      if (t === tabName) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+}
+
 function initStandaloneProfile() {
   const grid = document.getElementById('pPresetsGrid');
   if (grid) {
@@ -430,6 +470,8 @@ function renderStandaloneProfile() {
   if (document.getElementById('pDisplayPhone')) document.getElementById('pDisplayPhone').textContent = u.phone || '+91 98200 12345';
   if (document.getElementById('pDisplayPassName')) document.getElementById('pDisplayPassName').textContent = u.passName || (u.name.split(' ')[0] + ' VIP Pass');
   if (document.getElementById('pRibbonPassHolder')) document.getElementById('pRibbonPassHolder').textContent = u.passName || u.name;
+  if (document.getElementById('pHeaderBookingsCount')) document.getElementById('pHeaderBookingsCount').textContent = (bookings ? bookings.length : 0);
+  const bBadge = document.getElementById('tabBadgePasses'); if (bBadge) { bBadge.textContent = bookings ? bookings.length : 0; bBadge.style.display = bookings && bookings.length > 0 ? 'inline-block' : 'none'; }
   if (document.getElementById('pRibbonActiveBookings')) document.getElementById('pRibbonActiveBookings').textContent = (bookings ? bookings.length : 0) + ' Seats Confirmed';
 
   if (document.getElementById('pInputName')) document.getElementById('pInputName').value = u.name;
@@ -1230,12 +1272,13 @@ window.addEventListener('DOMContentLoaded', () => {
 </div>
 
 
+
 <div class="page" id="profile">
   <div class="profile-dash-wrap">
-    <!-- Profile Hero Card -->
-    <div class="profile-hero-card">
-      <div class="profile-hero-top">
-        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+    <!-- 1. Sleek Profile Header -->
+    <div class="profile-hero-card" style="margin-bottom: 20px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 18px;">
           <div class="profile-avatar-wrapper">
             <img id="pAvatarImg" src="" alt="Profile" class="profile-avatar-img" style="display: none;" />
             <div id="pAvatarPlaceholder" class="profile-avatar-placeholder">DF</div>
@@ -1258,333 +1301,328 @@ window.addEventListener('DOMContentLoaded', () => {
               <span class="dot-sep">•</span>
               <span id="pDisplayPhone">+91 98200 12345</span>
               <span class="dot-sep">•</span>
-              <span class="pass-pill" id="pDisplayPassName">VIP Prime Fan Pass</span>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
-              <button type="button" onclick="togglePresetAvatarsDrawer()" style="background: transparent; border: 1px solid #ded9d0; border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--k); padding: 3px 8px; cursor: pointer;">
-                Choose Preset Avatar
-              </button>
-              <button type="button" id="btnRemoveAvatarStandalone" class="btn-remove-avatar" style="display: none;" onclick="removeStandaloneAvatar()">
-                Remove Photo
-              </button>
+              <span class="pass-pill">TW-8849-VIP</span>
             </div>
           </div>
         </div>
 
-        <button type="button" class="btn-logout-header" onclick="logout()">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          <span>Log Out</span>
-        </button>
-      </div>
-
-      <!-- Presets Drawer -->
-      <div id="pPresetsDrawer" class="avatar-presets-drawer" style="display: none;">
-        <div class="avatar-presets-label">
-          <span>Curated Pass Avatars</span>
-          <span style="font-size: 10px; color: var(--o); font-weight: 800;">CLICK TO APPLY</span>
-        </div>
-        <div class="avatar-presets-grid" id="pPresetsGrid"></div>
-      </div>
-
-      <!-- Ribbon -->
-      <div class="digital-fan-pass-ribbon">
-        <div class="dfp-item">
-          <small>PASS IDENTIFIER</small>
-          <b>TW-8849-VIP</b>
-        </div>
-        <div class="dfp-item">
-          <small>PASS HOLDER NAME</small>
-          <b id="pRibbonPassHolder">Demo Fan</b>
-        </div>
-        <div class="dfp-item">
-          <small>ACTIVE BOOKINGS</small>
-          <b id="pRibbonActiveBookings">0 Seats Confirmed</b>
-        </div>
-        <div class="dfp-item">
-          <small>REDIS HOLD GUARANTEE</small>
-          <b style="color: #27ae60;">0 Double-Bookings</b>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 12px; color: #77736c; font-weight: 600;">
+            Active Bookings: <b id="pHeaderBookingsCount" style="color: var(--k);">0</b>
+          </span>
+          <button type="button" class="btn-logout-header" onclick="logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Log Out</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Grid -->
-    <div class="profile-content-grid">
-      <!-- Left Column -->
-      <div>
-        <!-- Personal Details -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <div class="profile-card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Personal &amp; Contact Details
-            </div>
-            <span class="profile-card-desc">Manage your fan credentials, ticket pass display name, and emergency phone.</span>
-          </div>
+    <!-- 2. Clean Segmented Navigation Tabs -->
+    <div class="profile-tabs-bar">
+      <button type="button" id="tabBtnPersonal" class="profile-tab-btn active" onclick="switchStandaloneProfileTab('personal')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Personal &amp; Contact</span>
+      </button>
 
-          <form class="profile-form" onsubmit="handleSaveStandaloneProfile(event)">
-            <div class="form-row-2">
-              <div class="input-field-group">
-                <label class="input-field-label">Full Name</label>
-                <div class="input-field-box">
-                  <input id="pInputName" class="input-field-input" placeholder="Your full name" required />
-                </div>
-              </div>
-              <div class="input-field-group">
-                <label class="input-field-label">Pass Name (on Tickets)</label>
-                <div class="input-field-box">
-                  <input id="pInputPassName" class="input-field-input" placeholder="Name displayed on pass" />
-                </div>
-              </div>
-            </div>
+      <button type="button" id="tabBtnSecurity" class="profile-tab-btn" onclick="switchStandaloneProfileTab('security')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Security &amp; Password</span>
+      </button>
 
-            <div class="form-row-2">
-              <div class="input-field-group">
-                <label class="input-field-label" style="display:flex;justify-content:space-between">
-                  <span>Phone Number</span>
-                  <span style="color:#27ae60;font-size:10px;font-weight:700">OTP Verified</span>
-                </label>
-                <div class="input-field-box">
-                  <input id="pInputPhone" class="input-field-input" placeholder="+91 98200 12345" />
-                </div>
-              </div>
-              <div class="input-field-group">
-                <label class="input-field-label" style="display:flex;justify-content:space-between">
-                  <span>Registered Email</span>
-                  <span style="color:#8c8880;font-size:10px;font-weight:700">Primary Account</span>
-                </label>
-                <div class="input-field-box" style="background:#f2f0ec;opacity:0.85">
-                  <input id="pInputEmail" class="input-field-input" disabled />
-                </div>
-              </div>
-            </div>
+      <button type="button" id="tabBtnPasses" class="profile-tab-btn" onclick="switchStandaloneProfileTab('passes')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+        <span>My Reserved Passes</span>
+        <span id="tabBadgePasses" class="profile-tab-badge" style="display:none">0</span>
+      </button>
 
-            <div class="form-row-2">
-              <div class="input-field-group">
-                <label class="input-field-label">Date of Birth (Gate Age Verification)</label>
-                <div class="input-field-box">
-                  <input type="date" id="pInputDob" class="input-field-input" value="1998-05-14" />
-                </div>
-              </div>
-              <div class="input-field-group">
-                <label class="input-field-label">Home Region / City</label>
-                <div class="input-field-box">
-                  <select id="pSelectCity" class="input-field-input" style="background:transparent;border:none;outline:none"></select>
-                </div>
-              </div>
-            </div>
+      <button type="button" id="tabBtnPreferences" class="profile-tab-btn" onclick="switchStandaloneProfileTab('preferences')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Preferences &amp; Sessions</span>
+      </button>
+    </div>
 
-            <div class="input-field-group">
-              <label class="input-field-label">Companion / Emergency Contact Phone (Optional)</label>
-              <div class="input-field-box">
-                <input id="pInputEmergencyPhone" class="input-field-input" placeholder="+91 98765 43210 (Stadium Gate Backup)" />
-              </div>
-            </div>
+    <!-- 3. Focused Tab Content Views -->
 
-            <div class="form-actions-row">
-              <span id="pDetailsSuccessMsg" class="profile-success-text" style="display:none">Profile saved successfully!</span>
-              <button type="submit" class="btn" style="padding: 10px 22px;">Save Profile Changes</button>
-            </div>
-          </form>
+    <!-- TAB 1: PERSONAL & CONTACT -->
+    <div id="panePersonal" class="profile-section-pane">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--k); margin: 0;">Personal &amp; Contact Details</h3>
+          <p style="font-size: 13px; color: #77736c; margin: 4px 0 0 0;">Manage your verified identity, ticket pass moniker, and contact details.</p>
         </div>
 
-        <!-- Security & Password -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <div class="profile-card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Security &amp; Password
-            </div>
-            <span class="profile-card-desc">Manage credentials, password strength, and multi-factor protection.</span>
-          </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" onclick="togglePresetAvatarsDrawer()" style="background: #f9f8f5; border: 1px solid #ded9d0; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--k); padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Choose Preset Avatar</span>
+          </button>
+          <button type="button" id="btnRemoveAvatarStandalone" class="btn-remove-avatar" style="display: none; padding: 6px 10px; font-size: 12px;" onclick="removeStandaloneAvatar()">
+            Reset to Monogram
+          </button>
+        </div>
+      </div>
 
-          <form class="profile-form" onsubmit="handleUpdateStandalonePassword(event)">
-            <div class="input-field-group">
-              <label class="input-field-label">Current Password</label>
-              <div class="input-field-box input-with-eye">
-                <input type="password" id="pOldPw" class="input-field-input" placeholder="••••••••" />
-                <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pOldPw')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
-              </div>
-            </div>
+      <!-- Preset Drawer -->
+      <div id="pPresetsDrawer" class="avatar-presets-drawer" style="display: none; margin-bottom: 22px;">
+        <div class="avatar-presets-label">
+          <span>Curated Persona Avatars</span>
+          <span style="font-size: 10px; color: var(--o); font-weight: 800;">CLICK TO SELECT</span>
+        </div>
+        <div class="avatar-presets-grid" id="pPresetsGrid"></div>
+      </div>
 
-            <div class="form-row-2">
-              <div class="input-field-group">
-                <label class="input-field-label">New Password</label>
-                <div class="input-field-box input-with-eye">
-                  <input type="password" id="pNewPw" class="input-field-input" placeholder="At least 6 characters" oninput="handleStandalonePwInput(this.value)" />
-                  <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pNewPw')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-
-              <div class="input-field-group">
-                <label class="input-field-label">Confirm New Password</label>
-                <div class="input-field-box input-with-eye">
-                  <input type="password" id="pConfirmPw" class="input-field-input" placeholder="Repeat new password" />
-                  <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pConfirmPw')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Password Strength Bar -->
-            <div id="pPwStrengthWrap" class="pw-strength-wrap" style="display:none">
-              <div class="pw-strength-track">
-                <div id="pPwStrengthBar" class="pw-strength-bar" style="width:0%;background:#ded9d0"></div>
-              </div>
-              <div class="pw-strength-label">
-                <span>Password Strength</span>
-                <b id="pPwStrengthText" style="color:#77736c">Weak</b>
-              </div>
-            </div>
-
-            <div class="form-actions-row">
-              <span id="pPwMsg" class="profile-success-text" style="display:none"></span>
-              <button type="submit" class="btn ghost" style="padding: 10px 22px;">Update Password</button>
-            </div>
-          </form>
-
-          <!-- 2FA -->
-          <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #f2f0ec;">
-            <div class="toggle-setting-row">
-              <div class="toggle-setting-info">
-                <b>Two-Factor Authentication (2FA)</b>
-                <span>Require SMS / Authenticator confirmation when locking high-contention VIP drops.</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="pToggle2FA" onchange="handleStandaloneToggle2FA(this.checked)" />
-                <span class="toggle-slider"></span>
-              </label>
+      <form class="profile-form" onsubmit="handleSaveStandaloneProfile(event)">
+        <div class="form-row-2">
+          <div class="input-field-group">
+            <label className="input-field-label">Full Legal Name</label>
+            <div class="input-field-box">
+              <input id="pInputName" class="input-field-input" placeholder="Your legal name" required />
             </div>
           </div>
-
-          <!-- Sessions -->
-          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #f2f0ec;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <div>
-                <b style="font-size: 13px; color: var(--k); display: block;">Active Devices &amp; Sessions</b>
-                <span style="font-size: 11px; color: "#77736c";">Signed in across devices for instant queue priority.</span>
-              </div>
-              <button type="button" class="btn-revoke-session" onclick="handleStandaloneRevokeSessions()">Terminate Others</button>
+          <div class="input-field-group">
+            <label className="input-field-label">Pass Moniker (Printed on Tickets)</label>
+            <div class="input-field-box">
+              <input id="pInputPassName" class="input-field-input" placeholder="Name displayed on pass" />
             </div>
-            <div id="pRevokedMsg" style="font-size: 11px; font-weight: 700; color: #27ae60; margin-bottom: 8px; display: none;">All remote sessions terminated.</div>
+          </div>
+        </div>
 
-            <div class="sessions-list">
-              <div class="session-item-card">
-                <div class="session-icon-box">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                </div>
-                <div class="session-details">
-                  <div class="session-device-name">
-                    <span>Chrome / Browser (This Device)</span>
-                    <span class="session-current-pill">Active Now</span>
-                  </div>
-                  <div class="session-meta-text">Current session • IP 103.21.x.x</div>
-                </div>
+        <div class="form-row-2">
+          <div class="input-field-group">
+            <label className="input-field-label" style="display:flex;justify-content:space-between">
+              <span>Primary Mobile Phone</span>
+              <span style="color:#27ae60;font-size:10px;font-weight:700">OTP Verified</span>
+            </label>
+            <div class="input-field-box">
+              <input id="pInputPhone" class="input-field-input" placeholder="+91 98200 12345" />
+            </div>
+          </div>
+          <div class="input-field-group">
+            <label className="input-field-label" style="display:flex;justify-content:space-between">
+              <span>Registered Account Email</span>
+              <span style="color:#8c8880;font-size:10px;font-weight:700">Primary</span>
+            </label>
+            <div class="input-field-box" style="background:#f8f7f5;opacity:0.85">
+              <input id="pInputEmail" class="input-field-input" disabled />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-field-group">
+            <label className="input-field-label">Date of Birth (Gate Age Compliance)</label>
+            <div class="input-field-box">
+              <input type="date" id="pInputDob" class="input-field-input" value="1998-05-14" />
+            </div>
+          </div>
+          <div class="input-field-group">
+            <label className="input-field-label">Home Metro Region</label>
+            <div class="input-field-box">
+              <select id="pSelectCity" class="input-field-input" style="background:transparent;border:none;outline:none"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-field-group">
+          <label className="input-field-label">Companion / Emergency Gate Phone (Optional)</label>
+          <div class="input-field-box">
+            <input id="pInputEmergencyPhone" class="input-field-input" placeholder="+91 98765 43210 (Stadium Gate Backup Contact)" />
+          </div>
+        </div>
+
+        <div class="form-actions-row" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #f2f0ec;">
+          <span id="pDetailsSuccessMsg" class="profile-success-text" style="display:none">Profile saved successfully!</span>
+          <button type="submit" class="btn" style="padding: 10px 24px;">Save Profile Changes</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- TAB 2: SECURITY & PASSWORD -->
+    <div id="paneSecurity" class="profile-section-pane" style="display: none;">
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: var(--k); margin: 0;">Security &amp; Password</h3>
+        <p style="font-size: 13px; color: #77736c; margin: 4px 0 0 0;">Update your password credentials and manage multi-factor authentication.</p>
+      </div>
+
+      <form class="profile-form" onsubmit="handleUpdateStandalonePassword(event)">
+        <div class="input-field-group">
+          <label className="input-field-label">Current Password</label>
+          <div class="input-field-box input-with-eye">
+            <input type="password" id="pOldPw" class="input-field-input" placeholder="••••••••" />
+            <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pOldPw')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="input-field-group">
+            <label className="input-field-label">New Password</label>
+            <div class="input-field-box input-with-eye">
+              <input type="password" id="pNewPw" class="input-field-input" placeholder="At least 6 characters" oninput="handleStandalonePwInput(this.value)" />
+              <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pNewPw')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-field-group">
+            <label className="input-field-label">Confirm New Password</label>
+            <div class="input-field-box input-with-eye">
+              <input type="password" id="pConfirmPw" class="input-field-input" placeholder="Repeat new password" />
+              <button type="button" class="pw-eye-btn" onclick="toggleStandalonePw('pConfirmPw')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Strength Bar -->
+        <div id="pPwStrengthWrap" class="pw-strength-wrap" style="display:none">
+          <div class="pw-strength-track">
+            <div id="pPwStrengthBar" class="pw-strength-bar" style="width:0%;background:#ded9d0"></div>
+          </div>
+          <div class="pw-strength-label">
+            <span>Password Strength:</span>
+            <b id="pPwStrengthText" style="color:#77736c">Weak</b>
+          </div>
+        </div>
+
+        <div class="form-actions-row">
+          <span id="pPwMsg" class="profile-success-text" style="display:none"></span>
+          <button type="submit" class="btn ghost" style="padding: 10px 22px;">Update Password</button>
+        </div>
+      </form>
+
+      <!-- 2FA -->
+      <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f2f0ec;">
+        <div class="toggle-setting-row">
+          <div class="toggle-setting-info">
+            <b>Two-Factor Authentication (2FA)</b>
+            <span>Require SMS or Authenticator verification for high-contention flash drops.</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pToggle2FA" onchange="handleStandaloneToggle2FA(this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sessions -->
+      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #f2f0ec;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div>
+            <b style="font-size: 14px; color: var(--k); display: block;">Active Devices &amp; Sessions</b>
+            <span style="font-size: 12px; color: #77736c;">Signed in across devices for instant queue priority.</span>
+          </div>
+          <button type="button" class="btn-revoke-session" onclick="handleStandaloneRevokeSessions()">Terminate Others</button>
+        </div>
+        <div id="pRevokedMsg" style="font-size: 11px; font-weight: 700; color: #27ae60; margin-bottom: 8px; display: none;">All remote sessions terminated.</div>
+
+        <div class="sessions-list">
+          <div class="session-item-card">
+            <div class="session-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="session-details">
+              <div class="session-device-name">
+                <span>Chrome / Browser (This Device)</span>
+                <span class="session-current-pill">Active Now</span>
               </div>
-              <div class="session-item-card">
-                <div class="session-icon-box">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                </div>
-                <div class="session-details">
-                  <div class="session-device-name">
-                    <span>TicketWala iOS App</span>
-                  </div>
-                  <div class="session-meta-text">iPhone 15 Pro • Last active 2 hours ago</div>
-                </div>
+              <div class="session-meta-text">Current session • IP 103.21.x.x</div>
+            </div>
+          </div>
+          <div class="session-item-card">
+            <div class="session-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <div class="session-details">
+              <div class="session-device-name">
+                <span>TicketWala iOS App</span>
               </div>
+              <div class="session-meta-text">iPhone 15 Pro • Last active 2 hours ago</div>
             </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Right Column -->
+    <!-- TAB 3: MY PASSES -->
+    <div id="panePasses" class="profile-section-pane" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--k); margin: 0;">My Reserved Passes</h3>
+          <p style="font-size: 13px; color: #77736c; margin: 4px 0 0 0;">Instant digital boarding passes backed by Redis TTL validation and 0 double-booking guarantee.</p>
+        </div>
+        <button type="button" class="btn ghost" style="padding: 6px 14px; font-size: 12px;" onclick="go('home')">+ Book Another Drop</button>
+      </div>
+
+      <div id="pStandaloneTicketsList" class="profile-tickets-list"></div>
+    </div>
+
+    <!-- TAB 4: PREFERENCES & DANGER ZONE -->
+    <div id="panePreferences" class="profile-section-pane" style="display: none;">
+      <div style="margin-bottom: 22px;">
+        <h3 style="font-size: 18px; font-weight: 800; color: var(--k); margin: 0;">Drop &amp; Experience Preferences</h3>
+        <p style="font-size: 13px; color: #77736c; margin: 4px 0 0 0;">Configure pre-drop alerts, hold audio chimes, tax receipts, and session termination.</p>
+      </div>
+
       <div>
-        <!-- Preferences Card -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <div class="profile-card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              Drop &amp; Experience Preferences
-            </div>
-            <span class="profile-card-desc">Configure pre-drop alerts, TTL expiration chimes, and fast-lane checkout.</span>
+        <div class="toggle-setting-row">
+          <div class="toggle-setting-info">
+            <b>High-Velocity Flash Drop Alerts</b>
+            <span>Instant WhatsApp &amp; SMS notification 5 minutes before headline ticket drops.</span>
           </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pPrefDrops" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
 
+        <div class="toggle-setting-row">
+          <div class="toggle-setting-info">
+            <b>Live TTL Hold Warning Audio Chime</b>
+            <span>Play sound warning when 30s in-memory hold drops below 10 seconds.</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pPrefTtl" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-setting-row">
+          <div class="toggle-setting-info">
+            <b>Automatic GST Tax Invoices &amp; PDF Passes</b>
+            <span>Deliver digital pass PDF and official tax invoice immediately upon booking.</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pPrefInvoice" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-setting-row">
+          <div class="toggle-setting-info">
+            <b>Fast-Lane 1-Click Checkout</b>
+            <span>Lock seats with pre-authenticated UPI handle to eliminate gateway contention.</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="pPrefFastLane" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #f2f0ec;">
+        <div class="danger-row">
           <div>
-            <div class="toggle-setting-row">
-              <div class="toggle-setting-info">
-                <b>High-Velocity Flash Drop Alerts</b>
-                <span>Instant WhatsApp &amp; SMS notification 5 minutes before headline ticket drops.</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="pPrefDrops" checked />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <div class="toggle-setting-row">
-              <div class="toggle-setting-info">
-                <b>Live TTL Hold Warning Audio Chime</b>
-                <span>Play sound warning when 30s in-memory hold drops below 10 seconds.</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="pPrefTtl" checked />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <div class="toggle-setting-row">
-              <div class="toggle-setting-info">
-                <b>Automatic GST Tax Invoices &amp; PDF Passes</b>
-                <span>Deliver digital pass PDF and official tax invoice immediately upon booking.</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="pPrefInvoice" checked />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <div class="toggle-setting-row">
-              <div class="toggle-setting-info">
-                <b>Fast-Lane 1-Click Checkout</b>
-                <span>Lock seats with pre-authenticated UPI handle to eliminate gateway contention.</span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="pPrefFastLane" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
+            <b style="display: block; color: var(--k); font-size: 14px;">Account Session &amp; Sign Out</b>
+            <span style="font-size: 12px; color: #77736c;">Sign out of your active TicketWala session on this device.</span>
           </div>
-        </div>
-
-        <!-- My Tickets Card -->
-        <div class="profile-card">
-          <div class="profile-card-header">
-            <div class="profile-card-title">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
-              My Reserved Passes
-            </div>
-            <span class="profile-card-desc">Instant digital boarding passes backed by Redis TTL validation.</span>
-          </div>
-
-          <div id="pStandaloneTicketsList" class="profile-tickets-list"></div>
-        </div>
-
-        <!-- Danger Zone Card -->
-        <div class="profile-card danger-card">
-          <div class="danger-row">
-            <div>
-              <b style="display: block; color: var(--k); font-size: 14px;">Account Session &amp; Sign Out</b>
-              <span style="font-size: 12px; color: #77736c;">Sign out of your active TicketWala session on this device.</span>
-            </div>
-            <button type="button" class="btn ghost" style="border-color: #e74c3c; color: #e74c3c; padding: 8px 18px; font-size: 13px;" onclick="logout()">
-              Log Out
-            </button>
-          </div>
+          <button type="button" class="btn ghost" style="border-color: #e74c3c; color: #e74c3c; padding: 8px 18px; font-size: 13px;" onclick="logout()">
+            Log Out
+          </button>
         </div>
       </div>
     </div>
