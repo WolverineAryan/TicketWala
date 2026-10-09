@@ -122,10 +122,28 @@ export default function TicketWalaPage() {
     });
   }, [seats, currentEventIdx]);
 
-  // Page Routing Helper
+  // Page Routing Helper with URL hash sync
   const navigateTo = useCallback((page: string) => {
     setActivePage(page);
+    try {
+      window.history.replaceState(null, "", `#${page}`);
+    } catch {
+      // ignore
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  // Listen to browser hash changes
+  useEffect(() => {
+    const syncHash = () => {
+      const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
+      if (["home", "events", "booking", "profile", "login", "signup"].includes(h)) {
+        setActivePage(h);
+      }
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
   }, []);
 
   // 1. Hero Canvas Streaming Requests Animation
@@ -439,22 +457,58 @@ export default function TicketWalaPage() {
 
         <ul id="nav">
           <li>
-            <a className={activePage === "home" ? "on" : ""} onClick={() => navigateTo("home")}>
+            <a
+              href="#home"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "home" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("home");
+              }}
+            >
               Home
             </a>
           </li>
           <li>
-            <a className={activePage === "events" ? "on" : ""} onClick={() => navigateTo("events")}>
+            <a
+              href="#events"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "events" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("events");
+              }}
+            >
               Events
             </a>
           </li>
           <li>
-            <a className={activePage === "booking" ? "on" : ""} onClick={() => navigateTo("booking")}>
+            <a
+              href="#booking"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "booking" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("booking");
+              }}
+            >
               Booking
             </a>
           </li>
           <li>
-            <a className={activePage === "profile" ? "on" : ""} onClick={() => navigateTo("profile")}>
+            <a
+              href="#profile"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "profile" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("profile");
+              }}
+            >
               Profile
             </a>
           </li>

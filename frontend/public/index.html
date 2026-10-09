@@ -59,7 +59,7 @@ footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-si
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style></head><body>
 <nav><div class="logo" onclick="go('home')"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span>ticketwala<small>TICKETS</small></span></div>
-<ul id="nav"><li><a data-p="home">Home</a></li><li><a data-p="events">Events</a></li><li><a data-p="booking">Booking</a></li><li><a data-p="profile">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
+<ul id="nav"><li><a onclick="go('home')" data-p="home">Home</a></li><li><a onclick="go('events')" data-p="events">Events</a></li><li><a onclick="go('booking')" data-p="booking">Booking</a></li><li><a onclick="go('profile')" data-p="profile">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
 
 <main>
 <div class="page on" id="home">
