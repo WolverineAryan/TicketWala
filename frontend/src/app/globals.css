@@ -3143,6 +3143,246 @@ footer {
   margin: 10px 0 14px;
 }
 
+/* PROFILE ACCESS PORTAL & TURNSTILE QR MODAL */
+.profile-access-gate-card {
+  background: #ffffff;
+  border: 1.5px solid #ded9d0;
+  border-radius: 20px;
+  padding: 48px 32px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  max-width: 640px;
+  margin: 30px auto;
+}
+
+.access-gate-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: rgba(255, 107, 55, 0.12);
+  color: var(--o);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.profile-access-gate-card h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--k);
+  margin: 0 0 10px 0;
+}
+
+.profile-access-gate-card p {
+  font-size: 14px;
+  color: #77736c;
+  line-height: 1.6;
+  margin: 0 0 28px 0;
+}
+
+.access-gate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.access-gate-features {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-top: 1px solid #f2f0ec;
+  padding-top: 24px;
+}
+
+.ag-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #55524e;
+}
+
+/* PASS FILTER BAR */
+.pass-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pass-filter-btn {
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid #ded9d0;
+  background: #ffffff;
+  color: #77736c;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.pass-filter-btn:hover {
+  border-color: var(--k);
+  color: var(--k);
+}
+
+.pass-filter-btn.active {
+  background: var(--k);
+  color: #ffffff;
+  border-color: var(--k);
+}
+
+/* TURNSTILE GATE ACCESS GUIDE */
+.gate-guide-card {
+  margin-top: 28px;
+  background: #fbfaf8;
+  border: 1.5px dashed #ded9d0;
+  border-radius: 16px;
+  padding: 22px 24px;
+}
+
+.gate-guide-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--k);
+  margin-bottom: 16px;
+}
+
+.gate-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.gate-guide-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gate-guide-item b {
+  font-size: 13px;
+  color: var(--k);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gate-guide-item span {
+  font-size: 12px;
+  color: #77736c;
+  line-height: 1.5;
+}
+
+/* TURNSTILE QR PASS MODAL */
+.turnstile-qr-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 19, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.turnstile-qr-card {
+  background: #ffffff;
+  border-radius: 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: qrModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes qrModalPop {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.turnstile-qr-header {
+  background: var(--k);
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.turnstile-qr-body {
+  padding: 24px 26px;
+  text-align: center;
+}
+
+.turnstile-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(39, 174, 96, 0.12);
+  color: #27ae60;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.turnstile-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #27ae60;
+  animation: liveDotPulse 1.4s infinite;
+}
+
+@keyframes liveDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+.turnstile-qr-box {
+  background: #ffffff;
+  padding: 16px;
+  border: 2px solid #eae5dc;
+  border-radius: 16px;
+  display: inline-block;
+  margin: 14px 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.turnstile-barcode-lines {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 28px;
+  margin: 12px auto 6px;
+}
+
+.barcode-bar {
+  background: #2b2a28;
+  height: 100%;
+  border-radius: 1px;
+}
+
 /* AVATAR PRESETS & ACTIONS */
 .avatar-presets-drawer {
   margin-top: 14px;

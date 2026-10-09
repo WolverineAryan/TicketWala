@@ -615,6 +615,12 @@ function switchStandaloneProfileTab(tabName) {
 }
 
 function initStandaloneProfile() {
+  if (typeof bookings !== 'undefined' && (!bookings || bookings.length === 0)) {
+    bookings = [
+      { s: 'A-42', e: 'Coldplay — Music of the Spheres (Mumbai)', tier: 'VIP Prime Lounge', price: 6500 },
+      { s: 'B-18', e: 'Diljit Dosanjh — Dil-Luminati Tour', tier: 'Fan Pit Gold', price: 4999 }
+    ];
+  }
   const grid = document.getElementById('pPresetsGrid');
   if (grid) {
     grid.innerHTML = STANDALONE_PRESETS.map(p => `
@@ -629,6 +635,7 @@ function initStandaloneProfile() {
     citySelect.innerHTML = CITIES.map(c => `<option value="${c.id}">${c.name} (${c.tagline})</option>`).join('');
   }
 
+  switchStandaloneProfileTab('passes');
   renderStandaloneProfile();
 }
 
