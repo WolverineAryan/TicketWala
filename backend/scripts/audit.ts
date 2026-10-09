@@ -19,9 +19,10 @@ async function runInvariantAudit() {
   const pgPool = new Pool({ connectionString: DATABASE_URL });
 
   try {
-    const unitKeys = await redis.keys("ticketwala:unit:*");
+    const eventId = process.env.EVENT_ID || "evt-main";
+    const unitKeys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
     const totalUnits = unitKeys.length;
-    const queueLen = await redis.llen("ticketwala:event:evt-main:available_queue");
+    const queueLen = await redis.llen(`ticketwala:event:{${eventId}}:available_queue`);
 
     let heldCount = 0;
     let confirmedCount = 0;
@@ -32,7 +33,7 @@ async function runInvariantAudit() {
 
     for (const key of unitKeys) {
       const uData = await redis.hgetall(key);
-      const unitId = key.replace("ticketwala:unit:", "");
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
       const status = uData.status;
 
       if (status === "HELD") heldCount++;

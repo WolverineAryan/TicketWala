@@ -1,7 +1,7 @@
 import Redis from "ioredis";
 import { Pool } from "pg";
 import dotenv from "dotenv";
-import { releaseHold } from "../lua/index.js";
+import { releaseHold, streamKey } from "../lua/index.js";
 
 dotenv.config();
 
@@ -11,7 +11,8 @@ const DATABASE_URL =
   process.env.DATABASE_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const STREAM_KEY = "ticketwala:events";
+const EVENT_ID = process.env.EVENT_ID || "evt-main";
+const STREAM_KEY = streamKey(EVENT_ID);
 const GROUP_NAME = "ticketwala_workers";
 const WORKER_ID = `worker-${process.pid}-${Math.random().toString(36).substring(7)}`;
 const BATCH_SIZE = parseInt(process.env.WORKER_BATCH_SIZE || "50", 10);
@@ -51,12 +52,17 @@ async function runWorker() {
   // ---------------------------------------------------------------------------
   const processEvent = async (msgId: string, fields: Record<string, string>) => {
     const eventType = fields.event_type;
+    const eventId = fields.event_id_ref || "evt-main";
     const reservationId = fields.reservation_id;
     const unitId = fields.unit_id;
     const version = parseInt(fields.version || "1", 10);
     const occurredAt = new Date(
       fields.occurred_at ? parseInt(fields.occurred_at, 10) * 1000 : Date.now()
     );
+    const payload = fields.payload ? JSON.parse(fields.payload) as { expiresAt?: number } : {};
+    const holdExpiresAt = payload.expiresAt
+      ? new Date(payload.expiresAt * 1000)
+      : new Date(occurredAt.getTime() + 120_000);
 
     const client = await pgPool.connect();
 
@@ -65,18 +71,20 @@ async function runWorker() {
 
       // Idempotency check: record event in reservation_events ledger
       const insertEventQuery = `
-        INSERT INTO reservation_events (event_id, event_type, reservation_id, unit_id, version, occurred_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO reservation_events (event_id, event_type, event_id_ref, reservation_id, unit_id, version, occurred_at, payload)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (event_id) DO NOTHING
         RETURNING event_id;
       `;
       const eventRes = await client.query(insertEventQuery, [
         msgId,
         eventType,
+        eventId,
         reservationId,
         unitId,
         version,
         occurredAt,
+        payload,
       ]);
 
       if (eventRes.rowCount === 0) {
@@ -90,14 +98,14 @@ async function runWorker() {
       if (eventType === "HOLD_CREATED") {
         const holdQuery = `
           INSERT INTO reservations (reservation_id, unit_id, event_id, status, version, hold_expires_at, created_at, updated_at)
-          VALUES ($1, $2, 'evt-main', 'HELD', $3, NOW() + INTERVAL '120 seconds', $4, $4)
+          VALUES ($1, $2, $3, 'HELD', $4, $5, $6, $6)
           ON CONFLICT (reservation_id) DO UPDATE
           SET status = 'HELD',
               version = EXCLUDED.version,
               updated_at = EXCLUDED.updated_at
           WHERE reservations.version <= EXCLUDED.version;
         `;
-        await client.query(holdQuery, [reservationId, unitId, version, occurredAt]);
+        await client.query(holdQuery, [reservationId, unitId, eventId, version, holdExpiresAt, occurredAt]);
       } else if (eventType === "RESERVATION_CONFIRMED") {
         const confirmQuery = `
           UPDATE reservations
@@ -219,7 +227,7 @@ async function runWorker() {
         if (!isRunning) break;
 
         const now = Math.floor(Date.now() / 1000);
-        const keys = await redis.keys("ticketwala:unit:*");
+        const keys = await redis.keys("ticketwala:event:*:unit:*");
 
         for (const key of keys) {
           const unit = await redis.hgetall(key);
@@ -228,9 +236,10 @@ async function runWorker() {
             if (now >= expiresAt && unit.reservation_id) {
               console.log(`⏰ Reaping expired reservation [${unit.reservation_id}] for unit [${key}]`);
               await releaseHold(redis, {
-                eventId: "evt-main",
+                eventId: unit.event_id || EVENT_ID,
                 reservationId: unit.reservation_id,
                 isTimeoutJob: true,
+                expectedVersion: parseInt(unit.version, 10),
               });
             }
           }

@@ -1,183 +1,352 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import Redis from "ioredis";
 import { v4 as uuidv4 } from "uuid";
 import {
-  loadScripts,
   claimHoldFcfs,
   confirmHold,
-  releaseHold,
+  eventKey,
   generateHoldToken,
+  initializeInventory,
+  queueKey,
+  releaseHold,
+  reservationPrefix,
+  streamKey,
+  unitPrefix,
 } from "../../src/lua/index.js";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
+let redisAvailable = false;
 
-describe("TicketWala Concurrency & Race Hazard Eliminator", () => {
-  let redis: Redis;
+async function cleanup(eventId: string): Promise<void> {
+  const keys = await redis.keys(`ticketwala:event:{${eventId}}:*`);
+  if (keys.length > 0) await redis.del(...keys);
+}
 
+async function setup(eventId: string): Promise<void> {
+  await cleanup(eventId);
+  const result = await initializeInventory(redis, eventId);
+  expect(result.status).toBe("INITIALIZED");
+  expect(result.capacity).toBe(200);
+}
+
+async function setupSingleUnit(eventId: string): Promise<void> {
+  await setup(eventId);
+  const queue = queueKey(eventId);
+  await redis.del(queue, eventKey(eventId, "available_units"));
+  const unitId = "unit-001";
+  await redis.rpush(queue, unitId);
+  await redis.sadd(eventKey(eventId, "available_units"), unitId);
+  await redis.hset(`${unitPrefix(eventId)}:${unitId}`, "status", "AVAILABLE", "version", "1");
+}
+
+async function hold(eventId: string, idempotencyKey = uuidv4(), fingerprint = uuidv4()) {
+  const rawHoldToken = generateHoldToken();
+  const reservationId = uuidv4();
+  const result = await claimHoldFcfs(redis, {
+    eventId,
+    idempotencyScopeKey: idempotencyKey,
+    requestFingerprint: fingerprint,
+    reservationId,
+    rawHoldToken,
+  });
+  return { result, rawHoldToken, reservationId, idempotencyKey, fingerprint };
+}
+
+describe("FlashLock Redis/Lua core", () => {
   beforeAll(async () => {
-    redis = new Redis(REDIS_URL, { maxRetriesPerRequest: 1 });
     try {
+      await redis.connect();
       await redis.ping();
-      await loadScripts(redis);
-    } catch (err: any) {
-      console.warn("Skipping live Redis tests if Redis is not currently running locally:", err.message);
+      redisAvailable = true;
+    } catch (error) {
+      console.warn(`Redis integration tests skipped: ${(error as Error).message}`);
+      redis.disconnect();
     }
   });
 
   afterAll(async () => {
-    if (redis) redis.disconnect();
+    if (redisAvailable) await redis.quit();
   });
 
-  it("Single-Unit Extreme Contention: 50 simultaneous requests competing for 1 seat", async () => {
-    if (!redis || redis.status !== "ready") {
-      console.log("Redis not connected, skipping live integration test");
-      return;
+  it("initializes exactly 200 unique units", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-init-${uuidv4()}`;
+    try {
+      await setup(eventId);
+      const units = await redis.keys(`${unitPrefix(eventId)}:*`);
+      const available = await redis.smembers(eventKey(eventId, "available_units"));
+      expect(units).toHaveLength(200);
+      expect(new Set(available).size).toBe(200);
+      expect(await redis.llen(queueKey(eventId))).toBe(200);
+    } finally {
+      await cleanup(eventId);
     }
+  });
 
-    const testEventId = `evt-race-${Date.now()}`;
-    const queueKey = `ticketwala:event:${testEventId}:available_queue`;
+  it("repeated initialization preserves live reservations and does not duplicate units", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-reinit-${uuidv4()}`;
+    try {
+      await setup(eventId);
+      const first = await hold(eventId);
+      expect(first.result.status).toBe("HELD");
+      const second = await initializeInventory(redis, eventId);
+      expect(second.capacity).toBe(200);
+      expect(await redis.hget(`${unitPrefix(eventId)}:${first.result.unitId}`, "reservation_id")).toBe(first.reservationId);
+      expect(await redis.llen(queueKey(eventId))).toBe(199);
+      expect(new Set(await redis.lrange(queueKey(eventId), 0, -1)).size).toBe(199);
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    // Seed exactly 1 unit
-    await redis.del(queueKey);
-    await redis.lpush(queueKey, "unit-race-01");
-    await redis.hmset("ticketwala:unit:unit-race-01", { status: "AVAILABLE", version: "1" });
-
-    // Launch 50 concurrent requests simultaneously
-    const numRequests = 50;
-    const promises = Array.from({ length: numRequests }).map((_, i) => {
-      const resId = uuidv4();
-      const token = generateHoldToken();
-      return claimHoldFcfs(redis, {
-        eventId: testEventId,
-        idempotencyScopeKey: `client-${i}:${uuidv4()}`,
-        requestFingerprint: `fp-${i}`,
-        reservationId: resId,
-        rawHoldToken: token,
-        ttlSeconds: 60,
+  it("keeps HELD and CONFIRMED units out of both available projections", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-occupied-init-${uuidv4()}`;
+    try {
+      await setup(eventId);
+      const held = await hold(eventId);
+      const confirmed = await hold(eventId);
+      const confirmation = await confirmHold(redis, {
+        eventId,
+        reservationId: confirmed.reservationId,
+        rawHoldToken: confirmed.rawHoldToken,
       });
-    });
+      expect(confirmation.status).toBe("CONFIRMED");
 
-    const results = await Promise.all(promises);
+      const result = await initializeInventory(redis, eventId);
+      expect(result).toMatchObject({ status: "INITIALIZED", capacity: 200, available: 198 });
 
-    const successfulHolds = results.filter((r) => r.status === "HELD");
-    const soldOutRejections = results.filter((r) => r.error === "SOLD_OUT" && r.code === 409);
-
-    // INVARIANT CHECK: Exactly 1 holder, 49 rejected
-    expect(successfulHolds.length).toBe(1);
-    expect(soldOutRejections.length).toBe(49);
-    expect(successfulHolds[0].unitId).toBe("unit-race-01");
+      const queue = await redis.lrange(queueKey(eventId), 0, -1);
+      const members = await redis.smembers(eventKey(eventId, "available_units"));
+      expect(new Set(queue)).toEqual(new Set(members));
+      expect(queue).toHaveLength(198);
+      expect(queue).not.toContain(held.result.unitId);
+      expect(queue).not.toContain(confirmed.result.unitId);
+      expect(members).not.toContain(held.result.unitId);
+      expect(members).not.toContain(confirmed.result.unitId);
+      expect(await redis.hget(`${unitPrefix(eventId)}:${held.result.unitId}`, "status")).toBe("HELD");
+      expect(await redis.hget(`${unitPrefix(eventId)}:${confirmed.result.unitId}`, "status")).toBe("CONFIRMED");
+    } finally {
+      await cleanup(eventId);
+    }
   });
 
-  it("Deterministic Idempotency: Repeating request with identical key returns cached response", async () => {
-    if (!redis || redis.status !== "ready") return;
+  it("rejects ambiguous inventory without changing the queue or membership set", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-corrupt-init-${uuidv4()}`;
+    try {
+      await setup(eventId);
+      const beforeQueue = await redis.lrange(queueKey(eventId), 0, -1);
+      const beforeMembers = await redis.smembers(eventKey(eventId, "available_units"));
+      await redis.hset(`${unitPrefix(eventId)}:unit-001`, "reservation_id", uuidv4());
 
-    const testEventId = `evt-idemp-${Date.now()}`;
-    const queueKey = `ticketwala:event:${testEventId}:available_queue`;
-
-    await redis.del(queueKey);
-    await redis.lpush(queueKey, "unit-idemp-01");
-    await redis.hmset("ticketwala:unit:unit-idemp-01", { status: "AVAILABLE", version: "1" });
-
-    const idempKey = `test-idemp-${uuidv4()}`;
-    const resId = uuidv4();
-    const token = generateHoldToken();
-
-    // Call 1: First attempt
-    const res1 = await claimHoldFcfs(redis, {
-      eventId: testEventId,
-      idempotencyScopeKey: idempKey,
-      requestFingerprint: "fingerprint-alpha",
-      reservationId: resId,
-      rawHoldToken: token,
-      ttlSeconds: 60,
-    });
-    expect(res1.status).toBe("HELD");
-
-    // Call 2: Duplicate retry with exact same idempotency key and fingerprint
-    const res2 = await claimHoldFcfs(redis, {
-      eventId: testEventId,
-      idempotencyScopeKey: idempKey,
-      requestFingerprint: "fingerprint-alpha",
-      reservationId: uuidv4(), // Different candidate ID, but same key
-      rawHoldToken: generateHoldToken(),
-      ttlSeconds: 60,
-    });
-
-    // Must return identical original reservation ID and unit
-    expect(res2.reservationId).toBe(res1.reservationId);
-    expect(res2.unitId).toBe(res1.unitId);
-
-    // Call 3: Reuse key with altered parameters (Conflict)
-    const res3 = await claimHoldFcfs(redis, {
-      eventId: testEventId,
-      idempotencyScopeKey: idempKey,
-      requestFingerprint: "altered-payload-fingerprint",
-      reservationId: uuidv4(),
-      rawHoldToken: generateHoldToken(),
-      ttlSeconds: 60,
-    });
-    expect(res3.error).toBe("IDEMPOTENCY_CONFLICT");
-    expect(res3.code).toBe(422);
+      const result = await initializeInventory(redis, eventId);
+      expect(result).toMatchObject({ error: "INVENTORY_CORRUPT", code: 409 });
+      expect(await redis.lrange(queueKey(eventId), 0, -1)).toEqual(beforeQueue);
+      expect(new Set(await redis.smembers(eventKey(eventId, "available_units")))).toEqual(new Set(beforeMembers));
+    } finally {
+      await cleanup(eventId);
+    }
   });
 
-  it("Stale Expiry Defense: Old hold expiry does not revoke newly reassigned seat", async () => {
-    if (!redis || redis.status !== "ready") return;
+  it("never allocates one unit to two active reservations and conserves capacity", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-contention-${uuidv4()}`;
+    try {
+      await setup(eventId);
+      const results = await Promise.all(Array.from({ length: 260 }, () => hold(eventId)));
+      const successful = results.filter(({ result }) => result.status === "HELD");
+      expect(successful).toHaveLength(200);
+      expect(new Set(successful.map(({ result }) => result.unitId)).size).toBe(200);
+      expect(results.filter(({ result }) => result.error === "SOLD_OUT")).toHaveLength(60);
+      expect(await redis.llen(queueKey(eventId))).toBe(0);
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    const testEventId = `evt-stale-${Date.now()}`;
-    const queueKey = `ticketwala:event:${testEventId}:available_queue`;
+  it("returns deterministic idempotent results and rejects fingerprint conflicts", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-idempotency-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const first = await hold(eventId, "client-key", "same-fingerprint");
+      const retry = await claimHoldFcfs(redis, {
+        eventId,
+        idempotencyScopeKey: "client-key",
+        requestFingerprint: "same-fingerprint",
+        reservationId: uuidv4(),
+        rawHoldToken: generateHoldToken(),
+      });
+      expect(retry).toMatchObject({
+        reservationId: first.result.reservationId,
+        unitId: first.result.unitId,
+        status: "HELD",
+        idempotentReplay: true,
+      });
+      expect(retry).not.toHaveProperty("holdToken");
+      const conflict = await claimHoldFcfs(redis, {
+        eventId,
+        idempotencyScopeKey: "client-key",
+        requestFingerprint: "different-fingerprint",
+        reservationId: uuidv4(),
+        rawHoldToken: generateHoldToken(),
+      });
+      expect(conflict).toMatchObject({ error: "IDEMPOTENCY_CONFLICT", code: 422 });
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    await redis.del(queueKey);
-    await redis.lpush(queueKey, "unit-stale-01");
-    await redis.hmset("ticketwala:unit:unit-stale-01", { status: "AVAILABLE", version: "1" });
+  it("confirms valid holds, is idempotent on repeat, and rejects invalid or expired holds", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-confirm-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const valid = await hold(eventId);
+      const confirmed = await confirmHold(redis, {
+        eventId,
+        reservationId: valid.reservationId,
+        rawHoldToken: valid.rawHoldToken,
+      });
+      expect(confirmed).toMatchObject({ status: "CONFIRMED", version: 3 });
+      const repeated = await confirmHold(redis, {
+        eventId,
+        reservationId: valid.reservationId,
+        rawHoldToken: valid.rawHoldToken,
+      });
+      expect(repeated).toMatchObject({ status: "CONFIRMED", version: 3 });
 
-    // 1. User A claims unit
-    const resA = uuidv4();
-    const tokenA = generateHoldToken();
-    const claimA = await claimHoldFcfs(redis, {
-      eventId: testEventId,
-      idempotencyScopeKey: `userA:${uuidv4()}`,
-      requestFingerprint: "fpA",
-      reservationId: resA,
-      rawHoldToken: tokenA,
-      ttlSeconds: 1,
-    });
-    expect(claimA.status).toBe("HELD");
+      await setupSingleUnit(eventId);
+      const invalid = await hold(eventId);
+      const badToken = await confirmHold(redis, {
+        eventId,
+        reservationId: invalid.reservationId,
+        rawHoldToken: "wrong-token",
+      });
+      expect(badToken.error).toBe("INVALID_HOLD_TOKEN");
+      await redis.hset(`${reservationPrefix(eventId)}:${invalid.reservationId}`, "expires_at", "1");
+      const expiredResult = await confirmHold(redis, {
+        eventId,
+        reservationId: invalid.reservationId,
+        rawHoldToken: invalid.rawHoldToken,
+      });
+      expect(expiredResult.error).toBe("HOLD_EXPIRED");
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    // 2. User A explicitly releases or times out
-    await releaseHold(redis, {
-      eventId: testEventId,
-      reservationId: resA,
-      rawHoldToken: tokenA,
-      isTimeoutJob: false,
-    });
+  it("enforces release ownership and makes repeated release safe", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-release-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const valid = await hold(eventId);
+      const invalid = await releaseHold(redis, {
+        eventId,
+        reservationId: valid.reservationId,
+        rawHoldToken: "wrong-token",
+      });
+      expect(invalid.error).toBe("INVALID_HOLD_TOKEN");
+      const released = await releaseHold(redis, {
+        eventId,
+        reservationId: valid.reservationId,
+        rawHoldToken: valid.rawHoldToken,
+      });
+      expect(released).toMatchObject({ status: "RELEASED", version: 3 });
+      const repeated = await releaseHold(redis, {
+        eventId,
+        reservationId: valid.reservationId,
+        rawHoldToken: valid.rawHoldToken,
+      });
+      expect(repeated).toMatchObject({ status: "RELEASED", version: 3 });
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    // 3. User B claims the re-queued unit
-    const resB = uuidv4();
-    const tokenB = generateHoldToken();
-    const claimB = await claimHoldFcfs(redis, {
-      eventId: testEventId,
-      idempotencyScopeKey: `userB:${uuidv4()}`,
-      requestFingerprint: "fpB",
-      reservationId: resB,
-      rawHoldToken: tokenB,
-      ttlSeconds: 60,
-    });
-    expect(claimB.status).toBe("HELD");
-    expect(claimB.reservationId).toBe(resB);
+  it("cannot let a stale expiry job free a newer reservation", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-expiry-fence-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const first = await hold(eventId);
+      const released = await releaseHold(redis, {
+        eventId,
+        reservationId: first.reservationId,
+        rawHoldToken: first.rawHoldToken,
+      });
+      expect(released.status).toBe("RELEASED");
+      const second = await hold(eventId);
+      const stale = await releaseHold(redis, {
+        eventId,
+        reservationId: first.reservationId,
+        isTimeoutJob: true,
+        expectedVersion: first.result.version,
+      });
+      expect(stale.status).toBe("RELEASED");
+      expect(await redis.hget(`${unitPrefix(eventId)}:${second.result.unitId}`, "reservation_id")).toBe(second.reservationId);
+    } finally {
+      await cleanup(eventId);
+    }
+  });
 
-    // 4. Delayed worker fires stale timeout for User A
-    const staleAttempt = await releaseHold(redis, {
-      eventId: testEventId,
-      reservationId: resA,
-      isTimeoutJob: true,
-    });
+  it("emits versioned stream events atomically with state transitions", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-events-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const created = await hold(eventId);
+      const confirmed = await confirmHold(redis, {
+        eventId,
+        reservationId: created.reservationId,
+        rawHoldToken: created.rawHoldToken,
+      });
+      const eventStream = streamKey(eventId);
+      const messages = (await redis.xrange(eventStream, "-", "+")) as Array<[string, string[]]>;
+      const relevant = messages.filter(([, fields]) => fields.includes(created.reservationId));
+      expect(relevant).toHaveLength(2);
+      const types = relevant.map(([, fields]) => fields[fields.indexOf("event_type") + 1]);
+      const versions = relevant.map(([, fields]) => Number(fields[fields.indexOf("version") + 1]));
+      expect(types).toEqual(["HOLD_CREATED", "RESERVATION_CONFIRMED"]);
+      expect(versions).toEqual([2, confirmed.version]);
+      expect(relevant[0][1]).toContain("event_id_ref");
+      expect(relevant[0][1]).toContain("payload");
+    } finally {
+      const streamEntries = await redis.xrange(streamKey(eventId), "-", "+");
+      const ids = streamEntries
+        .filter(([, fields]) => fields.includes(eventId))
+        .map(([id]) => id);
+      if (ids.length > 0) await redis.xdel(streamKey(eventId), ...ids);
+      await cleanup(eventId);
+    }
+  });
 
-    // Invariant: Stale attempt is safely ignored
-    expect(staleAttempt.status).toBe("IGNORED_STALE_RELEASE");
-
-    // Unit remains safely held by User B
-    const unitState = await redis.hgetall("ticketwala:unit:unit-stale-01");
-    expect(unitState.reservation_id).toBe(resB);
-    expect(unitState.status).toBe("HELD");
+  it("does not partially mutate state for invalid release or confirmation", async () => {
+    if (!redisAvailable) return;
+    const eventId = `test-no-partial-${uuidv4()}`;
+    try {
+      await setupSingleUnit(eventId);
+      const created = await hold(eventId);
+      const unitKey = `${unitPrefix(eventId)}:${created.result.unitId}`;
+      const before = await redis.hgetall(unitKey);
+      await confirmHold(redis, {
+        eventId,
+        reservationId: created.reservationId,
+        rawHoldToken: "invalid",
+      });
+      await releaseHold(redis, {
+        eventId,
+        reservationId: created.reservationId,
+        rawHoldToken: "invalid",
+      });
+      expect(await redis.hgetall(unitKey)).toEqual(before);
+      expect(await redis.llen(queueKey(eventId))).toBe(0);
+    } finally {
+      await cleanup(eventId);
+    }
   });
 });

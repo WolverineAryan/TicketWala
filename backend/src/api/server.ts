@@ -17,11 +17,12 @@ import {
 } from "../contracts/index.js";
 import {
   loadScripts,
-  checkAdaptiveAdmission,
+  initializeInventory,
   claimHoldFcfs,
   confirmHold,
   releaseHold,
   generateHoldToken,
+  streamKey,
 } from "../lua/index.js";
 
 dotenv.config();
@@ -86,6 +87,7 @@ export async function createServer(): Promise<{
   redis.on("ready", async () => {
     try {
       await loadScripts(redis);
+      await initializeInventory(redis, process.env.EVENT_ID || "evt-main");
       app.log.info("🚀 TicketWala Lua scripts pre-loaded and cached into Redis SHA table.");
     } catch (err: any) {
       app.log.error(`Failed to pre-load Redis Lua scripts: ${err.message}`);
@@ -149,37 +151,12 @@ export async function createServer(): Promise<{
     const { eventId } = parseResult.data;
     const idempotencyKey = (req.headers["idempotency-key"] as string) || uuidv4();
     const reqFingerprint = crypto
-      .createHash("md5")
+      .createHash("sha256")
       .update(`${eventId}:${JSON.stringify(req.body)}`)
       .digest("hex");
 
-    // 1. Adaptive Admission Controller (Token Bucket scaled by remaining seat scarcity)
-    const admission = await checkAdaptiveAdmission(redis, eventId);
-    if (admission.admitted === 0) {
-      if (admission.reason === "SOLD_OUT") {
-        telemetry.soldOutCount++;
-        return reply.status(409).send({
-          error: {
-            code: "SOLD_OUT",
-            message: "All seats for this event are currently claimed or locked.",
-            retryable: true,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      } else {
-        telemetry.rateLimitedCount++;
-        return reply.status(429).send({
-          error: {
-            code: "RATE_LIMITED",
-            message: "System under peak load. Please retry in a few seconds.",
-            retryable: true,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-    }
-
-    // 2. Strict FCFS Atomic Reservation Claim via Redis Lua Script
+    // The hold script performs idempotency lookup before allocation. Admission
+    // is intentionally not run first because it could reject a valid retry.
     const reservationId = uuidv4();
     const rawHoldToken = generateHoldToken();
 
@@ -201,6 +178,17 @@ export async function createServer(): Promise<{
           retryable: claimResult.code === 409,
           timestamp: new Date().toISOString(),
         },
+      });
+    }
+
+    if (claimResult.idempotentReplay) {
+      return reply.status(200).send({
+        reservationId: claimResult.reservationId,
+        unitId: claimResult.unitId,
+        status: claimResult.status,
+        expiresAt: claimResult.expiresAt,
+        version: claimResult.version,
+        eventId,
       });
     }
 
@@ -239,8 +227,10 @@ export async function createServer(): Promise<{
 
     const { holdToken } = parseResult.data;
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
+    const eventId = (req.headers["x-event-id"] as string) || "evt-main";
 
     const confirmResult = await confirmHold(redis, {
+      eventId,
       reservationId,
       rawHoldToken: holdToken,
       idempotencyKey,
@@ -289,7 +279,7 @@ export async function createServer(): Promise<{
     }
 
     const { holdToken } = parseResult.data;
-    const eventId = "evt-main";
+    const eventId = (req.headers["x-event-id"] as string) || "evt-main";
 
     const releaseResult = await releaseHold(redis, {
       eventId,
@@ -332,7 +322,7 @@ export async function createServer(): Promise<{
     const queueKey = `ticketwala:event:${eventId}:available_queue`;
 
     const availableCount = await redis.llen(queueKey);
-    const streamInfo = await redis.xinfo("STREAM", "ticketwala:events").catch(() => null);
+    const streamInfo = await redis.xinfo("STREAM", streamKey(eventId)).catch(() => null);
 
     return reply.status(200).send({
       inventory: {
@@ -357,12 +347,13 @@ export async function createServer(): Promise<{
    * Fetches current state of inventory units for visual grid inspection
    */
   app.get("/api/v1/ops/inventory", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const keys = await redis.keys("ticketwala:unit:*");
+    const eventId = "evt-main";
+    const keys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
     const units = [];
 
     for (const key of keys) {
       const data = await redis.hgetall(key);
-      const unitId = key.replace("ticketwala:unit:", "");
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
       units.push({
         unitId,
         status: data.status || "AVAILABLE",
@@ -389,7 +380,7 @@ export async function createServer(): Promise<{
     const queueKey = `ticketwala:event:${eventId}:available_queue`;
 
     const availableCount = await redis.llen(queueKey);
-    const unitKeys = await redis.keys("ticketwala:unit:*");
+    const unitKeys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
 
     const anomalies: string[] = [];
     const heldReservations = new Set<string>();
@@ -399,7 +390,7 @@ export async function createServer(): Promise<{
 
     for (const key of unitKeys) {
       const unit = await redis.hgetall(key);
-      const unitId = key.replace("ticketwala:unit:", "");
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
 
       if (unit.status === "HELD") {
         heldCount++;

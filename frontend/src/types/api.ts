@@ -14,7 +14,8 @@ export interface HoldResponse {
   unitId: string;
   status: "HELD";
   expiresAt: number; // Unix epoch seconds
-  holdToken: string;
+  /** Present only on the initial authorized response; retain it for retries. */
+  holdToken?: string;
   version: number;
   eventId: string;
 }
