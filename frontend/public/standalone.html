@@ -187,6 +187,178 @@ footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-si
   .auth{grid-template-columns:1fr}
   .auth .side{padding:36px 5vw}
   nav{flex-wrap:wrap;gap:8px}
+
+/* LOCATION PICKER & NAVBAR */
+.nav-left-group { display: flex; align-items: center; gap: 18px; }
+.location-pill-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--g); border: 1px solid rgba(43, 42, 40, 0.12);
+  border-radius: 99px; padding: 6px 14px; font-family: inherit;
+  font-size: 13px; font-weight: 600; color: var(--k); cursor: pointer;
+  transition: all 0.2s ease; user-select: none;
+}
+.location-pill-btn:hover { background: #eae5dc; border-color: var(--o); transform: translateY(-1px); }
+.location-pill-btn svg { color: var(--o); flex-shrink: 0; }
+.location-chevron { font-size: 10px; opacity: 0.6; margin-left: 2px; }
+
+/* CITY SELECTOR MODAL */
+.city-modal-overlay {
+  position: fixed; inset: 0; background: rgba(43, 42, 40, 0.65);
+  backdrop-filter: blur(6px); z-index: 999999; display: none;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.city-modal-box {
+  background: #ffffff; border-radius: 24px; width: 100%;
+  max-width: 680px; max-height: 85vh; overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(43, 42, 40, 0.1); padding: 32px;
+}
+.city-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.city-modal-header h3 { font-size: 20px; font-weight: 800; color: var(--k); margin: 0; }
+.city-modal-close { background: transparent; border: none; font-size: 26px; color: #8c8880; cursor: pointer; padding: 4px; line-height: 1; }
+.city-search-box {
+  display: flex; align-items: center; gap: 10px; background: var(--g);
+  border: 1.5px solid #ded9d0; border-radius: 14px; padding: 12px 16px; margin-bottom: 18px;
+}
+.city-search-input { border: none; background: transparent; width: 100%; font-family: inherit; font-size: 14px; font-weight: 500; color: var(--k); outline: none; }
+.city-detect-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  background: #fff8f5; border: 1.5px dashed var(--o); border-radius: 12px;
+  padding: 12px 18px; font-family: inherit; font-size: 13px; font-weight: 700;
+  color: var(--o); cursor: pointer; transition: all 0.2s; margin-bottom: 24px;
+}
+.city-detect-btn:hover { background: rgba(255, 107, 55, 0.12); }
+.city-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #8c8880; margin-bottom: 14px; }
+.popular-cities-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+.city-item-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 10px; background: #fbfaf8; border: 1.5px solid #eae5dc;
+  border-radius: 14px; cursor: pointer; font-family: inherit; font-size: 13px;
+  font-weight: 700; color: var(--k); transition: all 0.2s;
+}
+.city-item-btn:hover { border-color: var(--o); background: #fff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 107, 55, 0.15); }
+.city-item-btn.selected { border-color: var(--o); background: #fff; color: var(--o); box-shadow: 0 0 0 2px var(--o); }
+.city-icon-badge {
+  width: 36px; height: 36px; border-radius: 10px; background: rgba(43, 42, 40, 0.06);
+  display: flex; align-items: center; justify-content: center; color: var(--k);
+}
+.city-item-btn.selected .city-icon-badge { background: rgba(255, 107, 55, 0.15); color: var(--o); }
+
+/* BOOKMYSHOW HOME */
+.bms-home-wrap { padding: 24px 5vw 60px; max-width: 1280px; margin: 0 auto; }
+.bms-hero-banner {
+  position: relative; border-radius: 24px; overflow: hidden; background: #191817;
+  color: #fff; min-height: 380px; display: flex; align-items: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); margin-bottom: 36px;
+}
+.bms-hero-bg {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  filter: brightness(0.42); transition: all 0.5s ease;
+}
+.bms-hero-gradient { position: absolute; inset: 0; background: linear-gradient(90deg, #191817 0%, rgba(25, 24, 23, 0.85) 55%, transparent 100%); }
+.bms-hero-content { position: relative; z-index: 2; padding: 48px; max-width: 650px; }
+.bms-hero-tag {
+  display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 107, 55, 0.2);
+  border: 1px solid rgba(255, 107, 55, 0.4); color: #fff; padding: 4px 12px;
+  border-radius: 99px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;
+  text-transform: uppercase; margin-bottom: 16px;
+}
+.bms-hero-title { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.15; margin-bottom: 12px; color: #ffffff; }
+.bms-hero-meta { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #d6d0c4; margin-bottom: 22px; flex-wrap: wrap; }
+.bms-hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.bms-hero-dots { position: absolute; bottom: 20px; right: 28px; z-index: 3; display: flex; gap: 8px; }
+.bms-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); border: none; cursor: pointer; transition: all 0.25s; }
+.bms-dot.active { width: 26px; border-radius: 99px; background: var(--o); }
+.bms-categories-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; overflow-x: auto; padding-bottom: 6px; }
+.bms-categories-list { display: flex; gap: 10px; }
+.bms-cat-pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+  border-radius: 99px; background: var(--g); border: 1.5px solid transparent;
+  color: var(--k); font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: all 0.2s;
+}
+.bms-cat-pill:hover { background: #ebe6de; transform: translateY(-1px); }
+.bms-cat-pill.active { background: var(--k); color: #ffffff; border-color: var(--k); box-shadow: 0 4px 14px rgba(43, 42, 40, 0.18); }
+.bms-section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+.bms-section-header h2 { font-size: 24px; font-weight: 800; color: var(--k); margin: 0; }
+.bms-edge-ribbon {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; background: #ffffff; border: 1px solid rgba(43, 42, 40, 0.1);
+  border-radius: 16px; padding: 14px 20px; margin-bottom: 32px;
+}
+.bms-edge-pill { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--k); font-weight: 600; }
+.bms-edge-pill svg { color: var(--o); flex-shrink: 0; }
+.bms-event-card {
+  background: #ffffff; border-radius: 18px; overflow: hidden;
+  border: 1px solid rgba(43, 42, 40, 0.1); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s;
+}
+.bms-event-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1); }
+
+/* ENHANCED PROFILE DASHBOARD */
+.profile-dash-wrap { padding: 40px 5vw 80px; max-width: 1100px; margin: 0 auto; }
+.profile-hero-card {
+  background: #ffffff; border: 1px solid rgba(43, 42, 40, 0.1);
+  border-radius: 24px; padding: 32px; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.05);
+  margin-bottom: 28px;
+}
+.profile-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.profile-avatar-wrapper { position: relative; width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0; }
+.profile-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--o); }
+.profile-avatar-placeholder {
+  width: 100%; height: 100%; border-radius: 50%; background: var(--k);
+  color: #ffffff; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 800; border: 2px solid var(--o);
+}
+.profile-avatar-edit-btn {
+  position: absolute; bottom: -2px; right: -2px; background: var(--o);
+  color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); transition: transform 0.2s;
+}
+.profile-avatar-edit-btn:hover { transform: scale(1.1); }
+.profile-identity { flex: 1; min-width: 220px; }
+.profile-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.profile-name-row h2 { font-size: 24px; font-weight: 800; color: var(--k); margin: 0; }
+.profile-verified-badge {
+  display: inline-flex; align-items: center; gap: 4px; background: rgba(39, 174, 96, 0.1);
+  color: #27ae60; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 700;
+}
+.profile-meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #77736c; margin-top: 4px; flex-wrap: wrap; }
+.dot-sep { opacity: 0.5; }
+.pass-pill { background: rgba(255, 107, 55, 0.12); color: var(--o); padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+.btn-logout-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 99px;
+  background: transparent; border: 1.5px solid #ded9d0; color: #77736c; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-logout-header:hover { border-color: #e74c3c; color: #e74c3c; background: #fdf2f2; }
+.digital-fan-pass-ribbon {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; background: #f9f8f5; border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 12px; padding: 14px 20px;
+}
+.dfp-item small { display: block; font-size: 10px; letter-spacing: 1px; color: #8c8880; font-weight: 700; text-transform: uppercase; }
+.dfp-item b { display: block; font-size: 14px; color: var(--k); font-weight: 700; margin-top: 2px; }
+.profile-content-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
+@media (max-width: 900px) { .profile-content-grid { grid-template-columns: 1fr; } }
+.profile-card {
+  background: #ffffff; border: 1px solid rgba(43, 42, 40, 0.1);
+  border-radius: 20px; padding: 24px 28px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  margin-bottom: 22px;
+}
+.profile-card-header { margin-bottom: 18px; }
+.profile-card-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; color: var(--k); }
+.profile-card-title svg { color: var(--o); }
+.profile-card-desc { display: block; font-size: 12px; color: #77736c; margin-top: 3px; }
+.profile-form { display: flex; flex-direction: column; gap: 14px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .form-row-2 { grid-template-columns: 1fr; } }
+.form-actions-row { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 6px; }
+.profile-success-text { font-size: 12px; font-weight: 700; color: #27ae60; }
+.danger-card { border-color: rgba(231, 76, 60, 0.2); background: #fffafa; }
+.danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
 .auth-image-desc{font-size:13px;line-height:1.5;color:#e2ded7;margin-bottom:12px;max-width:380px;font-weight:500}
 .auth-image-box{position:relative;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.16);margin-bottom:22px;box-shadow:0 8px 24px rgba(0,0,0,0.35);background:#1a1918;max-width:380px}
 .auth-side-img{width:100%;height:140px;object-fit:cover;display:block;transition:transform .4s ease}
@@ -227,7 +399,101 @@ window.go = function(p) {
 <ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
 
 <main>
+
 <div class="page on" id="home">
+  <div class="bms-home-wrap">
+    <!-- Featured Carousel Banner -->
+    <div class="bms-hero-banner">
+      <div class="bms-hero-bg" id="bmsHeroBg" style="background-image:url('https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80')"></div>
+      <div class="bms-hero-gradient"></div>
+      <div class="bms-hero-content">
+        <span class="bms-hero-tag" id="bmsHeroTag">
+          <span class="live-dot-sm"></span> HEADLINER DROP · FLASH DROP
+        </span>
+        <h1 class="bms-hero-title" id="bmsHeroTitle">Coldplay: Music of the Spheres</h1>
+        <div class="bms-hero-meta">
+          <span id="bmsHeroDate">Sat, 18 Jan · 7:00 PM</span>
+          <span>•</span>
+          <span id="bmsHeroVenue">D.Y. Patil Sports Stadium, Mumbai</span>
+          <span>•</span>
+          <span style="font-weight:800;color:#fff" id="bmsHeroPrice">From ₹3,500</span>
+        </div>
+        <div class="bms-hero-actions">
+          <button type="button" class="btn" style="padding:13px 28px;font-size:15px" onclick="bookFeaturedEvent()">Book Seats Now →</button>
+          <button type="button" class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,0.4);padding:13px 22px" onclick="go('landing')">View Architecture Lab</button>
+        </div>
+      </div>
+      <div class="bms-hero-dots" id="bmsHeroDots"></div>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="bms-categories-bar">
+      <div class="bms-categories-list">
+        <button type="button" class="bms-cat-pill active" onclick="setBmsCat('all', this)">All Drops</button>
+        <button type="button" class="bms-cat-pill" onclick="setBmsCat('concert', this)">Concerts & Music</button>
+        <button type="button" class="bms-cat-pill" onclick="setBmsCat('comedy', this)">Standup Comedy</button>
+        <button type="button" class="bms-cat-pill" onclick="setBmsCat('sports', this)">Live Stadium Sports</button>
+        <button type="button" class="bms-cat-pill" onclick="setBmsCat('theatre', this)">Theatre & Plays</button>
+      </div>
+    </div>
+
+    <!-- Edge Technology Ribbon -->
+    <div class="bms-edge-ribbon">
+      <div class="bms-edge-pill">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><b>Zero Double-Bookings</b> Guaranteed</span>
+      </div>
+      <div class="bms-edge-pill">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span><b>0.38ms Redis Lua Lock</b></span>
+      </div>
+      <div class="bms-edge-pill">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span><b>30s TTL Hold Ring</b></span>
+      </div>
+      <div class="bms-edge-pill">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span><b>10k RPS Bot Shield</b></span>
+      </div>
+    </div>
+
+    <!-- City Section Header -->
+    <div class="bms-section-header">
+      <div>
+        <h2>Live Drops in <span id="bmsCityHeading">Mumbai</span></h2>
+        <p style="color:#77736c;font-size:14px;margin-top:4px">High-velocity flash ticket drops near your selected location.</p>
+      </div>
+      <button type="button" class="location-pill-btn" onclick="openCityModal()">
+        <span>Switch City</span>
+        <span class="location-chevron">▾</span>
+      </button>
+    </div>
+
+    <!-- Event Cards Grid -->
+    <div class="bms-events-grid" id="bmsEventsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;margin-bottom:48px"></div>
+
+    <!-- Iconic Venues -->
+    <div class="bms-section-header">
+      <div>
+        <h2>Iconic Venues in <span id="bmsVenuesCityHeading">Mumbai</span></h2>
+        <p style="color:#77736c;font-size:14px;margin-top:4px">High-capacity stadiums and theaters with TicketWala flash-drop gates.</p>
+      </div>
+    </div>
+    <div id="bmsVenuesGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:48px"></div>
+
+    <!-- Architecture Callout Banner -->
+    <div style="background:linear-gradient(135deg,#2B2A28 0%,#191817 100%);border-radius:20px;padding:36px 40px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;border:1px solid rgba(255,255,255,0.1)">
+      <div style="max-width:600px">
+        <span style="color:var(--o);font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase">ENGINEERING BEHIND THE CURTAIN</span>
+        <h3 style="font-size:24px;font-weight:800;margin-top:6px;margin-bottom:8px;color:#fff">How does TicketWala prevent double-booking at 10,000 RPS?</h3>
+        <p style="color:#d6d0c4;font-size:14px;line-height:1.5">Redis Lua atomic script execution, 30s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.</p>
+      </div>
+      <button type="button" class="btn" onclick="go('landing')" style="padding:14px 26px;font-size:14px;white-space:nowrap">Explore Architecture & Chaos Lab →</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="landing">
   <!-- Hero Section -->
   <div class="hero">
     <div>
@@ -1352,5 +1618,382 @@ function doSignup(){
 }
 function logout(){if(mine!==null)drop();user=null;bookings=[];prof();renderAuth();go('home')}
 
-renderAuth();init();prof();go((location.hash||'#home').slice(1).replace(/[^a-z]/g,'')||'home');
-</script></body></html>
+
+// CITIES & BMS EVENTS DATA
+const CITIES = [
+  { id: "mumbai", name: "Mumbai", tagline: "MMR & Suburbs", lat: 18.922, lng: 72.834 },
+  { id: "delhi", name: "Delhi-NCR", tagline: "Delhi, Noida, Gurgaon", lat: 28.6139, lng: 77.209 },
+  { id: "bengaluru", name: "Bengaluru", tagline: "Garden City", lat: 12.9716, lng: 77.5946 },
+  { id: "pune", name: "Pune", tagline: "Oxford of the East", lat: 18.5204, lng: 73.8567 },
+  { id: "hyderabad", name: "Hyderabad", tagline: "Cyberabad & Old City", lat: 17.385, lng: 78.4867 },
+  { id: "ahmedabad", name: "Ahmedabad", tagline: "Heritage & Arena", lat: 23.0225, lng: 72.5714 },
+  { id: "chennai", name: "Chennai", tagline: "Marina & Culture", lat: 13.0827, lng: 80.2707 },
+  { id: "kolkata", name: "Kolkata", tagline: "City of Joy", lat: 22.5726, lng: 88.3639 },
+  { id: "chandigarh", name: "Chandigarh", tagline: "The Beautiful City", lat: 30.7333, lng: 76.7794 },
+  { id: "goa", name: "Goa", tagline: "Beaches & Sunburn", lat: 15.2993, lng: 74.124 }
+];
+
+const CITY_VENUES = {
+  mumbai: [
+    { name: "D.Y. Patil Sports Stadium", area: "Nerul, Navi Mumbai", eventsCount: 4 },
+    { name: "Jio World Garden & Convention", area: "BKC, Bandra", eventsCount: 6 },
+    { name: "Nita Mukesh Ambani Cultural Centre", area: "BKC", eventsCount: 3 },
+    { name: "Wankhede Stadium", area: "Marine Drive", eventsCount: 5 }
+  ],
+  delhi: [
+    { name: "Jawaharlal Nehru Stadium", area: "Pragati Vihar", eventsCount: 5 },
+    { name: "Indira Gandhi Indoor Arena", area: "ITO", eventsCount: 3 },
+    { name: "Arun Jaitley Cricket Stadium", area: "Feroz Shah Kotla", eventsCount: 4 }
+  ],
+  bengaluru: [
+    { name: "Palace Grounds", area: "Jaymahal", eventsCount: 5 },
+    { name: "M. Chinnaswamy Stadium", area: "MG Road", eventsCount: 6 },
+    { name: "Good Shepherd Auditorium", area: "Museum Road", eventsCount: 4 }
+  ],
+  pune: [
+    { name: "Mahalaxmi Lawns", area: "Karve Nagar", eventsCount: 3 },
+    { name: "Bal Gandharva Rang Mandir", area: "JM Road, Shivajinagar", eventsCount: 4 }
+  ],
+  hyderabad: [
+    { name: "GMR Arena", area: "Shamshabad", eventsCount: 4 },
+    { name: "Shilpakala Vedika", area: "Hitec City", eventsCount: 3 }
+  ],
+  ahmedabad: [
+    { name: "Narendra Modi Stadium", area: "Motera", eventsCount: 6 },
+    { name: "TransStadia Arena", area: "Kankaria Lake", eventsCount: 4 }
+  ],
+  chennai: [
+    { name: "MA Chidambaram Stadium (Chepauk)", area: "Triplicane", eventsCount: 5 },
+    { name: "YMCA Grounds", area: "Nandanam", eventsCount: 4 }
+  ],
+  kolkata: [
+    { name: "Eden Gardens", area: "BBD Bagh", eventsCount: 5 },
+    { name: "Biswa Bangla Mela Prangan", area: "EM Bypass", eventsCount: 3 }
+  ],
+  chandigarh: [
+    { name: "Sector 17 Plaza Open Arena", area: "Sector 17", eventsCount: 3 }
+  ],
+  goa: [
+    { name: "Vagator Beach Arena", area: "Vagator, North Goa", eventsCount: 4 }
+  ]
+};
+
+const BMS_EVENTS = [
+  { id: "coldplay-mum", name: "Coldplay: Music of the Spheres", category: "concert", categoryLabel: "Concerts & Music", cityId: "mumbai", cityName: "Mumbai", venue: "D.Y. Patil Sports Stadium", dateStr: "Sat, 18 Jan · 7:00 PM", month: "JAN", day: "18", price: 3500, badge: "GLOBAL TOUR", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "arijit-mum", name: "Arijit Singh Live Symphony", category: "concert", categoryLabel: "Concerts & Music", cityId: "mumbai", cityName: "Mumbai", venue: "Jio World Garden, BKC", dateStr: "Fri, 24 Oct · 6:30 PM", month: "OCT", day: "24", price: 2499, badge: "ARENA DROP", contention: "SELLING FAST", bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "zakir-mum", name: "Zakir Khan: Mann Pasand Live", category: "comedy", categoryLabel: "Standup Comedy", cityId: "mumbai", cityName: "Mumbai", venue: "Shanmukhananda Hall", dateStr: "Sun, 02 Nov · 8:00 PM", month: "NOV", day: "02", price: 999, badge: "COMEDY TOUR", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80" },
+  { id: "ipl-mum", name: "Mumbai Indians vs CSK: El Clasico", category: "sports", categoryLabel: "Live Sports", cityId: "mumbai", cityName: "Mumbai", venue: "Wankhede Stadium", dateStr: "Sun, 23 Mar · 7:30 PM", month: "MAR", day: "23", price: 1500, badge: "CRICKET FLASH", contention: "ALMOST FULL", bannerUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80" },
+  { id: "mughal-mum", name: "Mughal-E-Azam: The Grand Musical", category: "theatre", categoryLabel: "Theatre & Broadway", cityId: "mumbai", cityName: "Mumbai", venue: "NCPA Nariman Point", dateStr: "Sat, 14 Dec · 6:00 PM", month: "DEC", day: "14", price: 1800, badge: "BROADWAY INDIA", contention: "EXCLUSIVE", bannerUrl: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80" },
+  { id: "diljit-del", name: "Diljit Dosanjh: Dil-Luminati Tour", category: "concert", categoryLabel: "Concerts & Music", cityId: "delhi", cityName: "Delhi-NCR", venue: "Jawaharlal Nehru Stadium", dateStr: "Sat, 26 Oct · 7:00 PM", month: "OCT", day: "26", price: 2999, badge: "STADIUM TOUR", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "bassi-del", name: "Anubhav Singh Bassi: Kisi Ko Batana Mat", category: "comedy", categoryLabel: "Standup Comedy", cityId: "delhi", cityName: "Delhi-NCR", venue: "Kedarnath Sahni Auditorium", dateStr: "Fri, 15 Nov · 8:00 PM", month: "NOV", day: "15", price: 899, badge: "COMEDY TOUR", contention: "SELLING FAST", bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80" },
+  { id: "edsheeran-blr", name: "Ed Sheeran: +–=÷× Mathematics Tour", category: "concert", categoryLabel: "Concerts & Music", cityId: "bengaluru", cityName: "Bengaluru", venue: "Palace Grounds", dateStr: "Sun, 09 Feb · 6:30 PM", month: "FEB", day: "09", price: 3200, badge: "INTERNATIONAL TOUR", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "kenny-blr", name: "Kenny Sebastian: Professor of Chill", category: "comedy", categoryLabel: "Standup Comedy", cityId: "bengaluru", cityName: "Bengaluru", venue: "Good Shepherd Auditorium", dateStr: "Sat, 22 Nov · 7:30 PM", month: "NOV", day: "22", price: 799, badge: "LIVE SPECIAL", contention: "SELLING FAST", bannerUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80" },
+  { id: "nh7-pun", name: "BACARDÍ NH7 Weekender Music Fest", category: "concert", categoryLabel: "Concerts & Music", cityId: "pune", cityName: "Pune", venue: "Mahalaxmi Lawns", dateStr: "Sat, 13 Dec · 3:00 PM", month: "DEC", day: "13", price: 2199, badge: "FESTIVAL PASS", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "karan-hyd", name: "Karan Aujla: It Was All A Dream Tour", category: "concert", categoryLabel: "Concerts & Music", cityId: "hyderabad", cityName: "Hyderabad", venue: "GMR Arena", dateStr: "Sun, 18 Jan · 6:30 PM", month: "JAN", day: "18", price: 2500, badge: "STADIUM TOUR", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "coldplay-ahm", name: "Coldplay: Extra Arena Flash Night", category: "concert", categoryLabel: "Concerts & Music", cityId: "ahmedabad", cityName: "Ahmedabad", venue: "Narendra Modi Stadium", dateStr: "Sat, 25 Jan · 6:00 PM", month: "JAN", day: "25", price: 2500, badge: "100K CAPACITY ARENA", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "anirudh-che", name: "Anirudh Ravichander: Hukum Tour Live", category: "concert", categoryLabel: "Concerts & Music", cityId: "chennai", cityName: "Chennai", venue: "YMCA Grounds", dateStr: "Sat, 01 Feb · 7:00 PM", month: "FEB", day: "01", price: 1800, badge: "ROCKSTAR CONCERT", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "shreya-kol", name: "Shreya Ghoshal: All Hearts Tour", category: "concert", categoryLabel: "Concerts & Music", cityId: "kolkata", cityName: "Kolkata", venue: "Biswa Bangla Mela Prangan", dateStr: "Fri, 19 Dec · 6:30 PM", month: "DEC", day: "19", price: 1999, badge: "SYMPHONY NIGHT", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80", featured: true },
+  { id: "sunburn-goa", name: "Sunburn Electronic Beach Festival 2026", category: "concert", categoryLabel: "Concerts & Music", cityId: "goa", cityName: "Goa", venue: "Vagator Beach Arena", dateStr: "Sun, 28 Dec · 4:00 PM", month: "DEC", day: "28", price: 3999, badge: "3-DAY MEGAFEST", contention: "FLASH DROP", bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80", featured: true }
+];
+
+let curCityId = localStorage.getItem('ticketwala_selected_city') || 'mumbai';
+let curCat = 'all';
+let bmsCarouselIdx = 0;
+const featEvents = BMS_EVENTS.filter(e => e.featured);
+
+function getCurCity() {
+  return CITIES.find(c => c.id === curCityId) || CITIES[0];
+}
+
+function openCityModal() {
+  renderCityGrid(CITIES);
+  $('#cityModalOverlay').style.display = 'flex';
+}
+
+function closeCityModal() {
+  $('#cityModalOverlay').style.display = 'none';
+}
+
+function selectCity(cityId) {
+  curCityId = cityId;
+  localStorage.setItem('ticketwala_selected_city', cityId);
+  closeCityModal();
+  updateCityUI();
+}
+
+function filterCities(q) {
+  const query = (q || '').toLowerCase();
+  const list = CITIES.filter(c => c.name.toLowerCase().includes(query) || c.tagline.toLowerCase().includes(query));
+  renderCityGrid(list);
+}
+
+function renderCityGrid(list) {
+  const g = $('#popularCitiesGrid');
+  if (!g) return;
+  g.innerHTML = list.map(c => {
+    const isSel = c.id === curCityId;
+    return `<button type="button" class="city-item-btn ${isSel ? 'selected' : ''}" onclick="selectCity('${c.id}')">
+      <div class="city-icon-badge">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <span>${c.name}</span>
+      <small style="font-size:10px;opacity:0.65;font-weight:500">${c.tagline}</small>
+    </button>`;
+  }).join('');
+}
+
+function findNearestCity(lat, lng) {
+  let closest = CITIES[0], minDist = Infinity;
+  for (const c of CITIES) {
+    const dLat = (c.lat - lat) * Math.PI / 180;
+    const dLng = (c.lng - lng) * Math.PI / 180;
+    const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat*Math.PI/180)*Math.cos(c.lat*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+    const d = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    if (d < minDist) { minDist = d; closest = c; }
+  }
+  return closest;
+}
+
+function detectUserGps() {
+  if (!navigator.geolocation) { alert('Geolocation is not supported by your browser'); return; }
+  $('#gpsDetectText').textContent = 'Detecting GPS location...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const nearest = findNearestCity(pos.coords.latitude, pos.coords.longitude);
+      selectCity(nearest.id);
+      $('#gpsDetectText').textContent = 'Auto-Detect My Location (Nearest Metro)';
+      const toast = $('#gpsDetectToast');
+      if (toast) {
+        toast.textContent = 'Auto-detected nearest metro: ' + nearest.name + '!';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; closeCityModal(); }, 1200);
+      }
+    },
+    err => {
+      $('#gpsDetectText').textContent = 'Auto-Detect My Location (Nearest Metro)';
+      alert('Unable to detect location. Please select your city manually.');
+    },
+    { timeout: 8000 }
+  );
+}
+
+function setBmsCat(cat, btn) {
+  curCat = cat;
+  document.querySelectorAll('.bms-cat-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderBmsEvents();
+}
+
+function updateCityUI() {
+  const city = getCurCity();
+  if ($('#navCityName')) $('#navCityName').textContent = city.name;
+  if ($('#bmsCityHeading')) $('#bmsCityHeading').textContent = city.name;
+  if ($('#bmsVenuesCityHeading')) $('#bmsVenuesCityHeading').textContent = city.name;
+  renderBmsEvents();
+  renderBmsVenues();
+}
+
+function renderBmsEvents() {
+  const city = getCurCity();
+  const list = BMS_EVENTS.filter(e => {
+    const mCity = e.cityId === city.id;
+    const mCat = curCat === 'all' || e.category === curCat;
+    return mCity && mCat;
+  });
+  const g = $('#bmsEventsGrid');
+  if (!g) return;
+  if (!list.length) {
+    g.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px 20px;background:#fbfaf8;border-radius:16px;border:1px dashed #ded9d0">
+      <p style="font-weight:700;color:var(--k);margin-bottom:8px">No drops found for this filter in ${city.name}.</p>
+      <p style="font-size:13px;color:#77736c;margin-bottom:16px">Try selecting another category or explore all India drops.</p>
+      <button type="button" class="btn ghost" onclick="setBmsCat('all', document.querySelector('.bms-cat-pill'))">View All Categories</button>
+    </div>`;
+    return;
+  }
+  g.innerHTML = list.map((e, idx) => `
+    <div class="bms-event-card">
+      <div style="position:relative;height:180px;overflow:hidden">
+        <img src="${e.bannerUrl}" alt="${e.name}" style="width:100%;height:100%;object-fit:cover">
+        <span style="position:absolute;top:12px;left:12px;background:${e.contention === 'FLASH DROP' ? 'var(--o)' : 'var(--k)'};color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:0.5px">
+          ${e.contention}
+        </span>
+        <span style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:700">
+          ${e.dateStr}
+        </span>
+      </div>
+      <div style="padding:18px;display:flex;flex-direction:column;flex:1">
+        <div style="font-size:11px;font-weight:700;color:var(--o);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">
+          ${e.categoryLabel}
+        </div>
+        <h3 style="font-size:17px;font-weight:800;color:var(--k);margin-bottom:6px;line-height:1.3">${e.name}</h3>
+        <div style="font-size:13px;color:#77736c;margin-bottom:14px;display:flex;align-items:center;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>${e.venue}</span>
+        </div>
+        <div style="margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid #f0ede7">
+          <div>
+            <small style="display:block;font-size:11px;color:#8c8880;font-weight:600">STARTING FROM</small>
+            <b style="font-size:17px;color:var(--k);font-weight:800">₹${e.price.toLocaleString()}</b>
+          </div>
+          <button type="button" class="btn" style="padding:9px 18px;font-size:13px" onclick="bookBmEvent('${e.id}')">Book Seats →</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderBmsVenues() {
+  const city = getCurCity();
+  const venues = CITY_VENUES[city.id] || CITY_VENUES.mumbai;
+  const g = $('#bmsVenuesGrid');
+  if (!g) return;
+  g.innerHTML = venues.map(v => `
+    <div style="background:#ffffff;border:1px solid rgba(43,42,40,0.08);border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:14px">
+      <div style="width:42px;height:42px;border-radius:12px;background:rgba(255,107,55,0.12);color:var(--o);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14"/></svg>
+      </div>
+      <div>
+        <b style="display:block;font-size:15px;color:var(--k)">${v.name}</b>
+        <span style="font-size:12px;color:#77736c">${v.area} • ${v.eventsCount} upcoming drops</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCarousel() {
+  if (!featEvents.length) return;
+  const item = featEvents[bmsCarouselIdx];
+  const bg = $('#bmsHeroBg');
+  if (bg) bg.style.backgroundImage = 'url(' + item.bannerUrl + ')';
+  if ($('#bmsHeroTag')) $('#bmsHeroTag').innerHTML = '<span class="live-dot-sm"></span> ' + (item.badge || 'HEADLINER DROP') + ' · ' + item.contention;
+  if ($('#bmsHeroTitle')) $('#bmsHeroTitle').textContent = item.name;
+  if ($('#bmsHeroDate')) $('#bmsHeroDate').textContent = item.dateStr;
+  if ($('#bmsHeroVenue')) $('#bmsHeroVenue').textContent = item.venue + ', ' + item.cityName;
+  if ($('#bmsHeroPrice')) $('#bmsHeroPrice').textContent = 'From ₹' + item.price.toLocaleString();
+
+  const dots = $('#bmsHeroDots');
+  if (dots) {
+    dots.innerHTML = featEvents.map((_, i) => `<button type="button" class="bms-dot ${i === bmsCarouselIdx ? 'active' : ''}" onclick="setCarouselSlide(${i})"></button>`).join('');
+  }
+}
+
+function setCarouselSlide(i) {
+  bmsCarouselIdx = i;
+  renderCarousel();
+}
+
+function bookFeaturedEvent() {
+  const item = featEvents[bmsCarouselIdx];
+  if (item) bookBmEvent(item.id);
+}
+
+function bookBmEvent(id) {
+  const item = BMS_EVENTS.find(e => e.id === id);
+  if (item) {
+    EV[0] = [item.month, item.day, item.name + ' — ' + item.cityName, 0];
+    ev = 0;
+    init();
+    go('booking');
+  }
+}
+
+setInterval(() => {
+  bmsCarouselIdx = (bmsCarouselIdx + 1) % featEvents.length;
+  renderCarousel();
+}, 5000);
+
+// PROFILE DASHBOARD LOGIC
+function saveProfileForm(e) {
+  e.preventDefault();
+  const name = $('#inpProfileName').value.trim();
+  const passName = $('#inpProfilePassName').value.trim();
+  const phone = $('#inpProfilePhone').value.trim();
+  if (!name) { alert('Please enter a valid name.'); return; }
+  if (user) {
+    user.name = name;
+    user.passName = passName || name;
+    user.phone = phone;
+  }
+  const msg = $('#profileSaveMsg');
+  if (msg) {
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+  }
+  prof();
+  renderAuth();
+}
+
+function updatePasswordForm(e) {
+  e.preventDefault();
+  const cur = $('#inpCurrentPw').value;
+  const nw = $('#inpNewPw').value;
+  const cf = $('#inpConfirmPw').value;
+  const msg = $('#pwUpdateMsg');
+  if (!nw || nw.length < 6) {
+    msg.textContent = 'New password must be at least 6 characters.';
+    msg.style.color = '#e74c3c';
+    msg.style.display = 'inline';
+    return;
+  }
+  if (nw !== cf) {
+    msg.textContent = 'Passwords do not match.';
+    msg.style.color = '#e74c3c';
+    msg.style.display = 'inline';
+    return;
+  }
+  if (user) user.pw = nw;
+  $('#inpCurrentPw').value = '';
+  $('#inpNewPw').value = '';
+  $('#inpConfirmPw').value = '';
+  msg.textContent = 'Password updated successfully!';
+  msg.style.color = '#27ae60';
+  msg.style.display = 'inline';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+function handleAvatarFile(input) {
+  const file = input.files && input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const dataUrl = ev.target.result;
+      if (user) user.avatar = dataUrl;
+      const img = $('#pAvatarImg'), placeholder = $('#pAvatarPlaceholder');
+      if (img && placeholder) {
+        img.src = dataUrl;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+      }
+      renderAuth();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+renderAuth();init();prof();updateCityUI();renderCarousel();go((location.hash||'#home').slice(1).replace(/[^a-z]/g,'')||'home');
+</script>
+<!-- CITY SELECTOR MODAL -->
+<div class="city-modal-overlay" id="cityModalOverlay" onclick="closeCityModal()">
+  <div class="city-modal-box" onclick="event.stopPropagation()">
+    <div class="city-modal-header">
+      <h3>Select Your City</h3>
+      <button type="button" class="city-modal-close" onclick="closeCityModal()" aria-label="Close">×</button>
+    </div>
+
+    <div class="city-search-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8c8880" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="city-search-input" id="citySearchInput" placeholder="Search for your city or region..." oninput="filterCities(this.value)">
+    </div>
+
+    <button type="button" class="city-detect-btn" id="btnDetectGps" onclick="detectUserGps()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      <span id="gpsDetectText">Auto-Detect My Location (Nearest Metro)</span>
+    </button>
+    <div id="gpsDetectToast" style="display:none;padding:8px 14px;background:rgba(39,174,96,0.12);color:#27ae60;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:16px;text-align:center"></div>
+
+    <div class="city-section-title">Popular Cities</div>
+    <div class="popular-cities-grid" id="popularCitiesGrid"></div>
+  </div>
+</div>
+
+</body></html>

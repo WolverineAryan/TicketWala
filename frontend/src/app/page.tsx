@@ -29,11 +29,547 @@ interface User {
   name: string;
   email: string;
   pw: string;
+  phone?: string;
+  passName?: string;
+  avatar?: string;
+}
+
+export interface City {
+  id: string;
+  name: string;
+  tagline: string;
+  lat: number;
+  lng: number;
+}
+
+export interface BMSEvent {
+  id: string;
+  name: string;
+  category: "concert" | "comedy" | "sports" | "theatre";
+  categoryLabel: string;
+  cityId: string;
+  cityName: string;
+  venue: string;
+  dateStr: string;
+  month: string;
+  day: string;
+  time: string;
+  price: number;
+  badge: string;
+  contention: "FLASH DROP" | "SELLING FAST" | "ALMOST FULL" | "EXCLUSIVE";
+  sold: number;
+  totalSeats: number;
+  bannerUrl: string;
+  featured?: boolean;
+}
+
+const CITIES: City[] = [
+  { id: "mumbai", name: "Mumbai", tagline: "MMR & Suburbs", lat: 18.922, lng: 72.834 },
+  { id: "delhi", name: "Delhi-NCR", tagline: "Delhi, Noida, Gurgaon", lat: 28.6139, lng: 77.209 },
+  { id: "bengaluru", name: "Bengaluru", tagline: "Garden City", lat: 12.9716, lng: 77.5946 },
+  { id: "pune", name: "Pune", tagline: "Oxford of the East", lat: 18.5204, lng: 73.8567 },
+  { id: "hyderabad", name: "Hyderabad", tagline: "Cyberabad & Old City", lat: 17.385, lng: 78.4867 },
+  { id: "ahmedabad", name: "Ahmedabad", tagline: "Heritage & Arena", lat: 23.0225, lng: 72.5714 },
+  { id: "chennai", name: "Chennai", tagline: "Marina & Culture", lat: 13.0827, lng: 80.2707 },
+  { id: "kolkata", name: "Kolkata", tagline: "City of Joy", lat: 22.5726, lng: 88.3639 },
+  { id: "chandigarh", name: "Chandigarh", tagline: "The Beautiful City", lat: 30.7333, lng: 76.7794 },
+  { id: "goa", name: "Goa", tagline: "Beaches & Sunburn", lat: 15.2993, lng: 74.124 },
+];
+
+const CITY_VENUES: Record<string, Array<{ name: string; area: string; eventsCount: number }>> = {
+  mumbai: [
+    { name: "D.Y. Patil Sports Stadium", area: "Nerul, Navi Mumbai", eventsCount: 4 },
+    { name: "Jio World Garden & Convention", area: "BKC, Bandra", eventsCount: 6 },
+    { name: "Nita Mukesh Ambani Cultural Centre", area: "BKC", eventsCount: 3 },
+    { name: "Wankhede Stadium", area: "Marine Drive", eventsCount: 5 },
+  ],
+  delhi: [
+    { name: "Jawaharlal Nehru Stadium", area: "Pragati Vihar", eventsCount: 5 },
+    { name: "Indira Gandhi Indoor Arena", area: "ITO", eventsCount: 3 },
+    { name: "Arun Jaitley Cricket Stadium", area: "Feroz Shah Kotla", eventsCount: 4 },
+    { name: "Siri Fort Auditorium", area: "August Kranti Marg", eventsCount: 2 },
+  ],
+  bengaluru: [
+    { name: "Palace Grounds", area: "Jaymahal", eventsCount: 5 },
+    { name: "M. Chinnaswamy Stadium", area: "MG Road", eventsCount: 6 },
+    { name: "Manpho Convention Centre", area: "Nagavara", eventsCount: 3 },
+    { name: "Good Shepherd Auditorium", area: "Museum Road", eventsCount: 4 },
+  ],
+  pune: [
+    { name: "Mahalaxmi Lawns", area: "Karve Nagar", eventsCount: 3 },
+    { name: "Bal Gandharva Rang Mandir", area: "JM Road, Shivajinagar", eventsCount: 4 },
+    { name: "MCA International Stadium", area: "Gahunje", eventsCount: 3 },
+  ],
+  hyderabad: [
+    { name: "GMR Arena", area: "Shamshabad", eventsCount: 4 },
+    { name: "Rajiv Gandhi Intl Cricket Stadium", area: "Uppal", eventsCount: 5 },
+    { name: "Shilpakala Vedika", area: "Hitec City", eventsCount: 3 },
+  ],
+  ahmedabad: [
+    { name: "Narendra Modi Stadium", area: "Motera", eventsCount: 6 },
+    { name: "TransStadia Arena", area: "Kankaria Lake", eventsCount: 4 },
+    { name: "Pandit Dindayal Upadhyay Auditorium", area: "Bodakdev", eventsCount: 2 },
+  ],
+  chennai: [
+    { name: "MA Chidambaram Stadium (Chepauk)", area: "Triplicane", eventsCount: 5 },
+    { name: "YMCA Grounds", area: "Nandanam", eventsCount: 4 },
+    { name: "Music Academy", area: "TTK Road, Alwarpet", eventsCount: 3 },
+  ],
+  kolkata: [
+    { name: "Eden Gardens", area: "BBD Bagh", eventsCount: 5 },
+    { name: "Biswa Bangla Mela Prangan", area: "EM Bypass", eventsCount: 3 },
+    { name: "Science City Auditorium", area: "Topsia", eventsCount: 2 },
+  ],
+  chandigarh: [
+    { name: "Sector 17 Plaza Open Arena", area: "Sector 17", eventsCount: 3 },
+    { name: "PCA Cricket Stadium", area: "Mohali", eventsCount: 4 },
+  ],
+  goa: [
+    { name: "Vagator Beach Arena", area: "Vagator, North Goa", eventsCount: 4 },
+    { name: "Dr Shyama Prasad Mukherjee Stadium", area: "Taleigao", eventsCount: 2 },
+  ],
+};
+
+const BMS_EVENTS: BMSEvent[] = [
+  {
+    id: "coldplay-mum",
+    name: "Coldplay: Music of the Spheres",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "mumbai",
+    cityName: "Mumbai",
+    venue: "D.Y. Patil Sports Stadium",
+    dateStr: "Sat, 18 Jan · 7:00 PM",
+    month: "JAN",
+    day: "18",
+    time: "7:00 PM",
+    price: 3500,
+    badge: "GLOBAL TOUR",
+    contention: "FLASH DROP",
+    sold: 142,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "arijit-mum",
+    name: "Arijit Singh Live Symphony",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "mumbai",
+    cityName: "Mumbai",
+    venue: "Jio World Garden, BKC",
+    dateStr: "Fri, 24 Oct · 6:30 PM",
+    month: "OCT",
+    day: "24",
+    time: "6:30 PM",
+    price: 2499,
+    badge: "ARENA DROP",
+    contention: "SELLING FAST",
+    sold: 120,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "zakir-mum",
+    name: "Zakir Khan: Mann Pasand Live",
+    category: "comedy",
+    categoryLabel: "Standup Comedy",
+    cityId: "mumbai",
+    cityName: "Mumbai",
+    venue: "Shanmukhananda Hall",
+    dateStr: "Sun, 02 Nov · 8:00 PM",
+    month: "NOV",
+    day: "02",
+    time: "8:00 PM",
+    price: 999,
+    badge: "COMEDY TOUR",
+    contention: "FLASH DROP",
+    sold: 175,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "ipl-mum",
+    name: "Mumbai Indians vs CSK: El Clasico",
+    category: "sports",
+    categoryLabel: "Live Sports",
+    cityId: "mumbai",
+    cityName: "Mumbai",
+    venue: "Wankhede Stadium",
+    dateStr: "Sun, 23 Mar · 7:30 PM",
+    month: "MAR",
+    day: "23",
+    time: "7:30 PM",
+    price: 1500,
+    badge: "CRICKET FLASH",
+    contention: "ALMOST FULL",
+    sold: 188,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "mughal-mum",
+    name: "Mughal-E-Azam: The Grand Musical",
+    category: "theatre",
+    categoryLabel: "Theatre & Broadway",
+    cityId: "mumbai",
+    cityName: "Mumbai",
+    venue: "NCPA Nariman Point",
+    dateStr: "Sat, 14 Dec · 6:00 PM",
+    month: "DEC",
+    day: "14",
+    time: "6:00 PM",
+    price: 1800,
+    badge: "BROADWAY INDIA",
+    contention: "EXCLUSIVE",
+    sold: 95,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "diljit-del",
+    name: "Diljit Dosanjh: Dil-Luminati Tour",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "delhi",
+    cityName: "Delhi-NCR",
+    venue: "Jawaharlal Nehru Stadium",
+    dateStr: "Sat, 26 Oct · 7:00 PM",
+    month: "OCT",
+    day: "26",
+    time: "7:00 PM",
+    price: 2999,
+    badge: "STADIUM TOUR",
+    contention: "FLASH DROP",
+    sold: 190,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "bassi-del",
+    name: "Anubhav Singh Bassi: Kisi Ko Batana Mat",
+    category: "comedy",
+    categoryLabel: "Standup Comedy",
+    cityId: "delhi",
+    cityName: "Delhi-NCR",
+    venue: "Kedarnath Sahni Auditorium",
+    dateStr: "Fri, 15 Nov · 8:00 PM",
+    month: "NOV",
+    day: "15",
+    time: "8:00 PM",
+    price: 899,
+    badge: "COMEDY TOUR",
+    contention: "SELLING FAST",
+    sold: 110,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "cricket-del",
+    name: "India vs Australia: Border-Gavaskar Trophy",
+    category: "sports",
+    categoryLabel: "Live Sports",
+    cityId: "delhi",
+    cityName: "Delhi-NCR",
+    venue: "Arun Jaitley Cricket Stadium",
+    dateStr: "Wed, 04 Dec · 9:30 AM",
+    month: "DEC",
+    day: "04",
+    time: "9:30 AM",
+    price: 1200,
+    badge: "TEST CRICKET",
+    contention: "FLASH DROP",
+    sold: 165,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "edsheeran-blr",
+    name: "Ed Sheeran: +–=÷× Mathematics Tour",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "bengaluru",
+    cityName: "Bengaluru",
+    venue: "Palace Grounds",
+    dateStr: "Sun, 09 Feb · 6:30 PM",
+    month: "FEB",
+    day: "09",
+    time: "6:30 PM",
+    price: 3200,
+    badge: "INTERNATIONAL TOUR",
+    contention: "FLASH DROP",
+    sold: 180,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "kenny-blr",
+    name: "Kenny Sebastian: Professor of Chill",
+    category: "comedy",
+    categoryLabel: "Standup Comedy",
+    cityId: "bengaluru",
+    cityName: "Bengaluru",
+    venue: "Good Shepherd Auditorium",
+    dateStr: "Sat, 22 Nov · 7:30 PM",
+    month: "NOV",
+    day: "22",
+    time: "7:30 PM",
+    price: 799,
+    badge: "LIVE SPECIAL",
+    contention: "SELLING FAST",
+    sold: 140,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "rcb-blr",
+    name: "RCB Unbox & Team Jersey Launch",
+    category: "sports",
+    categoryLabel: "Live Sports",
+    cityId: "bengaluru",
+    cityName: "Bengaluru",
+    venue: "M. Chinnaswamy Stadium",
+    dateStr: "Sun, 16 Mar · 5:00 PM",
+    month: "MAR",
+    day: "16",
+    time: "5:00 PM",
+    price: 1500,
+    badge: "FAN FESTIVAL",
+    contention: "ALMOST FULL",
+    sold: 195,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "nh7-pun",
+    name: "BACARDÍ NH7 Weekender Music Fest",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "pune",
+    cityName: "Pune",
+    venue: "Mahalaxmi Lawns",
+    dateStr: "Sat, 13 Dec · 3:00 PM",
+    month: "DEC",
+    day: "13",
+    time: "3:00 PM",
+    price: 2199,
+    badge: "FESTIVAL PASS",
+    contention: "FLASH DROP",
+    sold: 130,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "biswa-pun",
+    name: "Biswa Kalyan Rath: Live In Pune",
+    category: "comedy",
+    categoryLabel: "Standup Comedy",
+    cityId: "pune",
+    cityName: "Pune",
+    venue: "Bal Gandharva Rang Mandir",
+    dateStr: "Sun, 07 Dec · 8:00 PM",
+    month: "DEC",
+    day: "07",
+    time: "8:00 PM",
+    price: 899,
+    badge: "STANDUP SPECIAL",
+    contention: "SELLING FAST",
+    sold: 115,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "karan-hyd",
+    name: "Karan Aujla: It Was All A Dream Tour",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "hyderabad",
+    cityName: "Hyderabad",
+    venue: "GMR Arena",
+    dateStr: "Sun, 18 Jan · 6:30 PM",
+    month: "JAN",
+    day: "18",
+    time: "6:30 PM",
+    price: 2500,
+    badge: "STADIUM TOUR",
+    contention: "FLASH DROP",
+    sold: 155,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "samay-hyd",
+    name: "Samay Raina: Unfiltered & Live",
+    category: "comedy",
+    categoryLabel: "Standup Comedy",
+    cityId: "hyderabad",
+    cityName: "Hyderabad",
+    venue: "Shilpakala Vedika",
+    dateStr: "Sat, 29 Nov · 7:30 PM",
+    month: "NOV",
+    day: "29",
+    time: "7:30 PM",
+    price: 999,
+    badge: "LIVE ROAST",
+    contention: "FLASH DROP",
+    sold: 170,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+  },
+  {
+    id: "coldplay-ahm",
+    name: "Coldplay: Extra Arena Flash Night",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "ahmedabad",
+    cityName: "Ahmedabad",
+    venue: "Narendra Modi Stadium",
+    dateStr: "Sat, 25 Jan · 6:00 PM",
+    month: "JAN",
+    day: "25",
+    time: "6:00 PM",
+    price: 2500,
+    badge: "100K CAPACITY ARENA",
+    contention: "FLASH DROP",
+    sold: 198,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "anirudh-che",
+    name: "Anirudh Ravichander: Hukum Tour Live",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "chennai",
+    cityName: "Chennai",
+    venue: "YMCA Grounds",
+    dateStr: "Sat, 01 Feb · 7:00 PM",
+    month: "FEB",
+    day: "01",
+    time: "7:00 PM",
+    price: 1800,
+    badge: "ROCKSTAR CONCERT",
+    contention: "FLASH DROP",
+    sold: 160,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "shreya-kol",
+    name: "Shreya Ghoshal: All Hearts Tour",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "kolkata",
+    cityName: "Kolkata",
+    venue: "Biswa Bangla Mela Prangan",
+    dateStr: "Fri, 19 Dec · 6:30 PM",
+    month: "DEC",
+    day: "19",
+    time: "6:30 PM",
+    price: 1999,
+    badge: "SYMPHONY NIGHT",
+    contention: "FLASH DROP",
+    sold: 125,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "sunburn-goa",
+    name: "Sunburn Electronic Beach Festival 2026",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "goa",
+    cityName: "Goa",
+    venue: "Vagator Beach Arena",
+    dateStr: "Sun, 28 Dec · 4:00 PM",
+    month: "DEC",
+    day: "28",
+    time: "4:00 PM",
+    price: 3999,
+    badge: "3-DAY MEGAFEST",
+    contention: "FLASH DROP",
+    sold: 178,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80",
+    featured: true,
+  },
+  {
+    id: "apdhillon-chd",
+    name: "AP Dhillon: Brown Munde Tour",
+    category: "concert",
+    categoryLabel: "Concerts & Music",
+    cityId: "chandigarh",
+    cityName: "Chandigarh",
+    venue: "Sector 17 Plaza Arena",
+    dateStr: "Sat, 10 Jan · 7:30 PM",
+    month: "JAN",
+    day: "10",
+    time: "7:30 PM",
+    price: 2499,
+    badge: "PUNJABI WAVE",
+    contention: "FLASH DROP",
+    sold: 145,
+    totalSeats: 200,
+    bannerUrl: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
+  },
+];
+
+function findNearestCity(lat: number, lng: number): City {
+  let closest = CITIES[0];
+  let minDistance = Infinity;
+  for (const city of CITIES) {
+    const dLat = ((city.lat - lat) * Math.PI) / 180;
+    const dLng = ((city.lng - lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat * Math.PI) / 180) *
+        Math.cos((city.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = 6371 * c;
+    if (d < minDistance) {
+      minDistance = d;
+      closest = city;
+    }
+  }
+  return closest;
 }
 
 export default function TicketWalaPage() {
-  // Navigation & Page State
-  const [activePage, setActivePage] = useState<string>("home");
+  // Navigation & Page State (default to landing page or home)
+  const [activePage, setActivePage] = useState<string>("landing");
+
+  // Location Saver State
+  const [selectedCityId, setSelectedCityId] = useState<string>("mumbai");
+  const [showCityModal, setShowCityModal] = useState<boolean>(false);
+  const [citySearchQuery, setCitySearchQuery] = useState<string>("");
+  const [gpsLoading, setGpsLoading] = useState<boolean>(false);
+  const [gpsMessage, setGpsMessage] = useState<string>("");
+
+  // BookMyShow Home Interactive States
+  const [carouselIdx, setCarouselIdx] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // Profile Form States
+  const [profileName, setProfileName] = useState<string>("");
+  const [profilePassName, setProfilePassName] = useState<string>("");
+  const [profilePhone, setProfilePhone] = useState<string>("");
+  const [profileAvatar, setProfileAvatar] = useState<string>("");
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string>("");
+  const [oldPw, setOldPw] = useState<string>("");
+  const [newPw, setNewPw] = useState<string>("");
+  const [confirmPw, setConfirmPw] = useState<string>("");
+  const [pwMsg, setPwMsg] = useState<string>("");
 
   // Auth State
   const [user, setUser] = useState<User | null>(null);
@@ -42,6 +578,9 @@ export default function TicketWalaPage() {
       name: "Demo Fan",
       email: "demo@ticketwala.com",
       pw: "password123",
+      phone: "+91 98201 23456",
+      passName: "VIP Pass Holder",
+      avatar: "",
     },
   });
   const [loginEmail, setLoginEmail] = useState("");
@@ -156,7 +695,7 @@ export default function TicketWalaPage() {
     (window as any).go = (p: string) => navigateTo(p);
     const syncHash = () => {
       const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
-      if (["home", "events", "booking", "profile", "login", "signup"].includes(h)) {
+      if (["home", "landing", "events", "booking", "profile", "login", "signup"].includes(h)) {
         setActivePage(h);
       }
     };
@@ -167,6 +706,155 @@ export default function TicketWalaPage() {
       delete (window as any).go;
     };
   }, [navigateTo]);
+
+  // Load saved city preference
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedCity = localStorage.getItem("ticketwala_selected_city");
+      if (savedCity && CITIES.some((c) => c.id === savedCity)) {
+        setSelectedCityId(savedCity);
+      }
+    }
+  }, []);
+
+  // Sync profile form details with current logged-in user
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name);
+      setProfilePassName(user.passName || user.name.split(" ")[0] + " (VIP Pass)");
+      setProfilePhone(user.phone || "+91 98200 12345");
+      setProfileAvatar(user.avatar || "");
+    }
+  }, [user]);
+
+  // Featured carousel auto-rotation
+  const featuredEvents = BMS_EVENTS.filter((e) => e.featured);
+  useEffect(() => {
+    if (featuredEvents.length === 0) return;
+    const interval = setInterval(() => {
+      setCarouselIdx((prev) => (prev + 1) % featuredEvents.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [featuredEvents.length]);
+
+  const currentCity = CITIES.find((c) => c.id === selectedCityId) || CITIES[0];
+  const filteredCities = CITIES.filter((c) =>
+    c.name.toLowerCase().includes(citySearchQuery.toLowerCase()) ||
+    c.tagline.toLowerCase().includes(citySearchQuery.toLowerCase())
+  );
+  const cityEvents = BMS_EVENTS.filter((e) => {
+    const matchesCity = e.cityId === currentCity.id;
+    const matchesCat = selectedCategory === "all" || e.category === selectedCategory;
+    return matchesCity && matchesCat;
+  });
+
+  const selectCity = (cityId: string) => {
+    setSelectedCityId(cityId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ticketwala_selected_city", cityId);
+    }
+    setShowCityModal(false);
+  };
+
+  const handleDetectLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsMessage("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nearest = findNearestCity(pos.coords.latitude, pos.coords.longitude);
+        setSelectedCityId(nearest.id);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("ticketwala_selected_city", nearest.id);
+        }
+        setGpsLoading(false);
+        setGpsMessage(`Auto-detected nearest metro: ${nearest.name}!`);
+        setTimeout(() => {
+          setShowCityModal(false);
+          setGpsMessage("");
+        }, 1200);
+      },
+      () => {
+        setGpsLoading(false);
+        alert("Unable to detect location. Please select your city manually.");
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  const bookEventFromHome = (eventData: BMSEvent) => {
+    setEvents((prev) => [
+      { month: eventData.month, day: eventData.day, name: `${eventData.name} — ${eventData.cityName}`, sold: eventData.sold },
+      ...prev.filter((e) => e.name !== `${eventData.name} — ${eventData.cityName}`),
+    ]);
+    setCurrentEventIdx(0);
+    initSeats();
+    navigateTo("booking");
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName.trim()) {
+      alert("Please enter a valid name");
+      return;
+    }
+    const updatedUser: User = {
+      ...(user || { email: "demo@ticketwala.com", pw: "password123" }),
+      name: profileName,
+      passName: profilePassName || profileName,
+      phone: profilePhone,
+      avatar: profileAvatar,
+    };
+    setUser(updatedUser);
+    setUsers((prev) => ({
+      ...prev,
+      [updatedUser.email]: updatedUser,
+    }));
+    setProfileSuccessMsg("Profile details updated successfully!");
+    setTimeout(() => setProfileSuccessMsg(""), 3000);
+  };
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPw || newPw.length < 6) {
+      setPwMsg("New password must be at least 6 characters.");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwMsg("Passwords do not match.");
+      return;
+    }
+    if (user) {
+      const updatedUser: User = { ...user, pw: newPw };
+      setUser(updatedUser);
+      setUsers((prev) => ({ ...prev, [updatedUser.email]: updatedUser }));
+    }
+    setOldPw("");
+    setNewPw("");
+    setConfirmPw("");
+    setPwMsg("Password updated successfully!");
+    setTimeout(() => setPwMsg(""), 3000);
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setProfileAvatar(result);
+        if (user) {
+          const updatedUser: User = { ...user, avatar: result };
+          setUser(updatedUser);
+          setUsers((prev) => ({ ...prev, [updatedUser.email]: updatedUser }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // 1. Telemetry Dashboard & Sparkline Chart Loop
   useEffect(() => {
@@ -187,7 +875,7 @@ export default function TicketWalaPage() {
   // Draw Sparkline
   useEffect(() => {
     const canvas = sparkCanvasRef.current;
-    if (!canvas || activePage !== "home") return;
+    if (!canvas || (activePage !== "landing" && activePage !== "home")) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -563,12 +1251,27 @@ export default function TicketWalaPage() {
     <>
       {/* NAVIGATION BAR */}
       <nav>
-        <div className="logo" onClick={() => navigateTo("home")} role="button" tabIndex={0} style={{ cursor: "pointer" }}>
-          <img
-            src="/logo-navbar.png"
-            alt="TicketWala"
-            style={{ height: "46px", width: "auto", objectFit: "contain", display: "block" }}
-          />
+        <div className="nav-left-group">
+          <div className="logo" onClick={() => navigateTo("home")} role="button" tabIndex={0} style={{ cursor: "pointer" }}>
+            <img
+              src="/logo-navbar.png"
+              alt="TicketWala"
+              style={{ height: "46px", width: "auto", objectFit: "contain", display: "block" }}
+            />
+          </div>
+          <button
+            type="button"
+            className="location-pill-btn"
+            onClick={() => setShowCityModal(true)}
+            title="Change City"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span>{currentCity.name}</span>
+            <span className="location-chevron">▾</span>
+          </button>
         </div>
 
         <ul id="nav">
@@ -616,6 +1319,20 @@ export default function TicketWalaPage() {
           </li>
           <li>
             <a
+              href="#landing"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "landing" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("landing");
+              }}
+            >
+              Architecture
+            </a>
+          </li>
+          <li>
+            <a
               href="#profile"
               role="button"
               style={{ cursor: "pointer" }}
@@ -633,9 +1350,44 @@ export default function TicketWalaPage() {
         <div id="auth" style={{ display: "flex", alignItems: "center" }}>
           {user ? (
             <>
-              <span style={{ fontWeight: 600, fontSize: "14px", marginRight: "10px" }}>
-                {user.name.split(" ")[0]}
-              </span>
+              <button
+                type="button"
+                onClick={() => navigateTo("profile")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  marginRight: "10px",
+                  padding: "4px 8px",
+                  borderRadius: "99px",
+                }}
+              >
+                <div style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "var(--o)",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  overflow: "hidden",
+                }}>
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    user.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span style={{ fontWeight: 600, fontSize: "14px", color: "var(--k)" }}>
+                  {user.name.split(" ")[0]}
+                </span>
+              </button>
               <button type="button" className="btn ghost" style={{ padding: "8px 18px" }} onClick={handleLogout}>
                 Log out
               </button>
@@ -660,11 +1412,320 @@ export default function TicketWalaPage() {
 
       {/* MAIN CONTENT PAGES */}
       <main>
-        {/* 1. HOME PAGE */}
+        {/* 1. BOOKMYSHOW-STYLE HOME PAGE */}
         <div
           className={`page ${activePage === "home" ? "on" : ""}`}
           id="home"
           style={{ display: activePage === "home" ? "block" : "none" }}
+        >
+          <div className="bms-home-wrap">
+            {/* Featured Hero Carousel Banner */}
+            <div className="bms-hero-banner">
+              <div
+                className="bms-hero-bg"
+                style={{
+                  backgroundImage: `url(${featuredEvents[carouselIdx]?.bannerUrl || "/signup-banner.jpg"})`,
+                }}
+              />
+              <div className="bms-hero-gradient" />
+              <div className="bms-hero-content">
+                <span className="bms-hero-tag">
+                  <span className="live-dot-sm" /> {featuredEvents[carouselIdx]?.badge || "HEADLINER DROP"} · {featuredEvents[carouselIdx]?.contention}
+                </span>
+                <h1 className="bms-hero-title">
+                  {featuredEvents[carouselIdx]?.name}
+                </h1>
+                <div className="bms-hero-meta">
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                    {featuredEvents[carouselIdx]?.dateStr}
+                  </span>
+                  <span>•</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                    {featuredEvents[carouselIdx]?.venue}, {currentCity.name}
+                  </span>
+                  <span>•</span>
+                  <span style={{ fontWeight: 800, color: "#fff" }}>
+                    From ₹{featuredEvents[carouselIdx]?.price}
+                  </span>
+                </div>
+                <div className="bms-hero-actions">
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: "13px 28px", fontSize: "15px" }}
+                    onClick={() => bookEventFromHome(featuredEvents[carouselIdx])}
+                  >
+                    Book Seats Now →
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ color: "#fff", borderColor: "rgba(255,255,255,0.4)", padding: "13px 22px" }}
+                    onClick={() => navigateTo("landing")}
+                  >
+                    View Architecture Lab
+                  </button>
+                </div>
+              </div>
+
+              {/* Dots */}
+              <div className="bms-hero-dots">
+                {featuredEvents.map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    className={`bms-dot ${dotIdx === carouselIdx ? "active" : ""}`}
+                    onClick={() => setCarouselIdx(dotIdx)}
+                    aria-label={`Slide ${dotIdx + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="bms-categories-bar">
+              <div className="bms-categories-list">
+                {[
+                  { id: "all", label: "All Drops" },
+                  { id: "concert", label: "Concerts & Music" },
+                  { id: "comedy", label: "Standup Comedy" },
+                  { id: "sports", label: "Live Stadium Sports" },
+                  { id: "theatre", label: "Theatre & Plays" },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`bms-cat-pill ${selectedCategory === cat.id ? "active" : ""}`}
+                    onClick={() => setSelectedCategory(cat.id)}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Edge Technology Ribbon */}
+            <div className="bms-edge-ribbon" style={{ marginBottom: "32px" }}>
+              <div className="bms-edge-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                <span><b>Zero Double-Bookings</b> Guaranteed</span>
+              </div>
+              <div className="bms-edge-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                <span><b>0.38ms Redis Lua Lock</b></span>
+              </div>
+              <div className="bms-edge-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                <span><b>30s TTL Hold Ring</b></span>
+              </div>
+              <div className="bms-edge-pill">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                <span><b>10k RPS Bot Shield</b></span>
+              </div>
+            </div>
+
+            {/* Events in City Section Header */}
+            <div className="bms-section-header">
+              <div>
+                <h2>Live Drops in {currentCity.name}</h2>
+                <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
+                  Showing high-velocity ticket drops in {currentCity.name}. Live Redis locks protect every seat.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="location-pill-btn"
+                  onClick={() => setShowCityModal(true)}
+                >
+                  <span>Switch City</span>
+                  <span className="location-chevron">▾</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Location-Filtered Events Grid */}
+            <div className="bms-events-grid" style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "24px",
+              marginBottom: "48px"
+            }}>
+              {cityEvents.length > 0 ? (
+                cityEvents.map((evt) => (
+                  <div key={evt.id} className="bms-event-card" style={{
+                    background: "#ffffff",
+                    borderRadius: "18px",
+                    overflow: "hidden",
+                    border: "1px solid rgba(43, 42, 40, 0.1)",
+                    boxShadow: "0 4px 16px rgba(0, 0, 0, 0.05)",
+                    display: "flex",
+                    flexDirection: "column",
+                    transition: "transform 0.2s, box-shadow 0.2s"
+                  }}>
+                    <div style={{ position: "relative", height: "180px", overflow: "hidden" }}>
+                      <img
+                        src={evt.bannerUrl}
+                        alt={evt.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <span style={{
+                        position: "absolute",
+                        top: "12px",
+                        left: "12px",
+                        background: evt.contention === "FLASH DROP" ? "var(--o)" : "var(--k)",
+                        color: "#fff",
+                        padding: "3px 10px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 800,
+                        letterSpacing: "0.5px"
+                      }}>
+                        {evt.contention}
+                      </span>
+                      <span style={{
+                        position: "absolute",
+                        bottom: "12px",
+                        left: "12px",
+                        background: "rgba(0,0,0,0.75)",
+                        backdropFilter: "blur(4px)",
+                        color: "#fff",
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 700
+                      }}>
+                        {evt.dateStr}
+                      </span>
+                    </div>
+
+                    <div style={{ padding: "18px", display: "flex", flexDirection: "column", flex: 1 }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "4px" }}>
+                        {evt.categoryLabel}
+                      </div>
+                      <h3 style={{ fontSize: "17px", fontWeight: 800, color: "var(--k)", marginBottom: "6px", lineHeight: 1.3 }}>
+                        {evt.name}
+                      </h3>
+                      <div style={{ fontSize: "13px", color: "#77736c", marginBottom: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                        <span>{evt.venue}</span>
+                      </div>
+
+                      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "12px", borderTop: "1px solid #f0ede7" }}>
+                        <div>
+                          <small style={{ display: "block", fontSize: "11px", color: "#8c8880", fontWeight: 600 }}>STARTING FROM</small>
+                          <b style={{ fontSize: "17px", color: "var(--k)", fontWeight: 800 }}>₹{evt.price}</b>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ padding: "9px 18px", fontSize: "13px" }}
+                          onClick={() => bookEventFromHome(evt)}
+                        >
+                          Book Seats →
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "48px 20px", background: "#fbfaf8", borderRadius: "16px", border: "1px dashed #ded9d0" }}>
+                  <p style={{ fontWeight: 700, color: "var(--k)", marginBottom: "8px" }}>No events found for this filter in {currentCity.name}.</p>
+                  <p style={{ fontSize: "13px", color: "#77736c", marginBottom: "16px" }}>Try selecting another category or explore all India drops.</p>
+                  <button type="button" className="btn ghost" onClick={() => setSelectedCategory("all")}>View All Categories</button>
+                </div>
+              )}
+            </div>
+
+            {/* Iconic Venues in City */}
+            <div className="bms-section-header">
+              <div>
+                <h2>Iconic Venues in {currentCity.name}</h2>
+                <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
+                  High-capacity stadiums and theaters with TicketWala flash-drop gates.
+                </p>
+              </div>
+            </div>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "16px",
+              marginBottom: "48px"
+            }}>
+              {(CITY_VENUES[currentCity.id] || CITY_VENUES["mumbai"]).map((v, i) => (
+                <div key={i} style={{
+                  background: "#ffffff",
+                  border: "1px solid rgba(43, 42, 40, 0.08)",
+                  borderRadius: "16px",
+                  padding: "18px 20px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "14px"
+                }}>
+                  <div style={{
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "12px",
+                    background: "rgba(255, 107, 55, 0.12)",
+                    color: "var(--o)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14" /></svg>
+                  </div>
+                  <div>
+                    <b style={{ display: "block", fontSize: "15px", color: "var(--k)" }}>{v.name}</b>
+                    <span style={{ fontSize: "12px", color: "#77736c" }}>{v.area} • {v.eventsCount} upcoming drops</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Architecture Callout Banner */}
+            <div style={{
+              background: "linear-gradient(135deg, #2B2A28 0%, #191817 100%)",
+              borderRadius: "20px",
+              padding: "36px 40px",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "24px",
+              flexWrap: "wrap",
+              border: "1px solid rgba(255, 255, 255, 0.1)"
+            }}>
+              <div style={{ maxWidth: "600px" }}>
+                <span style={{ color: "var(--o)", fontSize: "12px", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" }}>
+                  ENGINEERING BEHIND THE CURTAIN
+                </span>
+                <h3 style={{ fontSize: "24px", fontWeight: 800, marginTop: "6px", marginBottom: "8px", color: "#fff" }}>
+                  How does TicketWala prevent double-booking at 10,000 RPS?
+                </h3>
+                <p style={{ color: "#d6d0c4", fontSize: "14px", lineHeight: 1.5 }}>
+                  Redis Lua atomic script execution, 30s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => navigateTo("landing")}
+                style={{ padding: "14px 26px", fontSize: "14px", whiteSpace: "nowrap" }}
+              >
+                Explore Architecture & Chaos Lab →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. DEDICATED ENGINEERING LANDING PAGE */}
+        <div
+          className={`page ${activePage === "landing" ? "on" : ""}`}
+          id="landing"
+          style={{ display: activePage === "landing" ? "block" : "none" }}
         >
           {/* Hero Section */}
           <div className="hero">
@@ -1681,56 +2742,347 @@ export default function TicketWalaPage() {
           </section>
         </div>
 
-        {/* 4. PROFILE PAGE */}
+        {/* 4. ENHANCED PROFILE PAGE */}
         <div
           className={`page ${activePage === "profile" ? "on" : ""}`}
           id="profile"
           style={{ display: activePage === "profile" ? "block" : "none" }}
         >
-          <section className="light">
-            <h2>
-              Hi, <em id="uName">{user ? user.name.split(" ")[0] : "Fan"}</em>
-            </h2>
-            <div className="kpis">
-              <div className="kpi">
-                <b>{bookings.length}</b>
-                <span>Bookings</span>
+          <div className="profile-dash-wrap">
+            {/* Profile Hero Header */}
+            <div className="profile-hero-card">
+              <div className="profile-hero-top">
+                <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
+                  <div className="profile-avatar-wrapper">
+                    {profileAvatar ? (
+                      <img src={profileAvatar} alt="Profile" className="profile-avatar-img" />
+                    ) : (
+                      <div className="profile-avatar-placeholder">
+                        {user ? user.name.slice(0, 2).toUpperCase() : "DF"}
+                      </div>
+                    )}
+                    <label
+                      htmlFor="avatar-file-input"
+                      className="profile-avatar-edit-btn"
+                      title="Upload Avatar Image"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                      <input
+                        id="avatar-file-input"
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={handleAvatarUpload}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="profile-identity">
+                    <div className="profile-name-row">
+                      <h2>{user ? user.name : "Demo Fan"}</h2>
+                      <span className="profile-verified-badge">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Queue Priority #1 Verified
+                      </span>
+                    </div>
+                    <div className="profile-meta-row">
+                      <span>{user ? user.email : "demo@ticketwala.com"}</span>
+                      <span className="dot-sep">•</span>
+                      <span>{user?.phone || profilePhone || "+91 98200 12345"}</span>
+                      <span className="dot-sep">•</span>
+                      <span className="pass-pill">{user?.passName || profilePassName || "VIP Prime Fan Pass"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-logout-header"
+                  onClick={handleLogout}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>Log Out</span>
+                </button>
               </div>
-              <div className="kpi">
-                <b>{stats.exp}</b>
-                <span>Holds expired</span>
-              </div>
-              <div className="kpi">
-                <b>#1</b>
-                <span>Queue priority</span>
+
+              {/* Digital Fan Pass Ribbon */}
+              <div className="digital-fan-pass-ribbon">
+                <div className="dfp-item">
+                  <small>PASS IDENTIFIER</small>
+                  <b>TW-8849-VIP</b>
+                </div>
+                <div className="dfp-item">
+                  <small>PASS HOLDER NAME</small>
+                  <b>{user?.passName || profilePassName || (user ? user.name : "Demo Fan")}</b>
+                </div>
+                <div className="dfp-item">
+                  <small>ACTIVE BOOKINGS</small>
+                  <b>{bookings.length} Seats Confirmed</b>
+                </div>
+                <div className="dfp-item">
+                  <small>REDIS HOLD GUARANTEE</small>
+                  <b style={{ color: "#27ae60" }}>0 Double-Bookings</b>
+                </div>
               </div>
             </div>
 
-            <h3>My tickets</h3>
-            <div id="pl" style={{ marginTop: "14px" }}>
-              {bookings.length > 0 ? (
-                bookings.map((b, i) => (
-                  <div key={i} className="ev">
-                    <div className="d">
-                      <small>SEAT</small>
-                      {b.s}
+            {/* Profile Content Grid */}
+            <div className="profile-content-grid">
+              {/* Left Column: Editable Details */}
+              <div>
+                {/* Personal & Pass Details Card */}
+                <div className="profile-card">
+                  <div className="profile-card-header">
+                    <div className="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      Personal & Pass Details
                     </div>
-                    <div>
-                      <b>{b.e}</b>
-                      <div style={{ fontSize: "13px", opacity: 0.7, display: "flex", alignItems: "center", gap: "5px", marginTop: "3px" }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        Confirmed
+                    <span className="profile-card-desc">
+                      Update your account name, pass holder name for tickets, and phone number.
+                    </span>
+                  </div>
+
+                  <form className="profile-form" onSubmit={handleSaveProfile}>
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label">Full Name</label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profileName}
+                            onChange={(e) => setProfileName(e.target.value)}
+                            placeholder="Your full name"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label">Pass Name (on Tickets)</label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profilePassName}
+                            onChange={(e) => setProfilePassName(e.target.value)}
+                            placeholder="Name displayed on pass"
+                          />
+                        </div>
                       </div>
                     </div>
+
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label">Phone Number</label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profilePhone}
+                            onChange={(e) => setProfilePhone(e.target.value)}
+                            placeholder="+91 98200 12345"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label">Registered Email</label>
+                        <div className="input-field-box" style={{ background: "#f2f0ec", opacity: 0.85 }}>
+                          <input
+                            className="input-field-input"
+                            value={user ? user.email : "demo@ticketwala.com"}
+                            disabled
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-actions-row">
+                      {profileSuccessMsg && (
+                        <span className="profile-success-text">{profileSuccessMsg}</span>
+                      )}
+                      <button type="submit" className="btn" style={{ padding: "10px 22px" }}>
+                        Save Profile Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Password / Security Card */}
+                <div className="profile-card">
+                  <div className="profile-card-header">
+                    <div className="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                      Security & Password
+                    </div>
+                    <span className="profile-card-desc">
+                      Manage your password credentials and account security.
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p style={{ opacity: 0.6 }}>No tickets yet — grab a seat!</p>
-              )}
+
+                  <form className="profile-form" onSubmit={handleUpdatePassword}>
+                    <div className="input-field-group">
+                      <label className="input-field-label">Current Password</label>
+                      <div className="input-field-box">
+                        <input
+                          type="password"
+                          className="input-field-input"
+                          value={oldPw}
+                          onChange={(e) => setOldPw(e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label">New Password</label>
+                        <div className="input-field-box">
+                          <input
+                            type="password"
+                            className="input-field-input"
+                            value={newPw}
+                            onChange={(e) => setNewPw(e.target.value)}
+                            placeholder="At least 6 characters"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label">Confirm New Password</label>
+                        <div className="input-field-box">
+                          <input
+                            type="password"
+                            className="input-field-input"
+                            value={confirmPw}
+                            onChange={(e) => setConfirmPw(e.target.value)}
+                            placeholder="Repeat new password"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-actions-row">
+                      {pwMsg && (
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
+                          {pwMsg}
+                        </span>
+                      )}
+                      <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
+                        Update Password
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Right Column: Passes & Actions */}
+              <div>
+                {/* Tickets Card */}
+                <div className="profile-card">
+                  <div className="profile-card-header">
+                    <div className="profile-card-title">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                      </svg>
+                      My Reserved Passes
+                    </div>
+                    <span className="profile-card-desc">
+                      Instant digital boarding passes backed by Redis TTL validation.
+                    </span>
+                  </div>
+
+                  <div className="profile-tickets-list">
+                    {bookings.length > 0 ? (
+                      bookings.map((b, i) => (
+                        <div key={i} className="profile-ticket-item" style={{
+                          background: "#fdfcfb",
+                          border: "1.5px solid #eae5dc",
+                          borderRadius: "14px",
+                          padding: "16px",
+                          marginBottom: "12px"
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                            <div>
+                              <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
+                                {b.tier || "VIP Prime"}
+                              </span>
+                              <b style={{ display: "block", fontSize: "15px", color: "var(--k)", marginTop: "2px" }}>
+                                {b.e}
+                              </b>
+                            </div>
+                            <span style={{
+                              background: "rgba(39, 174, 96, 0.12)",
+                              color: "#27ae60",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              padding: "3px 8px",
+                              borderRadius: "6px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                              Confirmed
+                            </span>
+                          </div>
+
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", color: "#77736c", paddingTop: "8px", borderTop: "1px dashed #ded9d0" }}>
+                            <span>SEAT <b>#{b.s}</b></span>
+                            <span>PASS: <b>{user?.passName || profilePassName || user?.name || "Fan"}</b></span>
+                            <span style={{ color: "var(--k)", fontWeight: 700 }}>₹{b.price || 1499}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-tickets-box">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#b8b4ad" strokeWidth="1.8" style={{ margin: "0 auto 10px", display: "block" }}>
+                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                        </svg>
+                        <b style={{ color: "var(--k)", display: "block" }}>No passes claimed yet</b>
+                        <p style={{ margin: "8px 0 14px", fontSize: "13px" }}>Lock your seat before high-contention flash drops sell out!</p>
+                        <button type="button" className="btn" style={{ padding: "8px 18px", fontSize: "13px" }} onClick={() => navigateTo("booking")}>
+                          Grab Seats Now →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account Danger Zone Card */}
+                <div className="profile-card danger-card">
+                  <div className="danger-row">
+                    <div>
+                      <b style={{ display: "block", color: "var(--k)", fontSize: "14px" }}>Account Session</b>
+                      <span style={{ fontSize: "12px", color: "#77736c" }}>
+                        Sign out of your active TicketWala session on this device.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={{ borderColor: "#e74c3c", color: "#e74c3c", padding: "8px 18px", fontSize: "13px" }}
+                      onClick={handleLogout}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </section>
+          </div>
         </div>
 
         {/* 5. LOGIN PAGE */}
@@ -2221,6 +3573,82 @@ export default function TicketWalaPage() {
 
       {/* FOOTER */}
       <footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
+
+      {/* CITY SELECTOR MODAL */}
+      {showCityModal && (
+        <div className="city-modal-overlay" onClick={() => setShowCityModal(false)}>
+          <div className="city-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="city-modal-header">
+              <h3>Select Your City</h3>
+              <button
+                type="button"
+                className="city-modal-close"
+                onClick={() => setShowCityModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="city-search-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8c8880" strokeWidth="2.2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                className="city-search-input"
+                placeholder="Search for your city or region..."
+                value={citySearchQuery}
+                onChange={(e) => setCitySearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <button
+              type="button"
+              className="city-detect-btn"
+              onClick={handleDetectLocation}
+              disabled={gpsLoading}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+              </svg>
+              <span>{gpsLoading ? "Detecting GPS location..." : "Auto-Detect My Location (Nearest Metro)"}</span>
+            </button>
+
+            {gpsMessage && (
+              <div style={{ padding: "8px 14px", background: "rgba(39, 174, 96, 0.12)", color: "#27ae60", borderRadius: "10px", fontSize: "13px", fontWeight: 700, marginBottom: "16px", textAlign: "center" }}>
+                {gpsMessage}
+              </div>
+            )}
+
+            <div className="city-section-title">Popular Cities</div>
+            <div className="popular-cities-grid">
+              {filteredCities.map((city) => {
+                const isSel = city.id === selectedCityId;
+                return (
+                  <button
+                    key={city.id}
+                    type="button"
+                    className={`city-item-btn ${isSel ? "selected" : ""}`}
+                    onClick={() => selectCity(city.id)}
+                  >
+                    <div className="city-icon-badge">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </div>
+                    <span>{city.name}</span>
+                    <small style={{ fontSize: "10px", opacity: 0.65, fontWeight: 500 }}>{city.tagline}</small>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
