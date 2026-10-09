@@ -9,7 +9,18 @@ import {
   generateHoldToken,
 } from "../../src/lua/index.js";
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+import dotenv from "dotenv";
+import path from "path";
+
+dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
+
+const rawRedisUrl = (process.env.REDIS_URL || "redis://localhost:6379").trim().replace(/^["']|["']$/g, "");
+const isPlaceholderRedis =
+  rawRedisUrl.includes("[TOKEN]") ||
+  rawRedisUrl.includes("[ENDPOINT]") ||
+  rawRedisUrl.includes("YOUR_");
+const REDIS_URL = isPlaceholderRedis ? "redis://localhost:6379" : rawRedisUrl;
 
 describe("TicketWala Concurrency & Race Hazard Eliminator", () => {
   let redis: Redis;
