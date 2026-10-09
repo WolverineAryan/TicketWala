@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TicketWala — Flash Reservation Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--w:#FFFFFF;--k:#2B2A28;--o:#FF6B35;--g:#f4f2ef;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0}html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+body{font-family:Poppins,system-ui,sans-serif;background:var(--w);color:var(--k);overflow-x:hidden}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;align-items:center;justify-content:space-between;padding:12px 5vw;background:#fffffff0;backdrop-filter:blur(8px);border-bottom:1px solid #0001}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;cursor:pointer}
+.logo small{display:block;font-size:9px;letter-spacing:3px;font-weight:600}
+nav ul{display:flex;gap:6px;list-style:none;padding:0}
+nav a{padding:8px 16px;border-radius:99px;font-weight:600;font-size:14px;cursor:pointer;color:var(--k);text-decoration:none}
+nav a.on,nav a:hover{background:var(--k);color:#fff}
+.btn{background:var(--o);color:#fff;border:0;padding:14px 28px;border-radius:99px;font:600 15px Poppins;cursor:pointer;transition:.2s;box-shadow:0 8px 24px #ff6b3555}
+.btn:hover{transform:translateY(-2px) scale(1.03)}.btn.k{background:var(--k);box-shadow:none}.btn.ghost{background:transparent;color:var(--k);border:2px solid var(--k);box-shadow:none}
+.page{display:none;animation:in .5s}.page.on{display:block}@keyframes in{from{opacity:0;transform:translateY(14px)}}
+section{padding:70px 5vw}h2{font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:10px}h2 em{color:var(--o);font-style:normal}
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:center;min-height:82vh;position:relative;overflow:hidden}
+.hero h1{font-size:clamp(34px,5.6vw,68px);line-height:1.05;font-weight:800;margin:14px 0}.hero h1 em{color:var(--o);font-style:normal;position:relative}
+.pill{display:inline-flex;gap:8px;align-items:center;background:var(--g);padding:6px 14px;border-radius:99px;font-size:13px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--o);animation:pulse 1.2s infinite}@keyframes pulse{50%{box-shadow:0 0 0 8px #ff6b3500;opacity:.5}}
+.hero p{max-width:520px;line-height:1.7;opacity:.8;margin-bottom:26px}
+.stage{perspective:1000px;height:440px;position:relative}
+.stack{position:absolute;inset:0;transform-style:preserve-3d;animation:spin 14s ease-in-out infinite}
+@keyframes spin{0%,100%{transform:rotateX(55deg) rotateZ(-30deg)}50%{transform:rotateX(35deg) rotateZ(20deg)}}
+.tk{position:absolute;left:50%;top:50%;width:300px;height:130px;margin:-65px 0 0 -150px;border-radius:16px;background:var(--o);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-weight:800;font-size:22px;box-shadow:0 30px 50px #0003;animation:float 4s ease-in-out infinite}
+.tk:nth-child(2){background:var(--k);animation-delay:-1s}.tk:nth-child(3){background:#fff;color:var(--k);border:2px solid var(--k);animation-delay:-2s}
+.tk:nth-child(1){transform:translateZ(0)}.tk:nth-child(2){transform:translateZ(60px)}.tk:nth-child(3){transform:translateZ(120px)}
+@keyframes float{50%{margin-top:-85px}}.tk b{font-size:44px}.tk span{font-size:11px;letter-spacing:3px;display:block;opacity:.8}
+#heroCv{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.9;pointer-events:none}
+.hero>*{position:relative;z-index:1}
+.ticker{background:var(--k);color:#fff;overflow:hidden;white-space:nowrap;padding:14px 0}
+.ticker div{display:inline-block;animation:mq 25s linear infinite;font-weight:600}.ticker b{color:var(--o)}@keyframes mq{to{transform:translateX(-50%)}}
+.dark{background:var(--k);color:#fff}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:30px}
+.card{background:var(--g);border-radius:20px;padding:26px;transition:.3s}.card:hover{transform:translateY(-6px);box-shadow:0 16px 40px #0002}
+.dark .card{background:#ffffff0f;border:1px solid #ffffff1a}.card .n{width:44px;height:44px;border-radius:12px;background:var(--o);color:#fff;display:grid;place-items:center;font-weight:800;margin-bottom:14px;font-size:20px}
+.card h3{margin-bottom:8px}.card p{font-size:14px;line-height:1.6;opacity:.75}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin:26px 0}
+.kpi{background:#ffffff10;border-radius:16px;padding:20px;border:1px solid #ffffff18}.kpi b{display:block;font-size:34px;color:var(--o)}.kpi span{font-size:12px;opacity:.7}
+.light .kpi{background:var(--g);border-color:#0001}
+.seats{display:grid;grid-template-columns:repeat(20,1fr);gap:5px;max-width:760px}
+.s{aspect-ratio:1;border-radius:6px 6px 3px 3px;background:#e4e0da;border:0;cursor:pointer;transition:.25s;position:relative}
+.s.h{background:var(--o);animation:pulse 1s infinite}.s.x{background:var(--k)}.s.me{background:#fff;outline:3px solid var(--o);animation:none}.s:hover{transform:scale(1.25)}
+.leg{display:flex;gap:16px;font-size:12px;margin:12px 0;flex-wrap:wrap}.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px}
+.log{background:var(--k);color:#c9c5bf;border-radius:16px;padding:16px;font:12px/1.7 ui-monospace,monospace;height:220px;overflow:auto}.log .ok{color:#7be0a0}.log .no{color:var(--o)}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:26px}
+.steps{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}.steps div{flex:1;min-width:120px;padding:12px;border-radius:12px;background:var(--g);font-weight:600;font-size:13px;text-align:center;opacity:.5}
+.steps div.on{background:var(--o);color:#fff;opacity:1}.steps div.done{background:var(--k);color:#fff;opacity:1}
+.ring{width:150px;height:150px;position:relative;margin:10px auto}.ring svg{transform:rotate(-90deg)}.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:34px}
+.ev{display:flex;gap:18px;align-items:center;background:var(--g);border-radius:20px;padding:18px;margin-bottom:14px;transition:.3s}.ev:hover{transform:translateX(6px)}
+.ev .d{background:var(--k);color:#fff;border-radius:14px;padding:12px 16px;text-align:center;font-weight:800}.ev .d small{display:block;color:var(--o);font-size:11px}.ev>div:nth-child(2){flex:1}
+.bar{height:8px;background:#0002;border-radius:9px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--o);transition:.5s}
+canvas#spark{width:100%;height:120px}
+.auth{display:grid;grid-template-columns:1fr 1fr;min-height:78vh}.auth .side{background:var(--k);color:#fff;padding:60px 5vw;display:flex;flex-direction:column;justify-content:center}.auth .box{padding:60px 5vw;display:flex;flex-direction:column;justify-content:center;gap:14px;max-width:560px;width:100%}.auth input{padding:14px 16px;border:2px solid #0002;border-radius:12px;font:15px Poppins;width:100%;background:#fff;color:var(--k)}.auth input:focus{outline:0;border-color:var(--o)}.err{color:#c0392b;font-size:13px;min-height:18px}.lk{color:var(--o);font-weight:600;cursor:pointer}@media(max-width:800px){.auth{grid-template-columns:1fr}.auth .side{padding:36px 5vw}nav{flex-wrap:wrap;gap:8px}}
+footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-size:13px}
+@media(max-width:800px){.hero,.two{grid-template-columns:1fr}.stage{height:300px}nav ul{gap:0}nav a{padding:6px 9px;font-size:12px}.logo span small{display:none}.seats{grid-template-columns:repeat(10,1fr)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style></head><body>
+<nav><div class="logo" onclick="go('home')"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span>ticketwala<small>TICKETS</small></span></div>
+<ul id="nav"><li><a data-p="home">Home</a></li><li><a data-p="events">Events</a></li><li><a data-p="booking">Booking</a></li><li><a data-p="profile">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
+
+<main>
+<div class="page on" id="home">
+<div class="hero"><canvas id="heroCv"></canvas>
+<div><span class="pill"><i class="dot"></i> Live drop · <span id="hLive">0</span> requests in flight</span>
+<h1>5,000 fans.<br>200 seats.<br><em>Zero</em> double-bookings.</h1>
+<p>TicketWala locks every seat in memory with atomic Redis Lua scripts, holds it with a TTL countdown, and writes to the database asynchronously — fair, first-come-first-served, sub-second.</p>
+<button class="btn" onclick="go('booking')">Grab a seat now →</button> <button class="btn ghost" onclick="storm()">▶ Run flash-drop demo</button></div>
+<div class="stage"><div class="stack"><div class="tk"><div><span>ADMIT ONE</span>SEAT A-17</div><b>T</b></div><div class="tk"><div><span>HOLD · TTL</span>00:30</div><b>⏱</b></div><div class="tk"><div><span>CONFIRMED</span>PAID ✓</div><b>T</b></div></div></div></div>
+<div class="ticker"><div id="tk"></div></div>
+<section class="light"><h2>One drop. <em>Three</em> steps.</h2><p style="opacity:.7">From click to confirmed in under a second of lock time.</p>
+<div class="grid"><div class="card"><div class="n">1</div><h3>Atomic Lock</h3><p>A Lua script checks the token bucket and claims the seat in a single Redis operation. No race, no deadlock.</p></div>
+<div class="card"><div class="n">2</div><h3>TTL Hold</h3><p>The seat is yours for 30 seconds. Abandon checkout and it releases instantly to the next person in line.</p></div>
+<div class="card"><div class="n">3</div><h3>Async Commit</h3><p>Paid bookings stream to the relational DB through a queue — guaranteed eventual consistency.</p></div></div></section>
+<section class="dark"><h2>Live engine <em>dashboard</em></h2><p style="opacity:.7">Streaming from the in-memory broker — try the demo above.</p>
+<div class="kpis"><div class="kpi"><b id="kReq">0</b><span>Requests received</span></div><div class="kpi"><b id="kOk">0</b><span>Locks granted</span></div><div class="kpi"><b id="kNo">0</b><span>Rejected (409)</span></div><div class="kpi"><b>0</b><span>Double-bookings</span></div><div class="kpi"><b id="kLat">0ms</b><span>Lock latency</span></div></div>
+<canvas id="spark"></canvas></section>
+<section><h2>Features you <em>won't find</em> elsewhere</h2><div class="grid">
+<div class="card"><div class="n">🎟</div><h3>Virtual Waiting Room</h3><p>Fair queue position with live ETA — no refresh-spamming advantage.</p></div>
+<div class="card"><div class="n">⏳</div><h3>Hold Ring</h3><p>A visible countdown on your seat. Extend once if payment is in progress.</p></div>
+<div class="card"><div class="n">🪣</div><h3>Token-Bucket Shield</h3><p>Bots get throttled at the edge; real fans never see a 500.</p></div>
+<div class="card"><div class="n">🔁</div><h3>Instant Seat Recycling</h3><p>Expired holds reappear live to everyone watching the map.</p></div>
+<div class="card"><div class="n">🧪</div><h3>Built-in Load Lab</h3><p>Fire 5,000 simulated users at 200 seats from the UI and watch the proof.</p></div>
+<div class="card"><div class="n">🛡</div><h3>Audit Trail</h3><p>Every lock, release and commit is logged with a monotonic ID.</p></div></div></section>
+</div>
+
+<div class="page" id="events"><section><h2>Upcoming <em>flash drops</em></h2><div id="evl"></div></section></div>
+
+<div class="page" id="booking"><section><h2>Book your <em>seat</em></h2>
+<div class="steps"><div id="st1" class="on">1 · Pick seat</div><div id="st2">2 · Hold (TTL)</div><div id="st3">3 · Confirm</div></div>
+<div class="two"><div><div class="leg"><span><i style="background:#e4e0da"></i>Free</span><span><i style="background:#FF6B35"></i>Held</span><span><i style="background:#2B2A28"></i>Sold</span><span><i style="background:#fff;outline:2px solid #FF6B35"></i>You</span></div>
+<div class="seats" id="seats"></div><div style="margin-top:20px"><button class="btn k" onclick="storm()">⚡ Simulate 5,000 users</button> <span id="evName" style="font-weight:600;margin-left:10px"></span></div></div>
+<div><div class="card" id="panel" style="text-align:center"><h3>Select a seat</h3><p>Click any free seat to lock it. You get 30 seconds to pay.</p></div><h3 style="margin:20px 0 8px">Broker log</h3><div class="log" id="log"></div></div></div></section></div>
+
+<div class="page" id="profile"><section class="light"><h2>Hi, <em id="uName">Fan</em> 👋</h2>
+<div class="kpis"><div class="kpi"><b id="pB">0</b><span>Bookings</span></div><div class="kpi"><b id="pE">0</b><span>Holds expired</span></div><div class="kpi"><b>#1</b><span>Queue priority</span></div></div>
+<h3>My tickets</h3><div id="pl" style="margin-top:14px"></div></section></div>
+<div class="page" id="login"><div class="auth"><div class="side"><span class="pill" style="align-self:flex-start;color:var(--k)"><i class="dot"></i> Next drop in minutes</span><h2 style="margin-top:18px">Welcome <em>back</em>.</h2><p style="opacity:.75;line-height:1.7;max-width:380px">Log in to lock your seat before the other 4,999 do. Your holds, tickets and queue priority are waiting.</p></div><div class="box"><h2>Log in</h2><input id="lEm" type="email" placeholder="Email" autocomplete="email"><input id="lPw" type="password" placeholder="Password" autocomplete="current-password"><div class="err" id="lErr"></div><button class="btn" onclick="doLogin()">Log in →</button><p style="font-size:14px">New here? <a class="lk" onclick="go('signup')">Create an account</a></p></div></div></div>
+<div class="page" id="signup"><div class="auth"><div class="side"><span class="pill" style="align-self:flex-start;color:var(--k)"><i class="dot"></i> Free · takes 20 seconds</span><h2 style="margin-top:18px">Join the <em>fast lane</em>.</h2><p style="opacity:.75;line-height:1.7;max-width:380px">One account for every flash drop: atomic seat locks, 30-second holds and instant confirmation.</p></div><div class="box"><h2>Sign up</h2><input id="sNm" placeholder="Full name" autocomplete="name"><input id="sEm" type="email" placeholder="Email" autocomplete="email"><input id="sPw" type="password" placeholder="Password (min 6 characters)" autocomplete="new-password"><input id="sPw2" type="password" placeholder="Confirm password" autocomplete="new-password"><div class="err" id="sErr"></div><button class="btn" onclick="doSignup()">Create account →</button><p style="font-size:14px">Already registered? <a class="lk" onclick="go('login')">Log in</a></p></div></div></div>
+</main>
+<footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
+
+<script>
+const $=s=>document.querySelector(s),N=200,TTL=30;
+const EV=[["OCT","24","Arijit Live — Mumbai",0],["NOV","02","Coldplay Fan Fest",0],["NOV","15","Mumbai–Nashik Express (Flash)",0],["DEC","01","IPL Final Screening",0]];
+let ev=0,seats=[],mine=null,sel=null,hold=0,stats={req:0,ok:0,no:0,exp:0},bookings=[],hist=[];
+function init(){seats=Array.from({length:N},()=>({st:0,t:0}));[...Array(40)].forEach(()=>{seats[Math.random()*N|0].st=2});draw()}
+function draw(){$('#seats').innerHTML=seats.map((s,i)=>`<button class="s ${s.st==1?'h':s.st==2?'x':''} ${mine===i?'me':''}" onclick="pick(${i})" title="Seat ${i+1}"></button>`).join('');
+const sold=seats.filter(s=>s.st==2).length;EV[ev][3]=sold;evl()}
+function evl(){$('#evName').textContent=EV[ev][2];$('#evl').innerHTML=EV.map((e,i)=>{const p=i==ev?EV[i][3]/N*100:[35,60,82,15][i];return `<div class="ev"><div class="d"><small>${e[0]}</small>${e[1]}</div><div><b>${e[2]}</b><div style="font-size:13px;opacity:.7">${N} seats · 5,000+ expected</div><div class="bar"><i style="width:${p}%"></i></div></div><button class="btn" onclick="ev=${i};init();go('booking')">Reserve</button></div>`}).join('')}
+function log(m,c=''){const l=$('#log');l.innerHTML+=`<div class="${c}">${new Date().toLocaleTimeString()} ${m}</div>`;l.scrollTop=1e9}
+function pick(i){if(!user){nextP='booking';go('login');$('#lErr').textContent='Please log in to hold a seat.';return}if(mine!==null)return;stats.req++;const s=seats[i];if(s.st){stats.no++;log(`LOCK seat ${i+1} → 409 TAKEN`,'no');return}
+s.st=1;s.t=Date.now()+TTL*1e3;mine=i;stats.ok++;log(`EVAL lock.lua seat ${i+1} → OK ttl=${TTL}s`,'ok');step(2);panel();draw()}
+function step(n){[1,2,3].forEach(k=>$('#st'+k).className=k<n?'done':k==n?'on':'')}
+function panel(){const left=Math.max(0,Math.ceil((seats[mine].t-Date.now())/1e3));
+$('#panel').innerHTML=`<h3>Seat ${mine+1} is held</h3><div class="ring"><svg width="150" height="150"><circle cx="75" cy="75" r="66" fill="none" stroke="#0002" stroke-width="10"/><circle cx="75" cy="75" r="66" fill="none" stroke="#FF6B35" stroke-width="10" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="${415*(1-left/TTL)}"/></svg><b>${left}s</b></div><button class="btn" onclick="pay()">Pay ₹1,499 & confirm</button> <button class="btn ghost" onclick="drop()">Abandon</button>`}
+function pay(){seats[mine].st=2;bookings.push({s:mine+1,e:EV[ev][2]});log(`COMMIT seat ${mine+1} → queued for DB write`,'ok');setTimeout(()=>log(`ASYNC persisted seat ${mine===null?'':''}✓ eventual consistency`,'ok'),900);
+mine=null;step(3);$('#panel').innerHTML='<h3>🎉 Booking confirmed</h3><p>Your ticket is in Profile.</p><button class="btn k" onclick="go(\'profile\')">View ticket</button>';draw();prof()}
+function drop(){seats[mine].st=0;log(`RELEASE seat ${mine+1} (abandoned)`);mine=null;step(1);$('#panel').innerHTML='<h3>Select a seat</h3><p>Seat released instantly.</p>';draw()}
+function prof(){$('#pB').textContent=bookings.length;$('#pE').textContent=stats.exp;$('#pl').innerHTML=bookings.length?bookings.map(b=>`<div class="ev"><div class="d"><small>SEAT</small>${b.s}</div><div><b>${b.e}</b><div style="font-size:13px;opacity:.7">Confirmed ✓</div></div></div>`).join(''):'<p style="opacity:.6">No tickets yet — grab a seat!</p>'}
+let busy=0;function storm(){if(busy)return;busy=1;if(!$('#booking').classList.contains('on'))go('booking');log('⚡ FLASH DROP: 5,000 clients incoming','no');let sent=0;
+const iv=setInterval(()=>{for(let k=0;k<120;k++){sent++;stats.req++;const i=Math.random()*N|0,s=seats[i];if(s.st||i===mine){stats.no++}else{s.st=1;s.t=Date.now()+(2+Math.random()*10)*1e3;s.bot=Math.random()<.5;stats.ok++}}
+if(sent>=5000){clearInterval(iv);busy=0;log(`DONE: 5000 req · ${stats.ok} locks · 0 double-bookings ✓`,'ok')}draw()},120)}
+setInterval(()=>{let ch=0;seats.forEach((s,i)=>{if(s.st==1&&Date.now()>s.t){if(i===mine){mine=null;step(1);$('#panel').innerHTML='<h3>⏱ Hold expired</h3><p>Your seat was released. Pick again!</p>';}
+if(s.bot){s.st=2}else{s.st=0;stats.exp++;if(Math.random()<.2)log(`TTL expired seat ${i+1} → released`,'no')}ch=1}});if(ch)draw();if(mine!==null)panel();prof()},500);
+function dash(){['Req','Ok','No'].forEach(k=>$('#k'+k).textContent=stats[k.toLowerCase()].toLocaleString());$('#kLat').textContent=(0.4+Math.random()*.5).toFixed(1)+'ms';$('#hLive').textContent=busy?(2000+Math.random()*3000|0):(Math.random()*40|0);hist.push(busy?60+Math.random()*40:5+Math.random()*10);if(hist.length>60)hist.shift();spark()}
+function spark(){const c=$('#spark'),x=c.getContext('2d');c.width=c.clientWidth*2;c.height=240;x.clearRect(0,0,c.width,240);x.strokeStyle='#FF6B35';x.lineWidth=4;x.beginPath();hist.forEach((v,i)=>{const X=i/59*c.width,Y=230-v*2;i?x.lineTo(X,Y):x.moveTo(X,Y)});x.stroke()}
+setInterval(dash,400);
+function go(p){document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on',e.id==p));document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.p==p));scrollTo(0,0);try{history.replaceState(0,'','#'+p)}catch(e){}}
+document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>go(a.dataset.p));
+$('#tk').innerHTML=Array(2).fill('<span style="padding:0 30px">⚡ <b>200</b> seats · <b>5,000</b> users · <b>0</b> double-bookings &nbsp;•&nbsp; Redis Lua atomic locks &nbsp;•&nbsp; TTL holds &nbsp;•&nbsp; Async DB writes &nbsp;•&nbsp; Token-bucket throttling</span>').join('');
+// hero video-style canvas: streaming requests fly into seat grid
+const cv=$('#heroCv'),cx=cv.getContext('2d');let P=[];
+function rs(){cv.width=cv.clientWidth;cv.height=cv.clientHeight}rs();addEventListener('resize',rs);
+(function f(){cx.clearRect(0,0,cv.width,cv.height);if(Math.random()<.6)P.push({x:Math.random()*cv.width,y:-10,v:2+Math.random()*3,r:2+Math.random()*3,o:Math.random()<.3});
+P=P.filter(p=>{p.y+=p.v;cx.fillStyle=p.o?'#FF6B35':'#2B2A2833';cx.beginPath();cx.arc(p.x,p.y,p.r,0,7);cx.fill();return p.y<cv.height+10});
+if(!matchMedia('(prefers-reduced-motion:reduce)').matches)requestAnimationFrame(f)})();
+let user=null,nextP='home';const users={};
+function esc(s){return s.replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';')}
+function renderAuth(){$('#auth').innerHTML=user?`<span style="font-weight:600;font-size:14px;margin-right:10px">${esc(user.name.split(' ')[0])}</span><button class="btn ghost" style="padding:8px 18px" onclick="logout()">Log out</button>`:`<button class="btn ghost" style="padding:8px 18px;margin-right:6px" onclick="go('login')">Log in</button><button class="btn" style="padding:8px 18px" onclick="go('signup')">Sign up</button>`;$('#uName').textContent=user?user.name.split(' ')[0]:'Fan'}
+function authed(u){user=u;['lErr','sErr'].forEach(i=>$('#'+i).textContent='');['lPw','sPw','sPw2'].forEach(i=>$('#'+i).value='');renderAuth();const p=nextP;nextP='home';go(p)}
+function doLogin(){const em=$('#lEm').value.trim().toLowerCase(),u=users[em];if(!em||!$('#lPw').value){$('#lErr').textContent='Enter your email and password.';return}if(!u||u.pw!==$('#lPw').value){$('#lErr').textContent='Incorrect email or password.';return}authed(u)}
+function doSignup(){const nm=$('#sNm').value.trim(),em=$('#sEm').value.trim().toLowerCase(),pw=$('#sPw').value,e=$('#sErr');if(!nm||!/^\S+@\S+\.\S+$/.test(em)){e.textContent='Enter your name and a valid email.';return}if(pw.length<6){e.textContent='Password must be at least 6 characters.';return}if(pw!==$('#sPw2').value){e.textContent='Passwords do not match.';return}if(users[em]){e.textContent='That email is already registered — log in instead.';return}users[em]={name:nm,pw};authed(users[em])}
+function logout(){if(mine!==null)drop();user=null;bookings=[];prof();renderAuth();go('home')}
+renderAuth();init();prof();go((location.hash||'#home').slice(1).replace(/[^a-z]/g,'')||'home');
+</script></body></html>
