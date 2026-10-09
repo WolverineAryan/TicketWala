@@ -35,6 +35,7 @@ import {
   generateHoldToken,
   streamKey,
   queueKey,
+  reservationPrefix,
 } from "../lua/index.js";
 
 import path from "path";
@@ -208,6 +209,27 @@ for (const event of MULTIPURPOSE_EVENTS) {
     inMemoryUnits.set(unitId, { status: "AVAILABLE", version: 1 });
   }
   inMemoryQueues.set(event.id, queue);
+}
+
+async function findReservationEventId(
+  redis: Redis,
+  reservationId: string,
+  requestedEventId: string | undefined
+): Promise<{ eventId?: string; mismatch: boolean }> {
+  for (const event of MULTIPURPOSE_EVENTS) {
+    const storedEventId = await redis.hget(
+      `${reservationPrefix(event.id)}:${reservationId}`,
+      "event_id"
+    );
+    if (storedEventId) {
+      return {
+        eventId: storedEventId,
+        mismatch: Boolean(requestedEventId && requestedEventId !== storedEventId),
+      };
+    }
+  }
+
+  return { mismatch: false };
 }
 
 export async function createServer(): Promise<{
@@ -645,7 +667,47 @@ export async function createServer(): Promise<{
 
     const { holdToken, passengerName, email, paymentMethod } = parseResult.data;
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
-    const eventId = (req.headers["x-event-id"] as string) || "evt-main";
+    const requestedEventId =
+      typeof req.headers["x-event-id"] === "string"
+        ? req.headers["x-event-id"]
+        : undefined;
+    const eventResolution = isRedisAvailable
+      ? await findReservationEventId(
+          redis,
+          reservationId,
+          requestedEventId
+        )
+      : {
+          eventId: inMemoryReservations.get(reservationId)?.eventId,
+          mismatch: Boolean(
+            requestedEventId &&
+              inMemoryReservations.get(reservationId)?.eventId &&
+              requestedEventId !== inMemoryReservations.get(reservationId)?.eventId
+          ),
+        };
+
+    if (eventResolution.mismatch) {
+      return reply.status(400).send({
+        error: {
+          code: "EVENT_ID_MISMATCH",
+          message: "The supplied event ID does not match the reservation",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+    const eventId = eventResolution.eventId;
+
+    if (!eventId) {
+      return reply.status(400).send({
+        error: {
+          code: "RESERVATION_EVENT_REQUIRED",
+          message: "The reservation event could not be determined",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
 
     let unitId = "";
     let version = 1;
@@ -917,9 +979,50 @@ export async function createServer(): Promise<{
     let version = 1;
     let confirmedAt = Math.floor(Date.now() / 1000);
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
+    const requestedEventId =
+      typeof req.headers["x-event-id"] === "string"
+        ? req.headers["x-event-id"]
+        : undefined;
+    const eventResolution = isRedisAvailable
+      ? await findReservationEventId(
+          redis,
+          reservationId,
+          requestedEventId
+        )
+      : {
+          eventId: inMemoryReservations.get(reservationId)?.eventId,
+          mismatch: Boolean(
+            requestedEventId &&
+              inMemoryReservations.get(reservationId)?.eventId &&
+              requestedEventId !== inMemoryReservations.get(reservationId)?.eventId
+          ),
+        };
+
+    if (eventResolution.mismatch) {
+      return reply.status(400).send({
+        error: {
+          code: "EVENT_ID_MISMATCH",
+          message: "The supplied event ID does not match the reservation",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+    const eventId = eventResolution.eventId;
 
     if (isRedisAvailable) {
+      if (!eventId) {
+        return reply.status(400).send({
+          error: {
+            code: "RESERVATION_EVENT_REQUIRED",
+            message: "The reservation event could not be determined",
+            retryable: false,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const confirmResult = await confirmHold(redis, {
+        eventId,
         reservationId,
         rawHoldToken: holdToken,
         idempotencyKey,
@@ -931,6 +1034,20 @@ export async function createServer(): Promise<{
             code: confirmResult.error,
             message: confirmResult.message,
             retryable: false,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+      if (
+        !confirmResult.unitId ||
+        confirmResult.version === undefined ||
+        confirmResult.confirmedAt === undefined
+      ) {
+        return reply.status(500).send({
+          error: {
+            code: "INVALID_ENGINE_RESPONSE",
+            message: "Reservation engine returned an incomplete confirmation result",
+            retryable: true,
             timestamp: new Date().toISOString(),
           },
         });
