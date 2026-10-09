@@ -2,10 +2,18 @@ import Redis from "ioredis";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import { releaseHold, streamKey } from "../lua/index.js";
+import path from "path";
 
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const rawRedisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const isPlaceholderRedis =
+  rawRedisUrl.includes("[TOKEN]") ||
+  rawRedisUrl.includes("[ENDPOINT]") ||
+  rawRedisUrl.includes("YOUR_");
+const REDIS_URL = isPlaceholderRedis ? "redis://localhost:6379" : rawRedisUrl;
+
 const DATABASE_URL =
   process.env.DATABASE_DIRECT_URL ||
   process.env.DATABASE_URL ||

@@ -136,7 +136,8 @@ export const HOLD_FCFS_LUA = `
 -- KEYS: [1] queue, [2] unit_prefix, [3] reservation_prefix, [4] idempotency_prefix,
 --       [5] stream, [6] membership_set
 -- ARGV: [1] scoped idempotency key, [2] fingerprint, [3] reservation id,
---       [4] token hash, [5] ttl seconds, [6] server time seconds, [7] event id
+--       [4] token hash, [5] ttl seconds, [6] server time seconds, [7] event id,
+--       [8] optional requested unit id
 local idemp_key = KEYS[4] .. ':' .. ARGV[1]
 local cached = redis.call('GET', idemp_key)
 if cached then
@@ -149,7 +150,30 @@ if cached then
   return cjson.encode(parsed)
 end
 
-local unit_id = redis.call('RPOP', KEYS[1])
+local unit_id = nil
+if ARGV[8] and ARGV[8] ~= '' then
+  local req_unit_key = KEYS[2] .. ':' .. ARGV[8]
+  local req_state = redis.call('HMGET', req_unit_key, 'status', 'reservation_id', 'version')
+  if req_state[1] ~= 'AVAILABLE' or req_state[2] or not req_state[3] or
+      redis.call('SISMEMBER', KEYS[6], ARGV[8]) ~= 1 then
+    return cjson.encode({ error = "SEAT_UNAVAILABLE", code = 409, message = "Selected seat is already held or booked" })
+  end
+  unit_id = ARGV[8]
+  if redis.call('LREM', KEYS[1], 0, unit_id) == 0 then
+    return cjson.encode({ error = "INVENTORY_CORRUPT", code = 500, message = "Available membership set and queue disagree" })
+  end
+else
+  unit_id = redis.call('LINDEX', KEYS[1], -1)
+  if not unit_id then
+    return cjson.encode({ error = "SOLD_OUT", code = 409, message = "${ERROR_MESSAGES.SOLD_OUT}" })
+  end
+  local queued_state = redis.call('HMGET', KEYS[2] .. ':' .. unit_id, 'status', 'reservation_id', 'version')
+  if queued_state[1] ~= 'AVAILABLE' or queued_state[2] or not queued_state[3] or
+      redis.call('SISMEMBER', KEYS[6], unit_id) ~= 1 then
+    return cjson.encode({ error = "INVENTORY_CORRUPT", code = 500, message = "Available queue and membership set disagree" })
+  end
+  redis.call('RPOP', KEYS[1])
+end
 if not unit_id then
   return cjson.encode({ error = "SOLD_OUT", code = 409, message = "${ERROR_MESSAGES.SOLD_OUT}" })
 end
@@ -348,6 +372,7 @@ export interface ClaimHoldParams {
   reservationId: string;
   rawHoldToken: string;
   ttlSeconds?: number;
+  requestedUnitId?: string;
 }
 
 export async function claimHoldFcfs(redis: Redis, params: ClaimHoldParams): Promise<ScriptResult> {
@@ -357,6 +382,7 @@ export async function claimHoldFcfs(redis: Redis, params: ClaimHoldParams): Prom
     idempotencyPrefix(params.eventId), streamKey(params.eventId), eventKey(params.eventId, "available_units"),
     scope, params.requestFingerprint, params.reservationId, hashHoldToken(params.rawHoldToken),
     params.ttlSeconds ?? DEFAULT_HOLD_TTL_SECONDS, Math.floor(Date.now() / 1000), params.eventId,
+    params.requestedUnitId ?? "",
   ]));
 }
 
