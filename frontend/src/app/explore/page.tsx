@@ -13,11 +13,11 @@ import {
   Calendar,
   MapPin,
   ChevronRight,
-  TrendingUp,
   RefreshCw,
   Search,
+  X,
 } from "lucide-react";
-import { EventCategory, EventDetails } from "@/types/api";
+import { EventDetails } from "@/types/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -33,6 +33,7 @@ const CATEGORIES: { id: string; label: string; icon: any }[] = [
 export default function ExplorePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<"featured" | "price-low" | "price-high" | "availability">("featured");
   const [events, setEvents] = useState<EventDetails[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -58,13 +59,28 @@ export default function ExplorePage() {
   const filteredEvents = events.filter((e) => {
     const matchesCategory =
       selectedCategory === "ALL" || e.category.toUpperCase() === selectedCategory.toUpperCase();
+    const normalizedQuery = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      searchQuery === "" ||
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.location.toLowerCase().includes(searchQuery.toLowerCase());
+      normalizedQuery === "" ||
+      e.title.toLowerCase().includes(normalizedQuery) ||
+      e.venue.toLowerCase().includes(normalizedQuery) ||
+      e.location.toLowerCase().includes(normalizedQuery) ||
+      e.description.toLowerCase().includes(normalizedQuery);
     return matchesCategory && matchesSearch;
   });
+
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    if (sortOrder === "price-low") return a.basePrice - b.basePrice;
+    if (sortOrder === "price-high") return b.basePrice - a.basePrice;
+    if (sortOrder === "availability") return b.availableSeats - a.availableSeats;
+    return 0;
+  });
+
+  const clearFilters = () => {
+    setSelectedCategory("ALL");
+    setSearchQuery("");
+    setSortOrder("featured");
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
@@ -82,6 +98,7 @@ export default function ExplorePage() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
+                  aria-pressed={isSelected}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                     isSelected
                       ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-105"
@@ -90,6 +107,13 @@ export default function ExplorePage() {
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{cat.label}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                    isSelected ? "bg-white/15 text-white" : "bg-slate-800 text-slate-500"
+                  }`}>
+                    {cat.id === "ALL"
+                      ? events.length
+                      : events.filter((event) => event.category.toUpperCase() === cat.id).length}
+                  </span>
                 </button>
               );
             })}
@@ -97,8 +121,9 @@ export default function ExplorePage() {
 
           <button
             onClick={fetchEvents}
+            disabled={isLoading}
             title="Refresh Live Availability"
-            className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition hidden sm:flex items-center gap-1.5 text-xs"
+            className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition disabled:cursor-not-allowed disabled:opacity-50 hidden sm:flex items-center gap-1.5 text-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
@@ -106,29 +131,64 @@ export default function ExplorePage() {
         </div>
 
         {/* Hero Spotlight Banner */}
-        <div className="mb-10 rounded-3xl bg-gradient-to-r from-indigo-900/50 via-purple-900/30 to-slate-900 border border-indigo-500/20 p-6 sm:p-8 relative overflow-hidden">
+        <div className="mb-8 rounded-3xl bg-gradient-to-r from-indigo-900/50 via-purple-900/30 to-slate-900 border border-indigo-500/20 p-6 sm:p-8 relative overflow-hidden">
           <div className="relative z-10 max-w-xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold tracking-wide uppercase mb-3">
-              <TrendingUp className="w-3 h-3 text-indigo-400" />
-              <span>Trending in Mumbai & Live Events</span>
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">Experience High-Contention Ticketing</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">Find your next great experience</h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2">
-              Instant 120s seat reservation with zero booking fee via direct UPI payment. Select your exact seats in real-time.
+              Browse events, compare ticket prices, and choose a seat that works for you.
             </p>
+            <p className="text-xs text-slate-400 mt-3">Your seat is held for 2 minutes when you continue to checkout.</p>
           </div>
+        </div>
+
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search events, venues, or locations"
+              aria-label="Search events, venues, or locations"
+              className="w-full bg-slate-900 border border-slate-800 text-sm rounded-xl pl-10 pr-10 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          <label className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-400">
+            <span className="whitespace-nowrap">Sort by</span>
+            <select
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value as typeof sortOrder)}
+              aria-label="Sort events"
+              className="min-w-36 bg-transparent py-3 font-semibold text-white outline-none"
+            >
+              <option value="featured">Featured</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="availability">Most seats available</option>
+            </select>
+          </label>
         </div>
 
         {/* Section Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>Explore Live Events</span>
+              <span>Events for you</span>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-indigo-400 border border-slate-700">
-                {filteredEvents.length} Available
+                {filteredEvents.length} {filteredEvents.length === 1 ? "Event" : "Events"}
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Pick an event to select seats and reserve your ticket</p>
+            <p className="text-xs text-slate-400 mt-0.5">Select an event to view available seats and ticket prices</p>
           </div>
         </div>
 
@@ -138,27 +198,24 @@ export default function ExplorePage() {
             <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
             <p className="text-xs">Fetching live events catalog...</p>
           </div>
-        ) : filteredEvents.length === 0 ? (
+        ) : sortedEvents.length === 0 ? (
           <div className="py-20 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
-            <p className="text-sm font-semibold text-slate-400">No events found matching your filter</p>
+            <Search className="mx-auto mb-3 h-6 w-6 text-slate-500" />
+            <p className="text-sm font-semibold text-slate-400">No events match those filters</p>
             <button
-              onClick={() => setSelectedCategory("ALL")}
-              className="mt-3 text-xs text-indigo-400 hover:underline"
+              onClick={clearFilters}
+              className="mt-3 rounded-lg px-3 py-2 text-xs font-semibold text-indigo-400 hover:bg-indigo-500/10 hover:text-indigo-300"
             >
-              Clear filters
+              Clear search and filters
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => {
-              const occupancy = Math.round(
-                ((event.totalSeats - event.availableSeats) / event.totalSeats) * 100
-              );
-
+            {sortedEvents.map((event) => {
               return (
                 <div
                   key={event.id}
-                  className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl overflow-hidden transition group flex flex-col justify-between shadow-lg hover:shadow-indigo-500/10"
+                  className="transform rounded-2xl border border-slate-800 bg-slate-900 transition duration-200 hover:-translate-y-1 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 focus-within:ring-2 focus-within:ring-indigo-500/50 group flex flex-col justify-between overflow-hidden"
                 >
                   <div className="p-5">
                     {/* Badge & Category */}
@@ -166,11 +223,6 @@ export default function ExplorePage() {
                       <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 uppercase tracking-wider">
                         {event.categoryLabel}
                       </span>
-                      {event.badge && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
-                          {event.badge}
-                        </span>
-                      )}
                     </div>
 
                     {/* Title */}
@@ -196,29 +248,17 @@ export default function ExplorePage() {
                     </p>
                   </div>
 
-                  {/* Seat Occupancy & Booking Footer */}
+                  {/* Availability & Booking Footer */}
                   <div className="p-5 bg-slate-950/60 border-t border-slate-800/80">
-                    <div className="flex items-center justify-between text-xs mb-2">
-                      <span className="text-slate-400">
-                        <strong className="text-emerald-400 font-bold">{event.availableSeats}</strong> of {event.totalSeats} seats left
-                      </span>
-                      <span className="text-[11px] font-semibold text-slate-500">{occupancy}% Booked</span>
-                    </div>
-
-                    {/* Mini Progress Bar */}
-                    <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden mb-4">
-                      <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full"
-                        style={{ width: `${Math.min(100, Math.max(8, occupancy))}%` }}
-                      />
-                    </div>
-
                     {/* Price and CTA */}
-                    <div className="flex items-center justify-between gap-3 pt-2">
+                    <div className="flex items-end justify-between gap-3">
                       <div>
-                        <span className="text-[10px] text-slate-500 uppercase font-semibold block">Starts From</span>
+                        <span className="text-[10px] text-slate-500 uppercase font-semibold block">From</span>
                         <span className="text-lg font-black text-white">
                           ₹{event.basePrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block mt-1">
+                          {event.availableSeats} of {event.totalSeats} seats available
                         </span>
                       </div>
 
@@ -226,7 +266,7 @@ export default function ExplorePage() {
                         href={`/events/${event.id}`}
                         className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5"
                       >
-                        <span>Select Seats</span>
+                        <span>View event</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>

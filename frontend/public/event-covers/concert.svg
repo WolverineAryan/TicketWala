@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" fill="none">
+  <defs>
+    <linearGradient id="stage" x1="600" y1="0" x2="600" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#211252"/>
+      <stop offset=".55" stop-color="#6731A8"/>
+      <stop offset="1" stop-color="#171330"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(0 360 -520 0 600 190)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF9FE8" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#FF9FE8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#E9A8FF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#stage)" d="M0 0h1200v650H0z"/>
+  <path fill="url(#glow)" d="M0 0h1200v650H0z"/>
+  <path fill="url(#beam)" opacity=".46" d="m160 0 310 0-160 480H0z"/>
+  <path fill="url(#beam)" opacity=".35" d="M1040 0H760l170 480h270z"/>
+  <path fill="#17122D" fill-opacity=".8" d="M0 490c125-58 209-25 309 19 82-93 191-82 291-10 92-92 187-88 286-8 117-60 205-54 314 2v157H0V490Z"/>
+  <g fill="#120F25" fill-opacity=".92">
+    <circle cx="63" cy="541" r="32"/><path d="M34 575h58v75H34z"/>
+    <circle cx="143" cy="562" r="27"/><path d="M119 590h49v60h-49z"/>
+    <circle cx="246" cy="544" r="34"/><path d="M216 580h61v70h-61z"/>
+    <circle cx="365" cy="567" r="28"/><path d="M340 596h52v54h-52z"/>
+    <circle cx="502" cy="542" r="37"/><path d="M470 581h65v69h-65z"/>
+    <circle cx="654" cy="558" r="31"/><path d="M626 590h57v60h-57z"/>
+    <circle cx="790" cy="540" r="36"/><path d="M758 578h64v72h-64z"/>
+    <circle cx="932" cy="560" r="29"/><path d="M906 590h53v60h-53z"/>
+    <circle cx="1060" cy="539" r="38"/><path d="M1027 579h67v71h-67z"/>
+    <circle cx="1151" cy="563" r="29"/><path d="M1125 593h52v57h-52z"/>
+  </g>
+  <g fill="#FFD5FA" fill-opacity=".8">
+    <circle cx="104" cy="470" r="4"/><circle cx="210" cy="433" r="3"/><circle cx="321" cy="468" r="4"/>
+    <circle cx="450" cy="425" r="3"/><circle cx="566" cy="465" r="4"/><circle cx="694" cy="425" r="3"/>
+    <circle cx="822" cy="463" r="4"/><circle cx="941" cy="432" r="3"/><circle cx="1090" cy="466" r="4"/>
+  </g>
+</svg>

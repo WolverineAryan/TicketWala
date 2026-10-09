@@ -4,8 +4,8 @@ import Footer from "@/components/Footer";
 import { ShieldCheck, Lock, Eye, Database, Server, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy | TicketWala & FlashLock Engine",
-  description: "Privacy and data protection commitments for TicketWala's high-contention flash reservation platform.",
+  title: "Privacy Policy | TicketWala",
+  description: "Learn how TicketWala handles the information you provide.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="text-xs text-slate-400">
-            Last Updated: {lastUpdated} • Governs TicketWala and the FlashLock High-Contention Reservation Architecture
+            Last updated: {lastUpdated}
           </p>
         </div>
 
@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
               1. Overview & Core Philosophy
             </h2>
             <p>
-              TicketWala is engineered around a core principle of minimal data retention and strict transactional integrity. We collect only the information strictly required to facilitate atomic ticket holds, verify UPI transactions, and issue digital entry passes. We never monetize or sell personal customer data to advertisers or third-party data brokers.
+              TicketWala is a booking demonstration. We use information you enter, such as account, contact, and booking details, to operate the site and display your bookings. Do not enter payment card details, banking passwords, or UPI PINs, and do not send real payments through this demo.
             </p>
           </section>
 
@@ -50,13 +50,10 @@ export default function PrivacyPolicyPage() {
             </h2>
             <div className="space-y-2">
               <p>
-                <strong className="text-white">• Account & Identity Data:</strong> When you sign in via Google OAuth / Firebase, we receive your full name, verified email address, and profile picture avatar.
+                <strong className="text-white">• Account & Identity Data:</strong> When you sign in with Google, we receive the profile details needed to identify your account.
               </p>
               <p>
-                <strong className="text-white">• Transaction & Payment References:</strong> When paying for a reservation, we collect the 12-digit UPI UTR transaction reference number, timestamp, amount paid, and payee VPA (<span className="font-mono text-emerald-400">9146199158@fam</span>). <em>We never see, store, or transmit your banking passwords, debit card PINs, or UPI PINs.</em>
-              </p>
-              <p>
-                <strong className="text-white">• Ephemeral Hold Credentials:</strong> During high-traffic ticket drops, our FlashLock engine generates temporary cryptographic hold tokens. These tokens are stored securely as SHA-256 hashes and expire automatically.
+                <strong className="text-white">• Booking details:</strong> We store the details you submit for a demo booking, which may include your name, contact information, selected event, and the payment reference you enter. A reference is not verified with a bank or payment provider.
               </p>
             </div>
           </section>
@@ -64,20 +61,20 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <Server className="w-4 h-4 text-indigo-400" />
-              3. The 120-Second Ephemeral Data Lifecycle
+              3. Seat holds
             </h2>
             <p>
-              Unlike legacy ticketing services that hold customer data indefinitely during checkout abandonment:
+              When you select a seat:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                Reservations are locked for strictly <strong className="text-white">120 seconds</strong> via atomic Redis keys and in-memory TTL clocks.
+                Your selected seat is held for up to <strong className="text-white">two minutes</strong> while you review your booking.
               </li>
               <li>
-                If a payment confirmation is not completed within 120 seconds, the hold token is invalidated immediately, and the unit is recycled back into the public queue.
+                When the hold expires, the seat becomes available for someone else to select.
               </li>
               <li>
-                Abandoned hold sessions leave zero orphaned personal data in our persistence layer.
+                Information you submit as part of a booking may remain in the demo's booking records.
               </li>
             </ul>
           </section>
@@ -85,20 +82,20 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <Lock className="w-4 h-4 text-indigo-400" />
-              4. Technical Security & Infrastructure Safeguards
+              4. Keeping your information safe
             </h2>
             <p>
-              We implement industry-standard defense-in-depth measures to protect your sessions:
+              Please use the site as a demo and avoid submitting sensitive financial information. We take steps to protect information submitted to the site, but no internet service can guarantee complete security.
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                Strict HTTP security response headers (<code className="text-indigo-300">X-Content-Type-Options: nosniff</code>, <code className="text-indigo-300">X-Frame-Options: DENY</code>, and restrictive permissions policies).
+                Sign-in and booking information is used to provide the site's features.
               </li>
               <li>
-                Sliding-window IP rate limiting across contact and reservation endpoints to deter automated bot scrapers.
+                We may use technical information, such as browser or request details, to maintain and protect the service.
               </li>
               <li>
-                Idempotency key enforcement on all booking and payment confirmation requests to prevent duplicate charges.
+                Payment references entered into this demo do not verify a payment or confirm that funds were received.
               </li>
             </ul>
           </section>
@@ -109,14 +106,13 @@ export default function PrivacyPolicyPage() {
               5. Data Rectification & Support Inquiries
             </h2>
             <p>
-              If you wish to review, update, or purge your ticket booking records or account association, you may submit a request to our operations desk at:
+              To ask about information associated with your account or booking, contact us at:
             </p>
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
               <p className="font-semibold text-white">TicketWala Data Privacy Team</p>
               <p className="text-slate-400">
                 Email: <a href="mailto:ticketwala.org@gmail.com" className="text-indigo-400 underline">ticketwala.org@gmail.com</a>
               </p>
-              <p className="text-slate-500 text-xs">Response SLA: Within 48 hours for verified account holders.</p>
             </div>
           </section>
 

@@ -4,8 +4,8 @@ import Footer from "@/components/Footer";
 import { FileText, ShieldAlert, Clock, QrCode, CreditCard, Ban } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service | TicketWala & FlashLock Engine",
-  description: "Terms and conditions governing high-contention flash reservations and ticket issuance.",
+  title: "Terms of Service | TicketWala",
+  description: "Terms for using the TicketWala event booking demo.",
 };
 
 export default function TermsOfServicePage() {
@@ -26,7 +26,7 @@ export default function TermsOfServicePage() {
             Terms of Service
           </h1>
           <p className="text-xs text-slate-400">
-            Last Updated: {lastUpdated} • Governing flash holds, payments, and admission verification
+            Last updated: {lastUpdated}
           </p>
         </div>
 
@@ -36,23 +36,23 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-400" />
-              1. FlashLock 120-Second Reservation Engine
+              1. Seat selection and holds
             </h2>
             <p>
-              TicketWala utilizes the FlashLock distributed inventory algorithm to manage seat contention under extreme traffic surges. By initiating a booking hold:
+              When you select an available seat, it is held for you for up to <strong className="text-white">two minutes</strong> while you review your booking. If the hold expires, the seat may become available to another visitor.
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                You receive an exclusive, temporary reservation lease valid for exactly <strong className="text-white">120 seconds</strong>.
+                The hold is temporary and expires after up to two minutes.
               </li>
               <li>
-                During this 120-second window, no other user, automated agent, or bot can purchase or hold that inventory unit.
+                While the hold is active, other visitors cannot select that same seat.
               </li>
               <li>
-                If you do not complete the payment verification within 120 seconds, the lease expires unconditionally, and the seat is immediately recycled to the public availability queue.
+                When the hold expires, the seat becomes available for someone else to select.
               </li>
               <li>
-                The platform guarantees the mathematical invariant: <code className="text-amber-300">Available + Held + Confirmed = Total Capacity</code> at all times.
+                Check the checkout page for the current hold timer and booking details.
               </li>
             </ul>
           </section>
@@ -60,20 +60,20 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-emerald-400" />
-              2. UPI Payments & Verification
+              2. Demo checkout
             </h2>
             <p>
-              Checkout transactions are processed through India's National Payments Corporation of India (NPCI) Unified Payments Interface (UPI):
+              TicketWala is a demonstration and does not process or verify real payments. Do not send money or enter banking credentials. Submitting a payment reference only creates a demo booking; it does not confirm that funds were received.
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                All direct payments must be made to the authorized platform VPA: <span className="font-mono text-emerald-400 font-semibold">9146199158@fam</span>.
+                Do not make payments to any account based on information shown in this demo.
               </li>
               <li>
-                Users must provide a valid 12-digit UPI UTR transaction reference number for verification.
+                Payment references entered on the site are not checked with a bank or payment provider.
               </li>
               <li>
-                Our backend uses strict idempotency checking. Duplicate payment submissions with the same UTR or provider transaction ID will be processed safely with zero duplicate charges.
+                A demo booking is not proof of payment, a confirmed ticket, or valid admission to an event.
               </li>
             </ul>
           </section>
@@ -84,17 +84,17 @@ export default function TermsOfServicePage() {
               3. Single-Use QR Pass & Gate Admission Rules
             </h2>
             <p>
-              Upon successful payment confirmation, a cryptographic digital boarding pass with an entrance QR code is issued:
+              Booking summaries and QR codes shown by the demo are for demonstration only:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                Each boarding pass QR code is single-use only. Once scanned and verified at the venue gate, its state permanently transitions to <code className="text-emerald-400">USED</code>.
+                They are not valid for entry unless an event organizer separately confirms otherwise.
               </li>
               <li>
-                Any subsequent scan of the same QR code will be rejected with an admission warning.
+                Check with the event organizer for official ticketing and entry information.
               </li>
               <li>
-                Duplicating, capturing screenshots for multiple entries, or altering digital tickets is strictly prohibited.
+                Do not rely on a demo booking summary as an official ticket.
               </li>
             </ul>
           </section>
@@ -102,17 +102,17 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
               <Ban className="w-4 h-4 text-rose-400" />
-              4. Fair Contention & Anti-Bot Policy
+              4. Fair use
             </h2>
             <p>
-              To protect genuine attendees from ticket scalpers and automated queue manipulation:
+              Please use the site responsibly:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-slate-400">
               <li>
-                Rate-limiting algorithms monitor request volume per IP and session.
+                Do not interfere with the site or attempt to disrupt its availability.
               </li>
               <li>
-                Submitting scripted requests designed to monopolize inventory, bypass token verification, or flood the checkout pipeline will trigger adaptive admission fences or temporary IP bans.
+                Do not use automated tools to create bookings or submit misleading information.
               </li>
             </ul>
           </section>
@@ -123,7 +123,7 @@ export default function TermsOfServicePage() {
               5. Support & Disputes
             </h2>
             <p>
-              In the rare event of a network disruption during UPI payment where a seat expired before confirmation, contact our support team with your 12-digit UTR number:
+              For questions about the demo or information you submitted, contact our support team:
             </p>
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
               <p className="font-semibold text-white">TicketWala Operations Support</p>

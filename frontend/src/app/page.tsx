@@ -22,6 +22,11 @@ interface EventItem {
   day: string;
   name: string;
   sold: number;
+  category?: "concert" | "comedy" | "sports" | "travel";
+  coverArt?: "arijit-symphony" | "coldplay-tour" | "mumbai-nashik-train" | "mi-vs-csk";
+  venue?: string;
+  city?: string;
+  fromPrice?: number;
 }
 
 interface Booking {
@@ -1121,12 +1126,54 @@ export default function TicketWalaPage() {
 
   // Events State
   const [events, setEvents] = useState<EventItem[]>([
-    { month: "OCT", day: "24", name: "Arijit Live — Mumbai", sold: 0 },
-    { month: "NOV", day: "02", name: "Coldplay Fan Fest", sold: 0 },
-    { month: "NOV", day: "15", name: "Mumbai–Nashik Express (Flash)", sold: 0 },
-    { month: "DEC", day: "01", name: "IPL Final Screening", sold: 0 },
+    {
+      month: "OCT",
+      day: "24",
+      name: "Arijit Singh Live Symphony",
+      sold: 0,
+      category: "concert",
+      coverArt: "arijit-symphony",
+      venue: "Jio World Garden, BKC",
+      city: "Mumbai",
+      fromPrice: 2499,
+    },
+    {
+      month: "JAN",
+      day: "18",
+      name: "Coldplay: Music of the Spheres",
+      sold: 0,
+      category: "concert",
+      coverArt: "coldplay-tour",
+      venue: "D.Y. Patil Sports Stadium",
+      city: "Mumbai",
+      fromPrice: 3500,
+    },
+    {
+      month: "NOV",
+      day: "15",
+      name: "Mumbai–Nashik Express (Flash)",
+      sold: 0,
+      category: "travel",
+      coverArt: "mumbai-nashik-train",
+      city: "Mumbai",
+    },
+    {
+      month: "MAR",
+      day: "23",
+      name: "Mumbai Indians vs CSK",
+      sold: 0,
+      category: "sports",
+      coverArt: "mi-vs-csk",
+      venue: "Wankhede Stadium",
+      city: "Mumbai",
+      fromPrice: 1500,
+    },
   ]);
   const [currentEventIdx, setCurrentEventIdx] = useState(0);
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventCategoryFilter, setEventCategoryFilter] = useState<"all" | "concert" | "comedy" | "sports" | "travel">("all");
+  const [eventSortOrder, setEventSortOrder] = useState<"featured" | "name-ascending" | "price-low" | "price-high">("featured");
+  const [eventPriceFilter, setEventPriceFilter] = useState<"all" | "under-2000" | "2000-2999" | "3000-plus">("all");
 
   // Seat Inventory & Booking State
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -1243,8 +1290,10 @@ export default function TicketWalaPage() {
     (window as any).go = (p: string) => navigateTo(p);
     const syncHash = () => {
       const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
-      if (["home", "landing", "events", "booking", "travel", "profile", "login", "signup"].includes(h)) {
+      if (["home", "events", "booking", "travel", "profile", "login", "signup"].includes(h)) {
         setActivePage(h);
+      } else if (h === "landing") {
+        setActivePage("home");
       } else if (!h) {
         setActivePage("home");
       }
@@ -1317,6 +1366,41 @@ export default function TicketWalaPage() {
     const matchesCat = selectedCategory === "all" || e.category === selectedCategory;
     return matchesCity && matchesCat;
   });
+  const eventCategoryCounts = events.reduce(
+    (counts, event) => {
+      if (event.category) counts[event.category] += 1;
+      counts.all += 1;
+      return counts;
+    },
+    { all: 0, concert: 0, comedy: 0, sports: 0, travel: 0 }
+  );
+  const eventPriceRanges = [
+    { id: "under-2000", label: "Under ₹2,000", matches: (price: number) => price < 2000 },
+    { id: "2000-2999", label: "₹2,000–₹2,999", matches: (price: number) => price >= 2000 && price < 3000 },
+    { id: "3000-plus", label: "₹3,000+", matches: (price: number) => price >= 3000 },
+  ] as const;
+  const eventPriceCounts = eventPriceRanges.map((range) => ({
+    ...range,
+    count: events.filter((event) => event.fromPrice !== undefined && range.matches(event.fromPrice)).length,
+  }));
+  const filteredEventRows = events
+    .filter((event) => {
+      const query = eventSearchQuery.trim().toLowerCase();
+      const matchesQuery = [event.name, event.venue, event.city]
+        .some((value) => value?.toLowerCase().includes(query));
+      const matchesCategory = eventCategoryFilter === "all" || event.category === eventCategoryFilter;
+      const matchesPrice = eventPriceFilter === "all" ||
+        (event.fromPrice !== undefined &&
+          eventPriceRanges.find((range) => range.id === eventPriceFilter)?.matches(event.fromPrice));
+      return matchesQuery && matchesCategory && matchesPrice;
+    })
+    .map((event, index) => ({ event, originalIndex: events.indexOf(event), index }))
+    .sort((a, b) => {
+      if (eventSortOrder === "name-ascending") return a.event.name.localeCompare(b.event.name);
+      if (eventSortOrder === "price-low") return (a.event.fromPrice ?? Number.MAX_SAFE_INTEGER) - (b.event.fromPrice ?? Number.MAX_SAFE_INTEGER);
+      if (eventSortOrder === "price-high") return (b.event.fromPrice ?? -1) - (a.event.fromPrice ?? -1);
+      return a.index - b.index;
+    });
 
   const selectCity = (cityId: string) => {
     setSelectedCityId(cityId);
@@ -1357,7 +1441,16 @@ export default function TicketWalaPage() {
 
   const bookEventFromHome = (eventData: BMSEvent) => {
     setEvents((prev) => [
-      { month: eventData.month, day: eventData.day, name: `${eventData.name} — ${eventData.cityName}`, sold: eventData.sold },
+      {
+        month: eventData.month,
+        day: eventData.day,
+        name: `${eventData.name} — ${eventData.cityName}`,
+        sold: eventData.sold,
+        category: eventData.category === "theatre" ? "comedy" : eventData.category,
+        venue: eventData.venue,
+        city: eventData.cityName,
+        fromPrice: eventData.price,
+      },
       ...prev.filter((e) => e.name !== `${eventData.name} — ${eventData.cityName}`),
     ]);
     setCurrentEventIdx(0);
@@ -1491,14 +1584,6 @@ export default function TicketWalaPage() {
     setTimeout(() => setSessionsRevokedMsg(""), 3500);
   };
 
-<<<<<<< HEAD
-  const handleDownloadTicket = (item: { title?: string; e?: string; s?: string | number; pnr?: string }) => {
-    const title = item.title || item.e || "Event Boarding Pass";
-    const pnr = item.pnr || "TW-EVT-4201";
-    setEticketAlert(`E-Ticket for "${title}" (${pnr}) downloaded! Offline turnstile verified.`);
-    setTimeout(() => setEticketAlert(""), 4500);
-  };
-
   const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -1560,10 +1645,14 @@ export default function TicketWalaPage() {
       setProfileTab("passes");
       navigateTo("profile");
     }
-=======
-  const handleDownloadTicket = (b: Booking) => {
-    setTicketModalBooking(b);
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
+  };
+
+  const handleDownloadTicket = (booking: Partial<Booking> & { title?: string }) => {
+    setTicketModalBooking({
+      ...booking,
+      s: booking.s ?? "",
+      e: booking.e ?? booking.title ?? "Event Boarding Pass",
+    });
   };
 
   // 1. Telemetry Dashboard & Sparkline Chart Loop
@@ -1638,20 +1727,27 @@ export default function TicketWalaPage() {
   }, [mine, addLog]);
 
   // Helper: Seat Metadata by Index (0 - 199 across Rows A - J)
+  const getTierPrice = (tier: "vip" | "prime" | "std") => {
+    const startingPrice = events[currentEventIdx]?.fromPrice ?? 899;
+    if (tier === "vip") return startingPrice + 1600;
+    if (tier === "prime") return startingPrice + 600;
+    return startingPrice;
+  };
+
   const getSeatDetails = (idx: number) => {
     const rowIdx = Math.floor(idx / 20);
     const rowChar = String.fromCharCode(65 + rowIdx);
     const seatNum = (idx % 20) + 1;
     let tier = "Standard Gallery";
-    let price = 899;
+    let price = getTierPrice("std");
     let badgeClass = "std";
     if (rowIdx < 2) {
       tier = "VIP Lounge";
-      price = 2499;
+      price = getTierPrice("vip");
       badgeClass = "vip";
     } else if (rowIdx < 6) {
       tier = "Executive Prime";
-      price = 1499;
+      price = getTierPrice("prime");
       badgeClass = "prime";
     }
     return { rowChar, seatNum, tier, price, badgeClass };
@@ -1793,39 +1889,13 @@ export default function TicketWalaPage() {
       return;
     }
 
-<<<<<<< HEAD
-    const newPnr = `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`;
-    setBookings((prev) => [...prev, { s: seatLabel, e: eventName, tier: d.tier, price: d.price }]);
-    addLog(`COMMIT seat ${seatLabel} (${d.tier}) → queued for DB write`, "ok");
-=======
     const emailToSend = bookingPassengerEmail.trim() || user?.email || "ticketwala.org@gmail.com";
     const nameToSend = bookingPassengerName.trim() || user?.name || "Verified Guest";
     const phoneToSend = bookingPassengerPhone.trim() || user?.phone || "+91 91461 99158";
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
 
     setIsVerifyingPayment(true);
     setPaymentError(null);
 
-<<<<<<< HEAD
-    setMine(null);
-    setStepNum(3);
-
-    // Automatically trigger the Premium Animated 3D Ticket!
-    setActive3DTicket({
-      ticketType: "Event",
-      bookingId: newPnr,
-      customerName: user?.name || profileName || "Demo Fan",
-      title: eventName,
-      subtitle: `${d.tier} · Seat #${seatLabel}`,
-      venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-      dateStr: "Tomorrow, 07:00 PM",
-      timeStr: "Gates 05:00 PM",
-      seatOrClass: `Seat ${seatLabel} (${d.tier})`,
-      price: d.price,
-      status: "Confirmed",
-      sourceType: "event",
-    });
-=======
     const venueName = CITY_VENUES[selectedCityId]?.[0]?.name || "DY Patil Sports Stadium, Mumbai";
     const dateTimeStr = `${events[currentEventIdx].month} ${events[currentEventIdx].day}, 2026 • 07:00 PM IST`;
 
@@ -1969,7 +2039,6 @@ export default function TicketWalaPage() {
     } finally {
       setIsVerifyingPayment(false);
     }
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
   };
 
   const handleDrop = () => {
@@ -2285,7 +2354,7 @@ export default function TicketWalaPage() {
           />
         </div>
         <div style={{ fontSize: "14px", color: "#8c8880", fontWeight: 600 }}>
-          Initializing TicketWala Engine...
+          Loading TicketWala...
         </div>
       </div>
     );
@@ -2378,21 +2447,6 @@ export default function TicketWalaPage() {
               suppressHydrationWarning
             >
               Travel
-            </a>
-          </li>
-          <li>
-            <a
-              href="#landing"
-              role="button"
-              style={{ cursor: "pointer" }}
-              className={activePage === "landing" ? "on" : ""}
-              onClick={(e) => {
-                e.preventDefault();
-                navigateTo("landing");
-              }}
-              suppressHydrationWarning
-            >
-              Architecture
             </a>
           </li>
           <li>
@@ -2497,7 +2551,7 @@ export default function TicketWalaPage() {
               <div className="bms-hero-gradient" />
               <div className="bms-hero-content">
                 <span className="bms-hero-tag">
-                  <span className="live-dot-sm" /> {featuredEvents[carouselIdx]?.badge || "HEADLINER DROP"} · {featuredEvents[carouselIdx]?.contention}
+                  <span className="live-dot-sm" /> {featuredEvents[carouselIdx]?.badge || "FEATURED EVENT"}
                 </span>
                 <h1 className="bms-hero-title">
                   {featuredEvents[carouselIdx]?.name}
@@ -2530,9 +2584,9 @@ export default function TicketWalaPage() {
                     type="button"
                     className="btn ghost"
                     style={{ color: "#fff", borderColor: "rgba(255,255,255,0.4)", padding: "13px 22px" }}
-                    onClick={() => navigateTo("landing")}
+                    onClick={() => navigateTo("events")}
                   >
-                    View Architecture Lab
+                    Browse all events
                   </button>
                 </div>
               </div>
@@ -2555,7 +2609,7 @@ export default function TicketWalaPage() {
             <div className="bms-categories-bar">
               <div className="bms-categories-list">
                 {[
-                  { id: "all", label: "All Drops" },
+                  { id: "all", label: "All events" },
                   { id: "concert", label: "Concerts & Music" },
                   { id: "comedy", label: "Standup Comedy" },
                   { id: "sports", label: "Live Stadium Sports" },
@@ -2573,32 +2627,28 @@ export default function TicketWalaPage() {
               </div>
             </div>
 
-            {/* Edge Technology Ribbon */}
+            {/* Booking benefits */}
             <div className="bms-edge-ribbon" style={{ marginBottom: "32px" }}>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                <span><b>Zero Double-Bookings</b> Guaranteed</span>
-              </div>
-              <div className="bms-edge-pill">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                <span><b>0.38ms Redis Lua Lock</b></span>
+                <span><b>Clear seat availability</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                <span><b>30s TTL Hold Ring</b></span>
+                <span><b>Two-minute seat hold</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                <span><b>10k RPS Bot Shield</b></span>
+                <span><b>Simple checkout</b></span>
               </div>
             </div>
 
             {/* Events in City Section Header */}
             <div className="bms-section-header">
               <div>
-                <h2>Live Drops in {currentCity.name}</h2>
+                <h2>Events in {currentCity.name}</h2>
                 <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
-                  Showing high-velocity ticket drops in {currentCity.name}. Live Redis locks protect every seat.
+                  Find upcoming events and check seat availability before you book.
                 </p>
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
@@ -2642,7 +2692,7 @@ export default function TicketWalaPage() {
                         position: "absolute",
                         top: "12px",
                         left: "12px",
-                        background: evt.contention === "FLASH DROP" ? "var(--o)" : "var(--k)",
+                        background: "var(--k)",
                         color: "#fff",
                         padding: "3px 10px",
                         borderRadius: "6px",
@@ -2650,7 +2700,7 @@ export default function TicketWalaPage() {
                         fontWeight: 800,
                         letterSpacing: "0.5px"
                       }}>
-                        {evt.contention}
+                        {evt.categoryLabel}
                       </span>
                       <span style={{
                         position: "absolute",
@@ -2752,7 +2802,7 @@ export default function TicketWalaPage() {
               ))}
             </div>
 
-            {/* Architecture Callout Banner */}
+            {/* Booking callout */}
             <div style={{
               background: "linear-gradient(135deg, #2B2A28 0%, #191817 100%)",
               borderRadius: "20px",
@@ -2767,22 +2817,22 @@ export default function TicketWalaPage() {
             }}>
               <div style={{ maxWidth: "600px" }}>
                 <span style={{ color: "var(--o)", fontSize: "12px", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ENGINEERING BEHIND THE CURTAIN
+                  YOUR NEXT GREAT EXPERIENCE
                 </span>
                 <h3 style={{ fontSize: "24px", fontWeight: 800, marginTop: "6px", marginBottom: "8px", color: "#fff" }}>
-                  How does TicketWala prevent double-booking at 10,000 RPS?
+                  Found something you’d love to see?
                 </h3>
                 <p style={{ color: "#d6d0c4", fontSize: "14px", lineHeight: 1.5 }}>
-                  Redis Lua atomic script execution, 30s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
+                  Browse upcoming events, compare ticket options, and choose the seat that works for you.
                 </p>
               </div>
               <button
                 type="button"
                 className="btn"
-                onClick={() => navigateTo("landing")}
+                onClick={() => navigateTo("events")}
                 style={{ padding: "14px 26px", fontSize: "14px", whiteSpace: "nowrap" }}
               >
-                Explore Architecture & Chaos Lab →
+                Browse events →
               </button>
             </div>
           </div>
@@ -3458,38 +3508,167 @@ export default function TicketWalaPage() {
           style={{ display: activePage === "events" ? "block" : "none" }}
         >
           <section>
-            <h2>
-              Upcoming <em>flash drops</em>
-            </h2>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
+              <div>
+                <h2>
+                  Upcoming <em>events</em>
+                </h2>
+                <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
+                  Find your next experience by name or type.
+                </p>
+              </div>
+              <span style={{ color: "#77736c", fontSize: "13px", fontWeight: 600 }}>
+                {filteredEventRows.length} {filteredEventRows.length === 1 ? "event" : "events"}
+              </span>
+            </div>
+            <div className="event-discovery-tools">
+              <label className="event-search">
+                <span className="event-search-icon" aria-hidden="true">⌕</span>
+                <input
+                  type="search"
+                  value={eventSearchQuery}
+                  onChange={(event) => setEventSearchQuery(event.target.value)}
+                  placeholder="Search events"
+                  aria-label="Search events"
+                />
+                {eventSearchQuery && (
+                  <button type="button" onClick={() => setEventSearchQuery("")} aria-label="Clear event search">×</button>
+                )}
+              </label>
+              <label className="event-sort">
+                <span>Sort</span>
+                <select
+                  value={eventSortOrder}
+                  onChange={(event) => setEventSortOrder(event.target.value as typeof eventSortOrder)}
+                  aria-label="Sort events"
+                >
+                  <option value="featured">Featured</option>
+                  <option value="name-ascending">Name: A to Z</option>
+                  <option value="price-low">Price: low to high</option>
+                  <option value="price-high">Price: high to low</option>
+                </select>
+              </label>
+            </div>
+            <div className="event-filter-pills" aria-label="Filter events by category">
+              {([
+                ["all", "All events"],
+                ["concert", "Concerts"],
+                ["comedy", "Comedy"],
+                ["sports", "Sports"],
+                ["travel", "Travel"],
+              ] as const)
+                .filter(([category]) => category === "all" || eventCategoryCounts[category] > 0)
+                .map(([category, label]) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`event-filter-pill ${eventCategoryFilter === category ? "active" : ""}`}
+                  aria-pressed={eventCategoryFilter === category}
+                  onClick={() => setEventCategoryFilter(category)}
+                >
+                  {label}
+                  <span>{eventCategoryCounts[category]}</span>
+                </button>
+              ))}
+              {(eventCategoryFilter !== "all" || eventSearchQuery || eventPriceFilter !== "all") && (
+                <button
+                  type="button"
+                  className="event-clear-filters"
+                  onClick={() => {
+                    setEventSearchQuery("");
+                    setEventCategoryFilter("all");
+                    setEventPriceFilter("all");
+                    setEventSortOrder("featured");
+                  }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="event-price-filters" aria-label="Filter events by starting price">
+              <span className="event-price-label">Price range</span>
+              <button
+                type="button"
+                className={`event-price-pill ${eventPriceFilter === "all" ? "active" : ""}`}
+                aria-pressed={eventPriceFilter === "all"}
+                onClick={() => setEventPriceFilter("all")}
+              >
+                Any price
+              </button>
+              {eventPriceCounts.filter((range) => range.count > 0).map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  className={`event-price-pill ${eventPriceFilter === range.id ? "active" : ""}`}
+                  aria-pressed={eventPriceFilter === range.id}
+                  onClick={() => setEventPriceFilter(range.id)}
+                >
+                  {range.label}
+                  <span>{range.count}</span>
+                </button>
+              ))}
+            </div>
             <div id="evl">
-              {events.map((e, idx) => {
-                const percent = idx === currentEventIdx ? (e.sold / N) * 100 : [35, 60, 82, 15][idx];
+              {filteredEventRows.length === 0 ? (
+                <div className="event-empty-state">
+                  <strong>No events match your search.</strong>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventSearchQuery("");
+                      setEventCategoryFilter("all");
+                      setEventPriceFilter("all");
+                      setEventSortOrder("featured");
+                    }}
+                  >
+                    Clear search and filters
+                  </button>
+                </div>
+              ) : filteredEventRows.map(({ event: e, originalIndex }) => {
+                const categoryLabel = e.category
+                  ? e.category.charAt(0).toUpperCase() + e.category.slice(1)
+                  : "Event";
                 return (
-                  <div key={idx} className="ev">
-                    <div className="d">
-                      <small>{e.month}</small>
-                      {e.day}
-                    </div>
-                    <div>
-                      <b>{e.name}</b>
-                      <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                        {N} seats · 5,000+ expected
-                      </div>
-                      <div className="bar">
-                        <i style={{ width: `${percent}%` }}></i>
-                      </div>
-                    </div>
-                    <button
-                      className="btn"
-                      onClick={() => {
-                        setCurrentEventIdx(idx);
-                        initSeats();
-                        navigateTo("booking");
-                      }}
+                  <article key={`${e.name}-${originalIndex}`} className={`ev event-card ${originalIndex === currentEventIdx ? "selected" : ""}`}>
+                    <div
+                      className={`event-card-cover event-cover-${e.category || "general"}${e.coverArt ? ` event-art-${e.coverArt}` : ""}`}
+                      aria-hidden="true"
                     >
-                      Reserve
-                    </button>
-                  </div>
+                      <span className="event-cover-category">{categoryLabel}</span>
+                      <span className="event-cover-art">
+                        {e.category === "concert" ? "LIVE" : e.category === "sports" ? "GAME" : e.category === "travel" ? "GO" : e.category === "comedy" ? "LOL" : "EVENT"}
+                      </span>
+                      <span className="event-cover-date">
+                        <strong>{e.month}</strong>
+                        <b>{e.day}</b>
+                      </span>
+                    </div>
+                    <div className="event-card-content">
+                      <div className="event-card-details">
+                        <h3>{e.name}</h3>
+                        <div className="event-card-meta">
+                          <span>{[e.venue, e.city].filter(Boolean).join(" · ") || "Venue details available when booking"}</span>
+                        </div>
+                      </div>
+                      <div className="event-card-footer">
+                        <span className="event-card-price">
+                          {e.fromPrice !== undefined
+                            ? <>From <strong>₹{e.fromPrice.toLocaleString("en-IN")}</strong></>
+                            : <span className="event-price-unlisted">Price not listed</span>}
+                        </span>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            setCurrentEventIdx(originalIndex);
+                            initSeats();
+                            navigateTo("booking");
+                          }}
+                        >
+                          Reserve
+                        </button>
+                      </div>
+                    </div>
+                  </article>
                 );
               })}
             </div>
@@ -3509,7 +3688,7 @@ export default function TicketWalaPage() {
                   Interactive <em>Seat Selection</em>
                 </h2>
                 <p style={{ opacity: 0.75, fontSize: "14px", marginTop: "4px" }}>
-                  Select your preferred tier. Live Redis TTL locking guarantees zero double-bookings.
+                  Choose an available seat to see its ticket type and price.
                 </p>
               </div>
 
@@ -3538,7 +3717,7 @@ export default function TicketWalaPage() {
                 1 · Select Seat
               </div>
               <div id="st2" className={stepNum > 2 ? "done" : stepNum === 2 ? "on" : ""}>
-                2 · Lock &amp; Hold (30s)
+                2 · Seat held
               </div>
               <div id="st3" className={stepNum === 3 ? "on" : ""}>
                 3 · Confirm Order
@@ -3564,7 +3743,7 @@ export default function TicketWalaPage() {
                         </svg>
                         VIP Lounge (Rows A - B)
                       </span>
-                      <span className="tier-price">₹2,499</span>
+                      <span className="tier-price">₹{getTierPrice("vip").toLocaleString("en-IN")}</span>
                     </div>
                     <div className="seat-rows">
                       {[0, 1].map((rIdx) => renderRow(rIdx))}
@@ -3581,7 +3760,7 @@ export default function TicketWalaPage() {
                         </svg>
                         Executive Prime (Rows C - F)
                       </span>
-                      <span className="tier-price">₹1,499</span>
+                      <span className="tier-price">₹{getTierPrice("prime").toLocaleString("en-IN")}</span>
                     </div>
                     <div className="seat-rows">
                       {[2, 3, 4, 5].map((rIdx) => renderRow(rIdx))}
@@ -3597,7 +3776,7 @@ export default function TicketWalaPage() {
                         </svg>
                         Standard Gallery (Rows G - J)
                       </span>
-                      <span className="tier-price">₹899</span>
+                      <span className="tier-price">₹{getTierPrice("std").toLocaleString("en-IN")}</span>
                     </div>
                     <div className="seat-rows">
                       {[6, 7, 8, 9].map((rIdx) => renderRow(rIdx))}
@@ -3612,11 +3791,11 @@ export default function TicketWalaPage() {
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#fef3c7", border: "1px solid #fcd34d" }}></span>
-                      <span>VIP (₹2,499)</span>
+                      <span>VIP (₹{getTierPrice("vip").toLocaleString("en-IN")})</span>
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#FF6B35" }}></span>
-                      <span>Held (TTL)</span>
+                      <span>Held</span>
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#2B2A28" }}></span>
@@ -3629,20 +3808,8 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
 
-                {/* Bottom Controls / Burst Sim */}
+                {/* Seat availability summary */}
                 <div style={{ marginTop: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                  <button
-                    className="btn k"
-                    onClick={runFlashDropStorm}
-                    disabled={isBusy}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#FF6B35">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                    Simulate 5,000 Concurrent Users
-                  </button>
-
                   <div style={{ display: "flex", gap: "16px", fontSize: "13px", fontWeight: 600 }}>
                     <span style={{ color: "#27ae60" }}>
                       ● {seats.filter((s) => s.st === 0).length} Available
@@ -3657,7 +3824,7 @@ export default function TicketWalaPage() {
                 </div>
               </div>
 
-              {/* Right Column: Checkout Card + Broker Terminal */}
+              {/* Booking details */}
               <div>
                 <div className="checkout-card" id="panel">
                   {mine === null ? (
@@ -3802,57 +3969,6 @@ export default function TicketWalaPage() {
                             + Book Another Seat
                           </button>
                         </div>
-<<<<<<< HEAD
-                        <h3 style={{ fontSize: "20px", marginBottom: "6px" }}>Reservation Confirmed!</h3>
-                        <p style={{ fontSize: "13px", opacity: 0.75, marginBottom: "16px" }}>
-                          Your atomic lock was written to database asynchronously with sub-second consistency.
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <button
-                            type="button"
-                            className="btn primary"
-                            style={{
-                              width: "100%",
-                              background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
-                              border: "none",
-                              padding: "11px 18px",
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "8px",
-                            }}
-                            onClick={() => {
-                              const lastBooking = bookings[bookings.length - 1];
-                              const eventName = lastBooking ? lastBooking.e : events[currentEventIdx].name;
-                              const seatLabel = lastBooking ? lastBooking.s : "VIP";
-                              const tier = lastBooking ? lastBooking.tier : "VIP Lounge";
-                              const eventPrice = (lastBooking && lastBooking.price) ? lastBooking.price : 2499;
-                              setActive3DTicket({
-                                ticketType: "Event",
-                                bookingId: `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`,
-                                customerName: user?.name || profileName || "Aryan Sharma",
-                                title: eventName,
-                                subtitle: `${tier} · Seat #${seatLabel}`,
-                                venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-                                dateStr: "Tomorrow, 07:00 PM",
-                                timeStr: "Gates 05:00 PM",
-                                seatOrClass: `Seat ${seatLabel} (${tier})`,
-                                price: eventPrice,
-                                status: "Confirmed",
-                                sourceType: "event",
-                              });
-                            }}
-                          >
-                            ✨ View Ticket Pass
-                          </button>
-                          <button className="btn k" style={{ width: "100%" }} onClick={() => navigateTo("profile")}>
-                            View E-Ticket in Profile →
-                          </button>
-                        </div>
-=======
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
                       </div>
                     ) : (
                       <div>
@@ -3865,20 +3981,20 @@ export default function TicketWalaPage() {
                         </div>
                         <h3 style={{ fontSize: "18px", marginBottom: "6px" }}>Select an Available Seat</h3>
                         <p style={{ fontSize: "13px", opacity: 0.75, lineHeight: 1.5, marginBottom: "16px" }}>
-                          Click any seat in the theater map to claim an atomic Redis lock. You will get 120 seconds to review, scan UPI QR, and pay.
+                          Choose an available seat to begin. The timer will show how long the hold remains.
                         </p>
                         <div style={{ background: "var(--g)", borderRadius: "12px", padding: "12px 16px", textAlign: "left", fontSize: "12px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                             <span style={{ color: "#666" }}>VIP Lounge:</span>
-                            <b>₹2,499</b>
+                            <b>₹{getTierPrice("vip").toLocaleString("en-IN")}</b>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                             <span style={{ color: "#666" }}>Executive Prime:</span>
-                            <b>₹1,499</b>
+                            <b>₹{getTierPrice("prime").toLocaleString("en-IN")}</b>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
                             <span style={{ color: "#666" }}>Standard Gallery:</span>
-                            <b>₹899</b>
+                            <b>₹{getTierPrice("std").toLocaleString("en-IN")}</b>
                           </div>
                         </div>
                       </div>
@@ -4079,29 +4195,6 @@ export default function TicketWalaPage() {
                   )}
                 </div>
 
-                {/* Broker Terminal */}
-                <div className="broker-terminal">
-                  <div className="terminal-header">
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" y1="19" x2="20" y2="19" />
-                      </svg>
-                      Broker Telemetry
-                    </span>
-                    <span className="terminal-badge">
-                      <span className="pulse-dot"></span>
-                      Redis Engine Online
-                    </span>
-                  </div>
-                  <div className="terminal-body" id="log" ref={logContainerRef}>
-                    {logs.map((l, i) => (
-                      <div key={i} className={l.cls}>
-                        {l.time} {l.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </section>
@@ -4121,11 +4214,11 @@ export default function TicketWalaPage() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
-                  TICKETWALA FAST LANE · TRAVEL
+                  PLAN YOUR NEXT TRIP
                 </span>
-                <h1>High-Velocity Transit & Luxury Stays</h1>
+                <h1>Travel and stays</h1>
                 <p>
-                  Zero waiting room lag, atomic seat holds, and instant PNR verification across premier Flights, Express Trains, Volvo Buses, Cabs & Luxury Resorts.
+                  Explore travel options, compare prices, and keep your trip details together in one place.
                 </p>
               </div>
 
@@ -4140,7 +4233,7 @@ export default function TicketWalaPage() {
                 </div>
                 <div className="travel-stat-pill">
                   <small>Hold Speed</small>
-                  <b style={{ color: "var(--o)" }}>Live TTL PNR</b>
+                  <b style={{ color: "var(--o)" }}>Trip options</b>
                 </div>
               </div>
             </div>
@@ -5873,14 +5966,14 @@ export default function TicketWalaPage() {
                   </div>
 
                   <span className="pill" style={{ background: "rgba(255, 107, 55, 0.18)", color: "#fff", border: "1px solid rgba(255, 107, 55, 0.35)", marginBottom: "16px" }}>
-                    <i className="dot"></i> Next flash release in minutes
+                    <i className="dot"></i> Discover upcoming events
                   </span>
 
                   <h2>
                     Welcome back to the <em>TicketWala</em>.
                   </h2>
                   <p>
-                    Log in to lock high-contention seats before the other 5,000 fans. Your active holds, e-tickets, and VIP queue status are waiting.
+                    Sign in to view your bookings and continue planning your next outing.
                   </p>
 
                   <div className="auth-features">
@@ -5891,8 +5984,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Sub-Second Redis Lock</b>
-                        <span>Atomic Lua scripts secure your seat in under 1 millisecond.</span>
+                        <b>Easy seat selection</b>
+                        <span>See available seats and ticket prices before you book.</span>
                       </div>
                     </div>
 
@@ -5904,8 +5997,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Anti-Bot Token Bucket Shield</b>
-                        <span>Guaranteed fair access for verified human ticket buyers.</span>
+                        <b>Clear booking steps</b>
+                        <span>Choose an event, select a seat, and review your booking.</span>
                       </div>
                     </div>
 
@@ -5917,8 +6010,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Bank-Grade 256-Bit Encryption</b>
-                        <span>PCI-DSS compliant checkouts with instant async DB commits.</span>
+                        <b>Booking details in one place</b>
+                        <span>Find your event and booking information from your profile.</span>
                       </div>
                     </div>
                   </div>
@@ -5927,11 +6020,11 @@ export default function TicketWalaPage() {
                 <div className="auth-status-card">
                   <div className="status-indicator">
                     <span className="live-dot"></span>
-                    <span>Broker Engine Online</span>
+                    <span>Welcome to TicketWala</span>
                   </div>
                   <div className="status-stat">
-                    <b>0 Double-Allocations</b>
-                    <div style={{ opacity: 0.7 }}>5,000 users capacity</div>
+                    <b>Your next outing starts here</b>
+                    <div style={{ opacity: 0.7 }}>Explore events and book a seat</div>
                   </div>
                 </div>
               </div>
@@ -6100,7 +6193,7 @@ export default function TicketWalaPage() {
                     Join the <em>exclusive drop lane</em>.
                   </h2>
                   <p>
-                    One account unlocks every high-velocity ticket drop: atomic seat locks, 30-second hold rings, and zero double-booking assurance.
+                    Create an account to keep your profile and booking details together.
                   </p>
 
 
@@ -6113,9 +6206,59 @@ export default function TicketWalaPage() {
                     />
                     <div className="auth-image-overlay">
                       <span className="auth-image-tag">
-                        <span className="live-dot-sm"></span> HIGH-VELOCITY ARENA ACCESS
+                        <span className="live-dot-sm"></span> LIVE EVENTS
                       </span>
                     </div>
+                  </div>
+
+                  <div className="auth-features">
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Explore events</b>
+                        <span>Find concerts, sports, comedy, and more.</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Choose your seat</b>
+                        <span>Review seat availability and ticket prices before checkout.</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Instant Digital E-Tickets</b>
+                        <span>Boarding pass styled passes delivered directly to your profile.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-status-card">
+                  <div className="status-indicator">
+                    <span className="live-dot"></span>
+                    <span>Welcome to TicketWala</span>
+                  </div>
+                  <div className="status-stat">
+                    <b>No Hidden Fees</b>
+                    <div style={{ opacity: 0.7 }}>Instant cancellation support</div>
                   </div>
                 </div>
               </div>
@@ -6124,7 +6267,7 @@ export default function TicketWalaPage() {
               <div className="auth-box">
                 <div className="auth-box-header">
                   <h2>Create Your Account</h2>
-                  <p>Get instant access to live flash reservations.</p>
+                  <p>Create an account to keep your profile and booking details together.</p>
                 </div>
 
                 {/* Full Name */}
@@ -6286,7 +6429,7 @@ export default function TicketWalaPage() {
       </main>
 
       {/* FOOTER */}
-      <footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
+      <footer>© 2026 TicketWala · Discover events. Make memories.</footer>
 
       {/* CITY SELECTOR MODAL */}
       {showCityModal && (
@@ -6464,7 +6607,7 @@ export default function TicketWalaPage() {
                   <b>₹{basePrice.toLocaleString("en-IN")}</b>
                 </div>
                 <div className="travel-fare-row">
-                  <span>TicketWala Priority Token Lock</span>
+                  <span>Booking fee</span>
                   <span style={{ color: "#27ae60", fontWeight: 700 }}>₹0 (FREE)</span>
                 </div>
                 <div className="travel-fare-row">
@@ -6489,7 +6632,7 @@ export default function TicketWalaPage() {
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <span style={{ fontSize: "12px", color: "#1e824c", fontWeight: 700 }}>
-                  Redis TTL Atomic Hold Active · 0 Double-Booking Guarantee
+                  Review your trip details before continuing
                 </span>
               </div>
 
@@ -6662,7 +6805,6 @@ export default function TicketWalaPage() {
         </div>
       )}
 
-<<<<<<< HEAD
       {/* ============================================================ */}
       {/* PREMIUM ANIMATED 3D TICKET MODAL (INSPIRED BY REFERENCE IMAGE) */}
       {/* ============================================================ */}
@@ -6940,7 +7082,6 @@ export default function TicketWalaPage() {
         </div>
       </div>
     )}
-=======
       {/* FULL E-TICKET BOARDING PASS MODAL */}
       {ticketModalBooking && (
         <div className="travel-modal-overlay" onClick={() => setTicketModalBooking(null)}>
@@ -7031,7 +7172,7 @@ export default function TicketWalaPage() {
           </div>
         </div>
       )}
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
+
 
       {/* FLOATING TOAST NOTIFICATION */}
       {eticketAlert && (
