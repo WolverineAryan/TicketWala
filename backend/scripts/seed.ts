@@ -39,10 +39,11 @@ async function seedAllInventory() {
 
       // Initialize unit hashes
       for (const unitId of unitIds) {
-        const unitKey = `ticketwala:unit:${unitId}`;
+        const unitKey = `ticketwala:event:${evt.id}:unit:${unitId}`;
         await redis.hmset(unitKey, {
           status: "AVAILABLE",
           version: "1",
+          event_id: evt.id,
         });
         await redis.hdel(unitKey, "reservation_id", "token_hash", "expires_at");
       }

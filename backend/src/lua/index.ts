@@ -2,9 +2,13 @@ import crypto from "crypto";
 import type Redis from "ioredis";
 
 export const ADAPTIVE_BALANCE_LUA = `
--- KEYS: [1] queue_key, [2] bucket_key
--- ARGV: [1] base_capacity, [2] base_refill_rate, [3] now_ms
+-- KEYS: [1] queue_key, [2] bucket_key, [3] idempotency_prefix
+-- ARGV: [1] base_capacity, [2] base_refill_rate, [3] now_ms, [4] idempotency_scope_key
 local avail_seats = redis.call('LLEN', KEYS[1])
+
+if ARGV[4] and ARGV[4] ~= '' and redis.call('EXISTS', KEYS[3] .. ":" .. ARGV[4]) == 1 then
+    return cjson.encode({ admitted = 1, code = 200, remaining = avail_seats, idempotent = 1 })
+end
 
 -- Instant O(1) Short-Circuit when 0 seats remain
 if avail_seats == 0 then
@@ -39,8 +43,8 @@ end
 `;
 
 export const HOLD_FCFS_LUA = `
--- KEYS: [1] fifo_queue, [2] unit_prefix, [3] res_prefix, [4] idemp_prefix, [5] stream_key
--- ARGV: [1] idemp_scope_key, [2] req_fingerprint, [3] res_id, [4] token_hash, [5] ttl_seconds, [6] server_now
+-- KEYS: [1] fifo_queue, [2] event_prefix, [3] res_prefix, [4] idemp_prefix, [5] stream_key
+-- ARGV: [1] idemp_scope_key, [2] req_fingerprint, [3] res_id, [4] token_hash, [5] ttl_seconds, [6] server_now, [7] unit_id, [8] event_id
 
 local idemp_key = KEYS[4] .. ":" .. ARGV[1]
 local cached_res = redis.call('GET', idemp_key)
@@ -55,7 +59,7 @@ end
 -- 1. Pop next unit from FIFO List in exact arrival sequence (Strict FCFS) or claim specific unit
 local unit_id = nil
 if ARGV[7] and ARGV[7] ~= '' then
-    local req_unit_key = KEYS[2] .. ":" .. ARGV[7]
+    local req_unit_key = KEYS[2] .. ":" .. ARGV[8] .. ":unit:" .. ARGV[7]
     local req_status = redis.call('HGET', req_unit_key, 'status')
     if req_status == 'AVAILABLE' then
         unit_id = ARGV[7]
@@ -72,7 +76,7 @@ if not unit_id then
 end
 
 -- 2. Bind unit and reservation atomically with monotonic versioning
-local unit_key = KEYS[2] .. ":" .. unit_id
+local unit_key = KEYS[2] .. ":" .. ARGV[8] .. ":unit:" .. unit_id
 local res_key = KEYS[3] .. ":" .. ARGV[3]
 local expires_at = tonumber(ARGV[6]) + tonumber(ARGV[5])
 local version = 1
@@ -82,7 +86,8 @@ redis.call('HMSET', unit_key,
     'reservation_id', ARGV[3],
     'token_hash', ARGV[4],
     'expires_at', expires_at,
-    'version', version
+    'version', version,
+    'event_id', ARGV[8]
 )
 
 redis.call('HMSET', res_key,
@@ -91,13 +96,15 @@ redis.call('HMSET', res_key,
     'token_hash', ARGV[4],
     'expires_at', expires_at,
     'version', version,
-    'created_at', ARGV[6]
+    'created_at', ARGV[6],
+    'event_id', ARGV[8]
 )
 
 -- 3. Append to event stream for eventual consistency
 
 local event_id = redis.call('XADD', KEYS[5], '*',
     'event_type', 'HOLD_CREATED',
+    'event_id_ref', ARGV[8],
     'reservation_id', ARGV[3],
     'unit_id', unit_id,
     'version', version,
@@ -113,7 +120,8 @@ local response = cjson.encode({
     status = 'HELD',
     expiresAt = expires_at,
     version = version,
-    eventId = event_id,
+    eventId = ARGV[8],
+    streamEventId = event_id,
     fingerprint = ARGV[2]
 })
 
@@ -122,7 +130,7 @@ return response
 `;
 
 export const CONFIRM_LUA = `
--- KEYS: [1] unit_prefix, [2] res_prefix, [3] stream_key, [4] idemp_prefix
+-- KEYS: [1] event_prefix, [2] res_prefix, [3] stream_key, [4] idemp_prefix
 -- ARGV: [1] res_id, [2] token_hash, [3] server_now, [4] idemp_key
 
 if ARGV[4] and ARGV[4] ~= '' then
@@ -131,15 +139,16 @@ if ARGV[4] and ARGV[4] ~= '' then
 end
 
 local res_key = KEYS[2] .. ":" .. ARGV[1]
-local res_data = redis.call('HMGET', res_key, 'unit_id', 'status', 'token_hash', 'expires_at', 'version')
+local res_data = redis.call('HMGET', res_key, 'unit_id', 'status', 'token_hash', 'expires_at', 'version', 'event_id')
 
 local unit_id = res_data[1]
 local current_status = res_data[2]
 local expected_token_hash = res_data[3]
 local expires_at = tonumber(res_data[4])
 local current_res_ver = tonumber(res_data[5]) or 1
+local event_id = res_data[6]
 
-if not unit_id or not current_status then
+if not unit_id or not current_status or not event_id then
     return cjson.encode({ error = "NOT_FOUND", code = 404, message = "Reservation not found" })
 end
 
@@ -149,6 +158,7 @@ if current_status == 'CONFIRMED' then
         unitId = unit_id,
         status = 'CONFIRMED',
         version = current_res_ver,
+        eventId = event_id,
         code = 200,
         message = "Reservation already confirmed"
     })
@@ -170,7 +180,7 @@ if expires_at and now >= expires_at then
 end
 
 -- Atomic State Transition
-local unit_key = KEYS[1] .. ":" .. unit_id
+local unit_key = KEYS[1] .. ":" .. event_id .. ":unit:" .. unit_id
 local new_version = redis.call('HINCRBY', unit_key, 'version', 1)
 
 redis.call('HSET', unit_key, 'status', 'CONFIRMED')
@@ -183,8 +193,9 @@ redis.call('HMSET', res_key,
 )
 
 -- Append to Stream
-local event_id = redis.call('XADD', KEYS[3], '*',
+local stream_entry_id = redis.call('XADD', KEYS[3], '*',
     'event_type', 'RESERVATION_CONFIRMED',
+    'event_id_ref', event_id,
     'reservation_id', ARGV[1],
     'unit_id', unit_id,
     'version', new_version,
@@ -194,10 +205,11 @@ local event_id = redis.call('XADD', KEYS[3], '*',
 local response = cjson.encode({
     reservationId = ARGV[1],
     unitId = unit_id,
+    eventId = event_id,
+    streamEventId = stream_entry_id,
     status = 'CONFIRMED',
     version = new_version,
     confirmedAt = tonumber(ARGV[3]),
-    eventId = event_id,
     code = 200
 })
 
@@ -209,28 +221,25 @@ return response
 `;
 
 export const RELEASE_FCFS_LUA = `
--- KEYS: [1] fifo_queue, [2] unit_prefix, [3] res_prefix, [4] stream_key
+-- KEYS: [1] event_prefix, [2] res_prefix, [3] stream_key
 -- ARGV: [1] res_id, [2] token_hash, [3] server_now, [4] is_timeout_job
 
-local res_key = KEYS[3] .. ":" .. ARGV[1]
-local res_data = redis.call('HMGET', res_key, 'unit_id', 'status', 'token_hash', 'version')
+local res_key = KEYS[2] .. ":" .. ARGV[1]
+local res_data = redis.call('HMGET', res_key, 'unit_id', 'status', 'token_hash', 'version', 'event_id')
 
 local unit_id = res_data[1]
 local current_status = res_data[2]
 local expected_token_hash = res_data[3]
 local res_version = tonumber(res_data[4]) or 1
+local event_id = res_data[5]
 
-if not unit_id or not current_status then
+if not unit_id or not current_status or not event_id then
     return cjson.encode({ error = "NOT_FOUND", code = 404, message = "Reservation not found" })
 end
 
 -- Terminal state protection: Cannot release already confirmed tickets
 if current_status == 'CONFIRMED' then
     return cjson.encode({ error = "ALREADY_CONFIRMED", code = 409, message = "Confirmed reservations cannot be released" })
-end
-
-if current_status == 'EXPIRED' or current_status == 'RELEASED' then
-    return cjson.encode({ status = current_status, code = 200, message = "Reservation already released or expired" })
 end
 
 -- If explicit user cancellation, verify token hash
@@ -240,9 +249,16 @@ if not is_timeout and expected_token_hash ~= ARGV[2] then
 end
 
 -- Check unit ownership & Monotonic Version Fence
-local unit_key = KEYS[2] .. ":" .. unit_id
+local unit_key = KEYS[1] .. ":" .. event_id .. ":unit:" .. unit_id
 local unit_owner = redis.call('HGET', unit_key, 'reservation_id')
 local unit_status = redis.call('HGET', unit_key, 'status')
+
+if current_status == 'EXPIRED' or current_status == 'RELEASED' then
+    if is_timeout and unit_owner and unit_owner ~= ARGV[1] then
+        return cjson.encode({ status = "IGNORED_STALE_RELEASE", code = 200, message = "Unit already reassigned to a newer reservation" })
+    end
+    return cjson.encode({ status = current_status, code = 200, message = "Reservation already released or expired" })
+end
 
 if unit_owner ~= ARGV[1] then
     -- Unit is already reassigned to someone else! Stale release is safe no-op
@@ -254,15 +270,16 @@ end
 redis.call('HDEL', unit_key, 'reservation_id', 'token_hash', 'expires_at')
 redis.call('HSET', unit_key, 'status', 'AVAILABLE')
 local new_unit_version = redis.call('HINCRBY', unit_key, 'version', 1)
-redis.call('LPUSH', KEYS[1], unit_id)
+redis.call('LPUSH', KEYS[1] .. ":" .. event_id .. ":available_queue", unit_id)
 
 local terminal_status = is_timeout and 'EXPIRED' or 'RELEASED'
 redis.call('HMSET', res_key, 'status', terminal_status, 'version', res_version + 1)
 
 -- Append to Stream
 local event_type = is_timeout and 'HOLD_EXPIRED' or 'HOLD_RELEASED'
-local event_id = redis.call('XADD', KEYS[4], '*',
+local stream_entry_id = redis.call('XADD', KEYS[3], '*',
     'event_type', event_type,
+    'event_id_ref', event_id,
     'reservation_id', ARGV[1],
     'unit_id', unit_id,
     'version', res_version + 1,
@@ -274,7 +291,7 @@ return cjson.encode({
     unitId = unit_id,
     status = terminal_status,
     version = res_version + 1,
-    eventId = event_id,
+    eventId = stream_entry_id,
     code = 200
 })
 `;
@@ -331,23 +348,29 @@ export function generateHoldToken(): string {
   return crypto.randomBytes(16).toString("hex");
 }
 
+export function getUnitRedisKey(eventId: string, unitId: string): string {
+  return `ticketwala:event:${eventId}:unit:${unitId}`;
+}
+
 // 1. Adaptive Admission Controller
 export async function checkAdaptiveAdmission(
   redis: Redis,
   eventId: string,
   baseCapacity: number = 1000,
-  baseRefillRate: number = 500
+  baseRefillRate: number = 500,
+  idempotencyScopeKey: string = ""
 ): Promise<{ admitted: number; reason?: string; code: number; remaining: number }> {
   const queueKey = `ticketwala:event:${eventId}:available_queue`;
   const bucketKey = `ticketwala:event:${eventId}:token_bucket`;
+  const idempotencyPrefix = "ticketwala:idempotency";
   const nowMs = Date.now();
 
   const raw = await evalOrSha(
     redis,
     "adaptive_balance",
     ADAPTIVE_BALANCE_LUA,
-    2,
-    [queueKey, bucketKey, baseCapacity, baseRefillRate, nowMs]
+    3,
+    [queueKey, bucketKey, idempotencyPrefix, baseCapacity, baseRefillRate, nowMs, idempotencyScopeKey]
   );
   return typeof raw === "string" ? JSON.parse(raw) : raw;
 }
@@ -355,6 +378,7 @@ export async function checkAdaptiveAdmission(
 // 2. Strict FCFS Hold Claim
 export interface ClaimHoldParams {
   eventId: string;
+  streamKey?: string;
   idempotencyScopeKey: string;
   requestFingerprint: string;
   reservationId: string;
@@ -368,10 +392,10 @@ export async function claimHoldFcfs(
   params: ClaimHoldParams
 ): Promise<any> {
   const queueKey = `ticketwala:event:${params.eventId}:available_queue`;
-  const unitPrefix = "ticketwala:unit";
+  const eventPrefix = "ticketwala:event";
   const resPrefix = "ticketwala:reservation";
   const idempPrefix = "ticketwala:idempotency";
-  const streamKey = "ticketwala:events";
+  const streamKey = params.streamKey || "ticketwala:events";
   const serverNowSec = Math.floor(Date.now() / 1000);
   const tokenHash = hashHoldToken(params.rawHoldToken);
 
@@ -382,7 +406,7 @@ export async function claimHoldFcfs(
     5,
     [
       queueKey,
-      unitPrefix,
+      eventPrefix,
       resPrefix,
       idempPrefix,
       streamKey,
@@ -393,6 +417,7 @@ export async function claimHoldFcfs(
       params.ttlSeconds,
       serverNowSec,
       params.requestedUnitId || "",
+      params.eventId,
     ]
   );
 
@@ -402,6 +427,7 @@ export async function claimHoldFcfs(
 // 3. Confirm Hold
 export interface ConfirmHoldParams {
   reservationId: string;
+  streamKey?: string;
   rawHoldToken: string;
   idempotencyKey?: string;
 }
@@ -410,9 +436,9 @@ export async function confirmHold(
   redis: Redis,
   params: ConfirmHoldParams
 ): Promise<any> {
-  const unitPrefix = "ticketwala:unit";
+  const eventPrefix = "ticketwala:event";
   const resPrefix = "ticketwala:reservation";
-  const streamKey = "ticketwala:events";
+  const streamKey = params.streamKey || "ticketwala:events";
   const idempPrefix = "ticketwala:idempotency";
   const serverNowSec = Math.floor(Date.now() / 1000);
   const tokenHash = hashHoldToken(params.rawHoldToken);
@@ -423,7 +449,7 @@ export async function confirmHold(
     CONFIRM_LUA,
     4,
     [
-      unitPrefix,
+      eventPrefix,
       resPrefix,
       streamKey,
       idempPrefix,
@@ -439,8 +465,8 @@ export async function confirmHold(
 
 // 4. Release Hold
 export interface ReleaseHoldParams {
-  eventId: string;
   reservationId: string;
+  streamKey?: string;
   rawHoldToken?: string;
   isTimeoutJob?: boolean;
 }
@@ -449,10 +475,9 @@ export async function releaseHold(
   redis: Redis,
   params: ReleaseHoldParams
 ): Promise<any> {
-  const queueKey = `ticketwala:event:${params.eventId}:available_queue`;
-  const unitPrefix = "ticketwala:unit";
+  const eventPrefix = "ticketwala:event";
   const resPrefix = "ticketwala:reservation";
-  const streamKey = "ticketwala:events";
+  const streamKey = params.streamKey || "ticketwala:events";
   const serverNowSec = Math.floor(Date.now() / 1000);
   const tokenHash = params.rawHoldToken ? hashHoldToken(params.rawHoldToken) : "";
   const isTimeoutFlag = params.isTimeoutJob ? "1" : "0";
@@ -461,10 +486,9 @@ export async function releaseHold(
     redis,
     "release_fcfs",
     RELEASE_FCFS_LUA,
-    4,
+    3,
     [
-      queueKey,
-      unitPrefix,
+      eventPrefix,
       resPrefix,
       streamKey,
       params.reservationId,

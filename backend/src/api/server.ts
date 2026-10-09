@@ -26,6 +26,7 @@ import {
 } from "../contracts/index.js";
 import { sendTicketEmail } from "../services/emailService.js";
 import { generateDynamicUpiPayment, verifyUpiTransaction } from "../services/paymentService.js";
+import { checkDependencyReadiness } from "./readiness.js";
 import {
   loadScripts,
   checkAdaptiveAdmission,
@@ -33,6 +34,7 @@ import {
   confirmHold,
   releaseHold,
   generateHoldToken,
+  getUnitRedisKey,
 } from "../lua/index.js";
 
 import path from "path";
@@ -196,6 +198,7 @@ const inMemoryReservations = new Map<string, {
   version: number;
   eventId: string;
 }>();
+const memoryUnitKey = (eventId: string, unitId: string) => `${eventId}:${unitId}`;
 
 // Initialize In-Memory Queues
 for (const event of MULTIPURPOSE_EVENTS) {
@@ -203,7 +206,7 @@ for (const event of MULTIPURPOSE_EVENTS) {
   for (let i = 1; i <= event.totalSeats; i++) {
     const unitId = `unit-${String(i).padStart(3, "0")}`;
     queue.push(unitId);
-    inMemoryUnits.set(unitId, { status: "AVAILABLE", version: 1 });
+    inMemoryUnits.set(memoryUnitKey(event.id, unitId), { status: "AVAILABLE", version: 1 });
   }
   inMemoryQueues.set(event.id, queue);
 }
@@ -236,9 +239,9 @@ export async function createServer(): Promise<{
     retryStrategy: () => null, // Do not auto-retry endlessly if no Redis instance exists
   });
 
-  redis.on("error", () => {
-    // Suppress unhandled error event in offline mode
+  redis.on("error", (err) => {
     isRedisAvailable = false;
+    app.log.error({ err }, "Redis connection error.");
   });
 
   try {
@@ -259,24 +262,48 @@ export async function createServer(): Promise<{
           }
           await redis.lpush(queueKey, ...unitIds);
           for (const u of unitIds) {
-            await redis.hmset(`ticketwala:unit:${u}`, { status: "AVAILABLE", version: "1" });
+            await redis.hmset(getUnitRedisKey(event.id, u), {
+              status: "AVAILABLE",
+              version: "1",
+              event_id: event.id,
+            });
           }
           await redis.hmset(`ticketwala:event:${event.id}:token_bucket`, {
             tokens: String(event.totalSeats),
             last_updated: String(Date.now()),
           });
         }
+        if (exists) {
+          const unitIds = Array.from({ length: event.totalSeats }, (_, index) =>
+            `unit-${String(index + 1).padStart(3, "0")}`
+          );
+          const inventoryCheck = redis.pipeline();
+          unitIds.forEach((unitId) => inventoryCheck.exists(getUnitRedisKey(event.id, unitId)));
+          const existenceResults = await inventoryCheck.exec();
+          if (!existenceResults) {
+            throw new Error(`Could not verify inventory keys for event ${event.id}.`);
+          }
+          const missingUnitIndex = existenceResults.findIndex(([error, existsResult]) => {
+            if (error) throw error;
+            return !existsResult;
+          });
+          if (missingUnitIndex !== -1) {
+            throw new Error(
+              `Event ${event.id} has incomplete event-scoped inventory keys. Reconcile/reseed this Redis inventory before serving bookings.`
+            );
+          }
+        }
       }
-    } catch (err: any) {
-      app.log.warn(`Redis scripts setup note: ${err.message}`);
+    } catch (err) {
+      throw err;
     }
-  } catch (_err) {
+  } catch (err) {
     isRedisAvailable = false;
     try {
       redis.disconnect();
     } catch (_) {}
     app.log.warn(
-      `ℹ️ Redis server offline on ${REDIS_URL}. TicketWala Embedded In-Memory Engine active. (All endpoints fully operational)`
+      `Redis startup/initialization failed on ${REDIS_URL}; embedded in-memory fallback active: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 
@@ -289,7 +316,7 @@ export async function createServer(): Promise<{
   });
 
   pgPool.on("error", (err) => {
-    // Prevent unhandled postgres pool crashes in offline mode
+    app.log.error({ err }, "PostgreSQL connection pool error.");
   });
 
   // ---------------------------------------------------------------------------
@@ -304,12 +331,24 @@ export async function createServer(): Promise<{
   });
 
   app.get("/health/ready", async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
-      status: "ready",
+    const readiness = await checkDependencyReadiness(redis, pgPool);
+    const isReady = readiness.ready && isRedisAvailable;
+    if (!isReady) {
+      app.log.warn(
+        {
+          errors: readiness.errors,
+          redisInitialized: isRedisAvailable,
+        },
+        "Service dependencies are not ready."
+      );
+    }
+
+    return reply.status(isReady ? 200 : 503).send({
+      status: isReady ? "ready" : "not_ready",
       checks: {
         engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
-        redis: isRedisAvailable ? "healthy" : "offline_fallback_active",
-        postgres: "connected",
+        redis: isRedisAvailable ? readiness.redis : "unavailable",
+        postgres: readiness.postgres,
       },
       timestamp: new Date().toISOString(),
     });
@@ -389,7 +428,10 @@ export async function createServer(): Promise<{
    */
   app.get("/api/v1/events/:id/seats", async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id) || MULTIPURPOSE_EVENTS[0];
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id);
+    if (!event) {
+      return reply.status(404).send({ error: { code: "EVENT_NOT_FOUND", message: "Event not found" } });
+    }
 
     const totalSeats = event.totalSeats;
     const seats: InventoryUnitState[] = [];
@@ -402,13 +444,13 @@ export async function createServer(): Promise<{
       let version = 1;
 
       if (isRedisAvailable) {
-        const unitData = ((await redis.hgetall(`ticketwala:unit:${unitId}`).catch(() => ({}))) || {}) as Record<string, string>;
+        const unitData = ((await redis.hgetall(getUnitRedisKey(id, unitId)).catch(() => ({}))) || {}) as Record<string, string>;
         if (unitData.status) status = unitData.status as any;
         reservationId = unitData.reservation_id;
         expiresAt = unitData.expires_at ? parseInt(unitData.expires_at, 10) : undefined;
         version = parseInt(unitData.version || "1", 10);
       } else {
-        const memUnit = inMemoryUnits.get(unitId);
+        const memUnit = inMemoryUnits.get(memoryUnitKey(id, unitId));
         if (memUnit) {
           status = memUnit.status;
           reservationId = memUnit.reservationId;
@@ -476,7 +518,12 @@ export async function createServer(): Promise<{
     }
 
     const { eventId, unitId: requestedUnitId } = parseResult.data;
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId);
+    if (!event) {
+      return reply.status(404).send({
+        error: { code: "EVENT_NOT_FOUND", message: "Event not found", retryable: false, timestamp: new Date().toISOString() },
+      });
+    }
 
     const idempotencyKey = (req.headers["idempotency-key"] as string) || uuidv4();
     const reqFingerprint = crypto
@@ -489,7 +536,8 @@ export async function createServer(): Promise<{
 
     // 1. If Redis is available, use Redis Lua script
     if (isRedisAvailable) {
-      const admission = await checkAdaptiveAdmission(redis, event.id);
+      const idempotencyScopeKey = idempotencyKey;
+      const admission = await checkAdaptiveAdmission(redis, event.id, 1000, 500, idempotencyScopeKey);
       if (admission.admitted === 0) {
         if (admission.reason === "SOLD_OUT") {
           telemetry.soldOutCount++;
@@ -516,7 +564,7 @@ export async function createServer(): Promise<{
 
       const claimResult = await claimHoldFcfs(redis, {
         eventId: event.id,
-        idempotencyScopeKey: idempotencyKey,
+        idempotencyScopeKey,
         requestFingerprint: reqFingerprint,
         reservationId,
         rawHoldToken,
@@ -566,7 +614,7 @@ export async function createServer(): Promise<{
     let unitIdToClaim = requestedUnitId;
 
     if (unitIdToClaim) {
-      const u = inMemoryUnits.get(unitIdToClaim);
+      const u = inMemoryUnits.get(memoryUnitKey(event.id, unitIdToClaim));
       if (!u || u.status !== "AVAILABLE") {
         return reply.status(409).send({
           error: {
@@ -598,7 +646,7 @@ export async function createServer(): Promise<{
     const expiresAt = Math.floor(Date.now() / 1000) + HOLD_TTL;
     const tokenHash = crypto.createHash("sha256").update(rawHoldToken).digest("hex");
 
-    inMemoryUnits.set(unitIdToClaim, {
+    inMemoryUnits.set(memoryUnitKey(event.id, unitIdToClaim), {
       status: "HELD",
       reservationId,
       holdTokenHash: tokenHash,
@@ -664,6 +712,7 @@ export async function createServer(): Promise<{
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
 
     let unitId = "";
+    let eventId = "";
     let version = 1;
     let confirmedAt = Math.floor(Date.now() / 1000);
 
@@ -685,6 +734,7 @@ export async function createServer(): Promise<{
         });
       }
       unitId = confirmResult.unitId;
+      eventId = confirmResult.eventId;
       version = confirmResult.version;
       confirmedAt = confirmResult.confirmedAt;
     } else {
@@ -704,9 +754,10 @@ export async function createServer(): Promise<{
       memRes.status = "CONFIRMED";
       memRes.version++;
       unitId = memRes.unitId;
+      eventId = memRes.eventId;
       version = memRes.version;
 
-      const memUnit = inMemoryUnits.get(unitId);
+      const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, unitId));
       if (memUnit) {
         memUnit.status = "CONFIRMED";
         memUnit.version++;
@@ -719,7 +770,12 @@ export async function createServer(): Promise<{
     const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const paymentRef = `PAY-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
-    const event = MULTIPURPOSE_EVENTS[0];
+    const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
+    if (!event) {
+      return reply.status(404).send({
+        error: { code: "EVENT_NOT_FOUND", message: "Reservation event not found", retryable: false, timestamp: new Date().toISOString() },
+      });
+    }
     const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
     let selectedTier = event.tiers[event.tiers.length - 1];
     if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
@@ -775,11 +831,9 @@ export async function createServer(): Promise<{
     }
 
     const { holdToken } = parseResult.data;
-    const eventId = "evt-flight-ai101";
 
     if (isRedisAvailable) {
       const releaseResult = await releaseHold(redis, {
-        eventId,
         reservationId,
         rawHoldToken: holdToken,
         isTimeoutJob: false,
@@ -807,7 +861,7 @@ export async function createServer(): Promise<{
       const memRes = inMemoryReservations.get(reservationId);
       if (memRes && memRes.status === "HELD") {
         memRes.status = "RELEASED";
-        const memUnit = inMemoryUnits.get(memRes.unitId);
+        const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, memRes.unitId));
         if (memUnit) {
           memUnit.status = "AVAILABLE";
           delete memUnit.reservationId;
@@ -852,11 +906,14 @@ export async function createServer(): Promise<{
    */
   app.get("/api/v1/reservations/:id/upi-qr", async (req: FastifyRequest, reply: FastifyReply) => {
     const { id: reservationId } = req.params as { id: string };
-    const query = req.query as { amount?: string; eventId?: string };
-
-    const eventId = query.eventId || "evt-flight-ai101";
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
-    const amount = query.amount ? parseFloat(query.amount) : event.basePrice;
+    const eventId = isRedisAvailable
+      ? (await redis.hget(`ticketwala:reservation:${reservationId}`, "event_id")) || ""
+      : inMemoryReservations.get(reservationId)?.eventId || "";
+    const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
+    if (!event) {
+      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Reservation not found" } });
+    }
+    const amount = event.basePrice;
 
     const upiData = await generateDynamicUpiPayment({
       amount,
@@ -905,6 +962,7 @@ export async function createServer(): Promise<{
 
     // 2. Confirm Hold
     let unitId = "unit-001";
+    let eventId = "";
     let version = 1;
     let confirmedAt = Math.floor(Date.now() / 1000);
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
@@ -927,6 +985,7 @@ export async function createServer(): Promise<{
         });
       }
       unitId = confirmResult.unitId;
+      eventId = confirmResult.eventId;
       version = confirmResult.version;
       confirmedAt = confirmResult.confirmedAt;
     } else {
@@ -947,9 +1006,10 @@ export async function createServer(): Promise<{
       memRes.status = "CONFIRMED";
       memRes.version++;
       unitId = memRes.unitId;
+      eventId = memRes.eventId;
       version = memRes.version;
 
-      const memUnit = inMemoryUnits.get(unitId);
+      const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, unitId));
       if (memUnit) {
         memUnit.status = "CONFIRMED";
         memUnit.version++;
@@ -962,7 +1022,12 @@ export async function createServer(): Promise<{
     const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const paymentRef = `UPI-UTR-${utr}`;
 
-    const event = MULTIPURPOSE_EVENTS[0];
+    const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
+    if (!event) {
+      return reply.status(404).send({
+        error: { code: "EVENT_NOT_FOUND", message: "Reservation event not found", retryable: false, timestamp: new Date().toISOString() },
+      });
+    }
     const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
     let selectedTier = event.tiers[event.tiers.length - 1];
     if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
@@ -1060,7 +1125,7 @@ export async function createServer(): Promise<{
     for (let i = 1; i <= newEvent.totalSeats; i++) {
       const uid = `unit-${String(i).padStart(3, "0")}`;
       unitIds.push(uid);
-      inMemoryUnits.set(uid, {
+      inMemoryUnits.set(memoryUnitKey(newEventId, uid), {
         status: "AVAILABLE",
         version: 1,
       });
@@ -1071,6 +1136,13 @@ export async function createServer(): Promise<{
     if (isRedisAvailable) {
       const qKey = `ticketwala:event:${newEventId}:available_queue`;
       await redis.lpush(qKey, ...unitIds).catch(() => {});
+      for (const uid of unitIds) {
+        await redis.hmset(getUnitRedisKey(newEventId, uid), {
+          status: "AVAILABLE",
+          version: "1",
+          event_id: newEventId,
+        });
+      }
     }
 
     return reply.status(201).send({
@@ -1184,6 +1256,45 @@ export async function createServer(): Promise<{
       if (q) availableCount = q.length;
     }
 
+    let workerMetrics = {
+      online: 0,
+      processed: 0,
+      retried: 0,
+      deadLettered: 0,
+      deadLetterStreamLength: 0,
+      databaseAttempts: 0,
+      averageDatabaseMs: 0,
+      lastDatabaseDurationMs: 0,
+    };
+    if (isRedisAvailable) {
+      const heartbeatKey = "ticketwala:workers:heartbeat";
+      const now = Date.now();
+      await redis.zremrangebyscore(heartbeatKey, "-inf", now - 30000);
+      const workerIds = await redis.zrangebyscore(heartbeatKey, now - 30000, "+inf");
+      const workerStates = await Promise.all(
+        workerIds.map((workerId) => redis.hgetall(`ticketwala:worker:${workerId}`))
+      );
+      workerMetrics = {
+        online: workerIds.length,
+        processed: workerStates.reduce((sum, state) => sum + Number(state.processed || 0), 0),
+        retried: workerStates.reduce((sum, state) => sum + Number(state.retried || 0), 0),
+        deadLettered: workerStates.reduce((sum, state) => sum + Number(state.dead_lettered || 0), 0),
+        deadLetterStreamLength: await redis.xlen("ticketwala:events:dead-letter"),
+        databaseAttempts: workerStates.reduce((sum, state) => sum + Number(state.database_attempts || 0), 0),
+        averageDatabaseMs: (() => {
+          const attempts = workerStates.reduce((sum, state) => sum + Number(state.database_attempts || 0), 0);
+          const elapsed = workerStates.reduce((sum, state) => sum + Number(state.database_time_ms || 0), 0);
+          return attempts ? Number((elapsed / attempts).toFixed(2)) : 0;
+        })(),
+        lastDatabaseDurationMs: workerStates.reduce((latest, state) => {
+          const stateTimestamp = Number(state.last_database_at || 0);
+          return stateTimestamp > latest.timestamp
+            ? { timestamp: stateTimestamp, duration: Number(state.last_database_duration_ms || 0) }
+            : latest;
+        }, { timestamp: 0, duration: 0 }).duration,
+      };
+    }
+
     return reply.status(200).send({
       inventory: {
         total: 192,
@@ -1194,6 +1305,7 @@ export async function createServer(): Promise<{
       telemetry: {
         ...telemetry,
       },
+      worker: workerMetrics,
       engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
       serverTime: new Date().toISOString(),
     });
