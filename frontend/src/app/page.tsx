@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Navbar, type NavTab } from "@/components/Navbar";
-import { HeroVideo3D } from "@/components/HeroVideo3D";
+import { HeroAirplaneCabin } from "@/components/HeroAirplaneCabin";
 import { InteractiveSeatMap3D } from "@/components/InteractiveSeatMap3D";
 import { HoldCountdownCard } from "@/components/HoldCountdownCard";
 import { ConfirmedTicketPass } from "@/components/ConfirmedTicketPass";
@@ -483,10 +483,10 @@ export default function TicketWalaApp() {
 
       {/* Main Tab Content */}
       <main style={{ flex: 1 }}>
-        {/* 1. HOME TAB: Video Animated 3D Landing Page */}
+        {/* 1. HOME TAB: Custom Animated 3D Airplane Cabin Landing Page */}
         {activeTab === "home" && (
           <div>
-            <HeroVideo3D
+            <HeroAirplaneCabin
               onGoToBooking={() => setActiveTab("booking")}
               onExploreEvents={() => setActiveTab("events")}
             />
