@@ -139,14 +139,14 @@ export default function Navbar() {
           {/* Navigation Links & User Actions */}
           <div className="flex items-center gap-3">
             <Link
-              href="/explore"
+              href="/home"
               className={`text-xs font-medium px-3 py-2 rounded-lg transition ${
-                pathname === "/explore"
+                pathname === "/home" || pathname === "/explore"
                   ? "bg-slate-800 text-indigo-400 font-semibold"
                   : "text-slate-300 hover:text-white hover:bg-slate-900"
               }`}
             >
-              Explore
+              Explore Events
             </Link>
 
             <Link
