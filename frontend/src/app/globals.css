@@ -5065,8 +5065,206 @@ footer {
     flex-direction: column;
     align-items: flex-start;
   }
-  .booking-event-img {
-    width: 100%;
-    height: 120px;
-  }
 }
+
+/* ============================================================
+   AUTHENTIC UPI PAYMENT GATEWAY & CONFIRMED TICKET STYLES
+   ============================================================ */
+.upi-gateway-container {
+  text-align: left;
+  animation: fadeIn 0.3s ease;
+}
+
+.upi-gateway-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.upi-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 107, 55, 0.12);
+  color: var(--o);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.upi-qr-card {
+  background: #ffffff;
+  border: 1.5px solid #e5e0d8;
+  border-radius: 18px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.upi-qr-image-wrapper {
+  position: relative;
+  width: 190px;
+  height: 190px;
+  margin: 0 auto 12px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+  border: 2px solid #2B2A28;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.upi-qr-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.upi-id-copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--g);
+  border: 1px solid #ded9d0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.upi-id-text {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--k);
+  letter-spacing: 0.5px;
+}
+
+.upi-copy-btn {
+  background: #ffffff;
+  border: 1px solid #ded9d0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--k);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.upi-copy-btn:hover {
+  background: var(--o);
+  color: #ffffff;
+  border-color: var(--o);
+}
+
+.upi-supported-apps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: #77736c;
+  margin-top: 8px;
+}
+
+.upi-app-pill {
+  background: #faf8f5;
+  border: 1px solid #e8e3dc;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.upi-form-group {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.upi-form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--k);
+  margin-bottom: 5px;
+}
+
+.upi-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #ded9d0;
+  font-family: inherit;
+  font-size: 13px;
+  background: #ffffff;
+  color: var(--k);
+  transition: border-color 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.upi-input-field:focus {
+  border-color: var(--o);
+}
+
+.upi-utr-input {
+  font-family: monospace;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+}
+
+.confirmed-pass-card {
+  background: #ffffff;
+  border: 1.5px solid #ded9d0;
+  border-radius: 20px;
+  overflow: hidden;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.confirmed-pass-header {
+  background: #2B2A28;
+  color: #ffffff;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confirmed-pass-body {
+  padding: 20px;
+}
+
+.ticket-pnr-display {
+  background: #faf8f5;
+  border: 1.5px dashed var(--o);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ticket-qr-center {
+  width: 140px;
+  height: 140px;
+  margin: 12px auto;
+  border: 1px solid #ded9d0;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fff;
+}
+
