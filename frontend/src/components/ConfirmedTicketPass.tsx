@@ -5,14 +5,17 @@ import type { ConfirmResponse } from "@/types/api";
 import { Ticket, CheckCircle2, QrCode, Copy, Check, Download, Plane, Calendar, MapPin, User, ShieldCheck } from "lucide-react";
 
 interface ConfirmedTicketPassProps {
-  booking: ConfirmResponse;
+  booking?: ConfirmResponse;
+  ticket?: ConfirmResponse;
   onBookAnother: () => void;
 }
 
 export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
-  booking,
+  booking: bookingProp,
+  ticket,
   onBookAnother,
 }) => {
+  const booking = bookingProp || ticket!;
   const [copied, setCopied] = useState(false);
 
   const copyPnr = () => {
@@ -241,3 +244,5 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
     </div>
   );
 };
+
+export default ConfirmedTicketPass;
