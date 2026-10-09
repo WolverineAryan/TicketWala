@@ -1,0 +1,65 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. TicketWala Backend Fastify API Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: ticketwala-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:api
+    healthCheckPath: /health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+      - key: REDIS_URL
+        sync: false # Set to your Upstash Redis rediss:// URL or leave empty for embedded engine
+      - key: DATABASE_URL
+        sync: false # Set to your Supabase/PostgreSQL connection string
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: EMAIL_USER
+        value: ticketwala.org@gmail.com
+      - key: EMAIL_PASS
+        sync: false # Set to your Google App Password
+      - key: RESERVATION_TTL_SECONDS
+        value: 120
+
+  # ---------------------------------------------------------------------------
+  # 2. TicketWala Frontend Next.js Web Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: ticketwala-frontend
+    runtime: node
+    rootDir: frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        sync: false # e.g. https://ticketwala-backend.onrender.com
+      - key: NEXT_PUBLIC_UPI_ID
+        value: 9146199158@fam
+      - key: NEXT_PUBLIC_PAYEE_NAME
+        value: TicketWala
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        value: ticketwala-5541e.firebaseapp.com
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        value: ticketwala-5541e
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        value: ticketwala-5541e.firebasestorage.app
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        value: "74682057398"
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        value: 1:74682057398:web:757bb3a0cbaf908ef98fdf

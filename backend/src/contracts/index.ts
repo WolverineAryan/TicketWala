@@ -217,3 +217,50 @@ export interface InvariantAuditReport {
   };
   anomalies: string[];
 }
+
+// -----------------------------------------------------------------------------
+// QR Scanner & Ticket Check-In Contracts
+// -----------------------------------------------------------------------------
+export const VerifyScanSchema = z.object({
+  qrPayload: z.string().optional(),
+  pnr: z.string().optional(),
+  gate: z.string().optional().default("Gate-1A"),
+});
+export type VerifyScanRequest = z.infer<typeof VerifyScanSchema>;
+
+export interface VerifyScanResponse {
+  valid: boolean;
+  status: "ADMISSION_GRANTED" | "DUPLICATE_SCAN_REJECTED" | "TICKET_NOT_FOUND";
+  pnr?: string;
+  unitId?: string;
+  passengerName?: string;
+  eventTitle?: string;
+  scannedAt: string;
+  scanCount: number;
+  gate: string;
+  message: string;
+}
+
+// -----------------------------------------------------------------------------
+// Payment Webhook Contracts
+// -----------------------------------------------------------------------------
+export const PaymentWebhookSchema = z.object({
+  providerEventId: z.string().min(1, "providerEventId is required"),
+  reservationId: z.string().min(1, "reservationId is required"),
+  holdToken: z.string().min(1, "holdToken is required"),
+  status: z.enum(["PAYMENT_SUCCESS", "PAYMENT_FAILED"]),
+  amount: z.number().positive(),
+  currency: z.string().default("INR"),
+  signature: z.string().optional(),
+});
+export type PaymentWebhookRequest = z.infer<typeof PaymentWebhookSchema>;
+
+// -----------------------------------------------------------------------------
+// FlashLock Collision Lab Scenario Runner Contracts
+// -----------------------------------------------------------------------------
+export const RunScenarioSchema = z.object({
+  scenario: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+  concurrency: z.number().int().min(1).max(200).optional().default(20),
+  totalRequests: z.number().int().min(1).max(1000).optional().default(100),
+});
+export type RunScenarioRequest = z.infer<typeof RunScenarioSchema>;
