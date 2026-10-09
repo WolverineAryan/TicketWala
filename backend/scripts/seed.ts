@@ -55,10 +55,11 @@ async function seedAllInventory() {
 
       console.log(`✅ Seeded ${evt.capacity} units for event [${evt.id}].`);
     }
-    console.log(`🎉 All multipurpose events successfully initialized in Redis!`);
-  } catch (err: any) {
-    console.error("❌ Inventory seeding failed:", err.message);
-    process.exit(1);
+
+    console.log("🎉 All multipurpose events successfully initialized in Redis!");
+  } catch (err: unknown) {
+    console.error("❌ Inventory seeding failed:", err);
+    process.exitCode = 1;
   } finally {
     redis.disconnect();
   }
