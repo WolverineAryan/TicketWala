@@ -539,6 +539,421 @@ const BMS_EVENTS: BMSEvent[] = [
   },
 ];
 
+interface TravelTransportItem {
+  id: string;
+  type: "bus" | "train" | "flight" | "cab";
+  operator: string;
+  subTitle: string;
+  from: string;
+  fromCode: string;
+  to: string;
+  toCode: string;
+  depTime: string;
+  arrTime: string;
+  duration: string;
+  price: number;
+  badge?: string;
+  seatsLeft?: number;
+  classType: string;
+  rating: number;
+}
+
+interface TravelHotelItem {
+  id: string;
+  name: string;
+  city: string;
+  address: string;
+  stars: number;
+  rating: number;
+  reviewCount: number;
+  pricePerNight: number;
+  image: string;
+  badge?: string;
+  amenities: string[];
+}
+
+interface TravelBookingRecord {
+  id: string;
+  pnr: string;
+  type: "flight" | "train" | "bus" | "hotel" | "cab";
+  title: string;
+  subtitle: string;
+  fromToOrCity: string;
+  dateStr: string;
+  passengers: string;
+  price: number;
+  status: "Confirmed" | "Completed" | "Cancelled";
+  bookedAt: string;
+  details: string;
+}
+
+const MOCK_TRANSPORT_LISTINGS: TravelTransportItem[] = [
+  // Flights
+  {
+    id: "fl-1",
+    type: "flight",
+    operator: "IndiGo 6E-204",
+    subTitle: "Airbus A321 Neo · Direct",
+    from: "Mumbai (BOM)",
+    fromCode: "BOM",
+    to: "Goa (GOI)",
+    toCode: "GOI",
+    depTime: "06:15",
+    arrTime: "07:30",
+    duration: "1h 15m",
+    price: 3899,
+    badge: "FAST DROP",
+    seatsLeft: 6,
+    classType: "Economy Saver",
+    rating: 4.8,
+  },
+  {
+    id: "fl-2",
+    type: "flight",
+    operator: "Air India AI-631",
+    subTitle: "Boeing 787 Dreamliner",
+    from: "Mumbai (BOM)",
+    fromCode: "BOM",
+    to: "Delhi (DEL)",
+    toCode: "DEL",
+    depTime: "08:30",
+    arrTime: "10:45",
+    duration: "2h 15m",
+    price: 4650,
+    badge: "FREE MEAL",
+    seatsLeft: 12,
+    classType: "Prime Cabin",
+    rating: 4.6,
+  },
+  {
+    id: "fl-3",
+    type: "flight",
+    operator: "Akasa Air QP-1382",
+    subTitle: "B737 MAX · Eco Speed",
+    from: "Bengaluru (BLR)",
+    fromCode: "BLR",
+    to: "Mumbai (BOM)",
+    toCode: "BOM",
+    depTime: "14:10",
+    arrTime: "15:50",
+    duration: "1h 40m",
+    price: 3249,
+    badge: "BEST VALUE",
+    seatsLeft: 9,
+    classType: "Smart Saver",
+    rating: 4.7,
+  },
+  {
+    id: "fl-4",
+    type: "flight",
+    operator: "Vistara UK-992",
+    subTitle: "Club Vistara Premium",
+    from: "Delhi (DEL)",
+    fromCode: "DEL",
+    to: "Mumbai (BOM)",
+    toCode: "BOM",
+    depTime: "18:00",
+    arrTime: "20:15",
+    duration: "2h 15m",
+    price: 5420,
+    badge: "PREMIUM",
+    seatsLeft: 4,
+    classType: "Premium Eco",
+    rating: 4.9,
+  },
+  // Trains
+  {
+    id: "tr-1",
+    type: "train",
+    operator: "Vande Bharat Express (22223)",
+    subTitle: "Semi High-Speed · Fast Track",
+    from: "CSMT Mumbai",
+    fromCode: "CSMT",
+    to: "Madgaon Goa",
+    toCode: "MAO",
+    depTime: "05:25",
+    arrTime: "13:10",
+    duration: "7h 45m",
+    price: 1815,
+    badge: "POPULAR",
+    seatsLeft: 22,
+    classType: "AC Chair Car",
+    rating: 4.9,
+  },
+  {
+    id: "tr-2",
+    type: "train",
+    operator: "Tejas Express (82902)",
+    subTitle: "Corporate Superfast · WiFi",
+    from: "Ahmedabad (ADI)",
+    fromCode: "ADI",
+    to: "Mumbai Central (MMCT)",
+    toCode: "MMCT",
+    depTime: "06:40",
+    arrTime: "13:05",
+    duration: "6h 25m",
+    price: 1430,
+    badge: "MEAL INCLUDED",
+    seatsLeft: 18,
+    classType: "Executive Chair",
+    rating: 4.8,
+  },
+  {
+    id: "tr-3",
+    type: "train",
+    operator: "Mumbai Rajdhani (12952)",
+    subTitle: "Overnight Premier Superfast",
+    from: "New Delhi (NDLS)",
+    fromCode: "NDLS",
+    to: "Mumbai Central (MMCT)",
+    toCode: "MMCT",
+    depTime: "16:55",
+    arrTime: "08:35",
+    duration: "15h 40m",
+    price: 2890,
+    badge: "VIP EXPRESS",
+    seatsLeft: 8,
+    classType: "2nd AC Sleeper",
+    rating: 4.7,
+  },
+  // Buses
+  {
+    id: "bs-1",
+    type: "bus",
+    operator: "Zingbus Maxx AC Sleeper",
+    subTitle: "Volvo Multi-Axle B11R",
+    from: "Mumbai (Borivali)",
+    fromCode: "BOM",
+    to: "Pune (Swargate)",
+    toCode: "PUN",
+    depTime: "22:30",
+    arrTime: "02:45",
+    duration: "4h 15m",
+    price: 799,
+    badge: "LIVE GPS",
+    seatsLeft: 14,
+    classType: "Luxury Sleeper (2+1)",
+    rating: 4.7,
+  },
+  {
+    id: "bs-2",
+    type: "bus",
+    operator: "IntrCity SmartBus",
+    subTitle: "Smart Lounge & Clean Linens",
+    from: "Bengaluru (Majestic)",
+    fromCode: "BLR",
+    to: "Goa (Panaji)",
+    toCode: "GOA",
+    depTime: "21:00",
+    arrTime: "08:30",
+    duration: "11h 30m",
+    price: 1299,
+    badge: "SNACKS INCL",
+    seatsLeft: 11,
+    classType: "AC Sleeper 2+1",
+    rating: 4.8,
+  },
+  {
+    id: "bs-3",
+    type: "bus",
+    operator: "VRL Travels I-Shift Volvo",
+    subTitle: "Multi-Axle Semi-Sleeper",
+    from: "Pune (Wakad)",
+    fromCode: "PUN",
+    to: "Bengaluru (Anand Rao)",
+    toCode: "BLR",
+    depTime: "19:15",
+    arrTime: "07:45",
+    duration: "12h 30m",
+    price: 1650,
+    badge: "CHARGING PORT",
+    seatsLeft: 19,
+    classType: "Multi-Axle Luxury",
+    rating: 4.6,
+  },
+  // Cabs
+  {
+    id: "cb-1",
+    type: "cab",
+    operator: "Prime Sedan (Dzire / Etios)",
+    subTitle: "Verified Chauffeur · AC On Always",
+    from: "Mumbai Airport (T2)",
+    fromCode: "BOM",
+    to: "Pune Express City Center",
+    toCode: "PUN",
+    depTime: "Instant Pickup",
+    arrTime: "3.5 hrs drive",
+    duration: "Door-to-Door",
+    price: 2499,
+    badge: "TOP RATED",
+    seatsLeft: 4,
+    classType: "4 Seater Sedan",
+    rating: 4.9,
+  },
+  {
+    id: "cb-2",
+    type: "cab",
+    operator: "Electric SUV (Nexon / ZS EV)",
+    subTitle: "Eco-Fleet · Silent Ride",
+    from: "Bengaluru Tech Park",
+    fromCode: "BLR",
+    to: "Mysore Palace Heritage",
+    toCode: "MYS",
+    depTime: "On-Demand (15m)",
+    arrTime: "2.8 hrs drive",
+    duration: "Door-to-Door",
+    price: 3199,
+    badge: "ZERO EMISSION",
+    seatsLeft: 4,
+    classType: "Compact EV SUV",
+    rating: 4.8,
+  },
+  {
+    id: "cb-3",
+    type: "cab",
+    operator: "Outstation XL (Innova Crysta)",
+    subTitle: "Captain Seats · Extra Luggage",
+    from: "Delhi NCR Area",
+    fromCode: "DEL",
+    to: "Jaipur Pink City",
+    toCode: "JAI",
+    depTime: "Round-The-Clock",
+    arrTime: "4.5 hrs drive",
+    duration: "Express Highway",
+    price: 4899,
+    badge: "6 SEATER XL",
+    seatsLeft: 6,
+    classType: "Premium XL SUV",
+    rating: 4.9,
+  },
+];
+
+const MOCK_HOTELS_LISTINGS: TravelHotelItem[] = [
+  {
+    id: "ht-1",
+    name: "Grand Hyatt Goa Resort",
+    city: "Goa",
+    address: "Bambolim Bay, North Goa",
+    stars: 5,
+    rating: 4.9,
+    reviewCount: 1420,
+    pricePerNight: 9499,
+    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
+    badge: "BEACHFRONT RESORT",
+    amenities: ["Ocean View", "Private Beach", "Infinity Pool", "Free Breakfast", "Spa"],
+  },
+  {
+    id: "ht-2",
+    name: "Taj Lands End Mumbai",
+    city: "Mumbai",
+    address: "Bandstand, Bandra West, Mumbai",
+    stars: 5,
+    rating: 4.9,
+    reviewCount: 2180,
+    pricePerNight: 14200,
+    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
+    badge: "SEA-FACING LUXURY",
+    amenities: ["Arabian Sea View", "Fine Dining", "Luxury Spa", "Valet Parking", "Pool"],
+  },
+  {
+    id: "ht-3",
+    name: "The Leela Palace Bengaluru",
+    city: "Bengaluru",
+    address: "Old Airport Road, Kodihalli, Bengaluru",
+    stars: 5,
+    rating: 4.8,
+    reviewCount: 1670,
+    pricePerNight: 12500,
+    image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80",
+    badge: "ROYAL PALATIAL STAY",
+    amenities: ["Royal Suites", "Michelin Dining", "Lush Gardens", "Heated Pool", "Butler"],
+  },
+  {
+    id: "ht-4",
+    name: "W Goa - Beachfront Villa",
+    city: "Goa",
+    address: "Vagator Beach, Bardez, North Goa",
+    stars: 5,
+    rating: 4.8,
+    reviewCount: 980,
+    pricePerNight: 18900,
+    image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80",
+    badge: "ULTRA LUXURY VILLA",
+    amenities: ["Rock Pool", "Private Balcony", "Sunset Bar", "Beach Access", "DJ Nights"],
+  },
+  {
+    id: "ht-5",
+    name: "Heritage Haveli Palace",
+    city: "Jaipur",
+    address: "Amer Road, Amber, Jaipur",
+    stars: 4,
+    rating: 4.7,
+    reviewCount: 740,
+    pricePerNight: 5600,
+    image: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80",
+    badge: "HERITAGE COURTYARD",
+    amenities: ["Fort View Rooftop", "Courtyard", "Rajasthani Folk Nights", "Free Breakfast"],
+  },
+  {
+    id: "ht-6",
+    name: "Ginger Mumbai BKC",
+    city: "Mumbai",
+    address: "Bandra Kurla Complex, Mumbai",
+    stars: 3,
+    rating: 4.4,
+    reviewCount: 1150,
+    pricePerNight: 3850,
+    image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+    badge: "SMART BUSINESS HUB",
+    amenities: ["High Speed WiFi", "Express Check-in", "Work Desk", "Fitness Center"],
+  },
+];
+
+const DEFAULT_TRAVEL_BOOKINGS: TravelBookingRecord[] = [
+  {
+    id: "bk-1",
+    pnr: "TW-FL89201",
+    type: "flight",
+    title: "IndiGo 6E-204 · Mumbai → Goa",
+    subtitle: "Chhatrapati Shivaji (BOM) to Dabolim (GOI)",
+    fromToOrCity: "BOM → GOI",
+    dateStr: "Tomorrow, 06:15 AM",
+    passengers: "1 Passenger (Seat 14A)",
+    price: 3899,
+    status: "Confirmed",
+    bookedAt: "2 hours ago",
+    details: "Fast Track Boarding · Terminal 2 Gate 42B",
+  },
+  {
+    id: "bk-2",
+    pnr: "TW-VB44910",
+    type: "train",
+    title: "Vande Bharat Express (22223)",
+    subtitle: "CSMT Mumbai to Madgaon Goa",
+    fromToOrCity: "CSMT → MAO",
+    dateStr: "18 Oct 2026, 05:25 AM",
+    passengers: "2 Passengers (Coach C4, 18-19)",
+    price: 3630,
+    status: "Confirmed",
+    bookedAt: "Yesterday",
+    details: "AC Chair Car · Instant PNR Verified",
+  },
+  {
+    id: "bk-3",
+    pnr: "TW-HT77294",
+    type: "hotel",
+    title: "W Goa - Beachfront Villa",
+    subtitle: "Vagator Beach, North Goa",
+    fromToOrCity: "Goa (North)",
+    dateStr: "18 Oct - 21 Oct (3 Nights)",
+    passengers: "2 Guests (King Villa)",
+    price: 56700,
+    status: "Confirmed",
+    bookedAt: "3 days ago",
+    details: "Breakfast Included · Rock Pool View",
+  },
+];
+
 function findNearestCity(lat: number, lng: number): City {
   let closest = CITIES[0];
   let minDistance = Infinity;
@@ -571,6 +986,37 @@ export default function TicketWalaPage() {
   const [citySearchQuery, setCitySearchQuery] = useState<string>("");
   const [gpsLoading, setGpsLoading] = useState<boolean>(false);
   const [gpsMessage, setGpsMessage] = useState<string>("");
+
+  // Travel Section States
+  const [travelSubTab, setTravelSubTab] = useState<"transport" | "hotels" | "bookings">("transport");
+  const [transportMode, setTransportMode] = useState<"bus" | "train" | "flight" | "cab">("flight");
+  const [transportFrom, setTransportFrom] = useState<string>("");
+  const [transportTo, setTransportTo] = useState<string>("");
+  const [transportDate, setTransportDate] = useState<string>("2026-10-18");
+  const [travelersCount, setTravelersCount] = useState<number>(1);
+
+  // Hotel filters
+  const [hotelCity, setHotelCity] = useState<string>("All");
+  const [hotelCheckIn, setHotelCheckIn] = useState<string>("2026-10-18");
+  const [hotelCheckOut, setHotelCheckOut] = useState<string>("2026-10-21");
+  const [hotelStarFilter, setHotelStarFilter] = useState<number | "all">("all");
+  const [hotelPriceFilter, setHotelPriceFilter] = useState<string>("all");
+
+  // Bookings list state
+  const [travelBookings, setTravelBookings] = useState<TravelBookingRecord[]>(DEFAULT_TRAVEL_BOOKINGS);
+  const [bookingFilterType, setBookingFilterType] = useState<string>("all");
+  const [bookingSearchPnr, setBookingSearchPnr] = useState<string>("");
+
+  // Modals state
+  const [selectedTravelItem, setSelectedTravelItem] = useState<{
+    item: TravelTransportItem | TravelHotelItem;
+    category: "transport" | "hotel";
+  } | null>(null);
+  const [bookingPassengerName, setBookingPassengerName] = useState<string>("");
+  const [bookingPassengerPhone, setBookingPassengerPhone] = useState<string>("");
+  const [bookingPassengerEmail, setBookingPassengerEmail] = useState<string>("");
+  const [confirmedTravelPass, setConfirmedTravelPass] = useState<TravelBookingRecord | null>(null);
+  const [eticketAlert, setEticketAlert] = useState<string>("");
 
   // BookMyShow Home Interactive States
   const [carouselIdx, setCarouselIdx] = useState<number>(0);
@@ -725,7 +1171,7 @@ export default function TicketWalaPage() {
     (window as any).go = (p: string) => navigateTo(p);
     const syncHash = () => {
       const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
-      if (["home", "landing", "events", "booking", "profile", "login", "signup"].includes(h)) {
+      if (["home", "landing", "events", "booking", "travel", "profile", "login", "signup"].includes(h)) {
         setActivePage(h);
       }
     };
@@ -1419,6 +1865,20 @@ export default function TicketWalaPage() {
               }}
             >
               Booking
+            </a>
+          </li>
+          <li>
+            <a
+              href="#travel"
+              role="button"
+              style={{ cursor: "pointer" }}
+              className={activePage === "travel" ? "on" : ""}
+              onClick={(e) => {
+                e.preventDefault();
+                navigateTo("travel");
+              }}
+            >
+              Travel
             </a>
           </li>
           <li>
@@ -2846,6 +3306,828 @@ export default function TicketWalaPage() {
           </section>
         </div>
 
+        {/* 3.5 TICKETWALA TRAVEL & TRANSIT PAGE */}
+        <div
+          className={`page ${activePage === "travel" ? "on" : ""}`}
+          id="travel"
+          style={{ display: activePage === "travel" ? "block" : "none" }}
+        >
+          <div className="travel-wrap">
+            {/* Travel Hero Header */}
+            <div className="travel-hero">
+              <div>
+                <span className="travel-hero-tag">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  TICKETWALA FAST LANE · TRAVEL
+                </span>
+                <h1>High-Velocity Transit & Luxury Stays</h1>
+                <p>
+                  Zero waiting room lag, atomic seat holds, and instant PNR verification across premier Flights, Express Trains, Volvo Buses, Cabs & Luxury Resorts.
+                </p>
+              </div>
+
+              <div className="travel-hero-stats">
+                <div className="travel-stat-pill">
+                  <small>Daily Transit</small>
+                  <b>400+ Routes</b>
+                </div>
+                <div className="travel-stat-pill">
+                  <small>Booking Fee</small>
+                  <b style={{ color: "#27ae60" }}>₹0 Platform Fee</b>
+                </div>
+                <div className="travel-stat-pill">
+                  <small>Hold Speed</small>
+                  <b style={{ color: "var(--o)" }}>Live TTL PNR</b>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-navigation Tabs */}
+            <div className="travel-nav-tabs">
+              <button
+                type="button"
+                className={`travel-nav-btn ${travelSubTab === "transport" ? "active" : ""}`}
+                onClick={() => setTravelSubTab("transport")}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z" />
+                </svg>
+                Transportation
+                <span className="travel-badge">Fast Drop</span>
+              </button>
+
+              <button
+                type="button"
+                className={`travel-nav-btn ${travelSubTab === "hotels" ? "active" : ""}`}
+                onClick={() => setTravelSubTab("hotels")}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 18h12" />
+                  <path d="M3 22h18" />
+                  <path d="M19 18V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v13" />
+                  <path d="M9 7h1" />
+                  <path d="M9 11h1" />
+                  <path d="M9 15h1" />
+                  <path d="M14 7h1" />
+                  <path d="M14 11h1" />
+                  <path d="M14 15h1" />
+                </svg>
+                Hotels & Stays
+                <span className="travel-badge">Premier</span>
+              </button>
+
+              <button
+                type="button"
+                className={`travel-nav-btn ${travelSubTab === "bookings" ? "active" : ""}`}
+                onClick={() => setTravelSubTab("bookings")}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <path d="M6 12h.01" />
+                  <path d="M18 12h.01" />
+                </svg>
+                My Bookings
+                <span className="travel-badge" style={{ background: "#27ae60" }}>
+                  {travelBookings.length}
+                </span>
+              </button>
+            </div>
+
+            {/* ========================================================= */}
+            {/* 1. TRANSPORTATION SECTION */}
+            {/* ========================================================= */}
+            {travelSubTab === "transport" && (
+              <div>
+                <div className="travel-search-card">
+                  {/* Mode Bar */}
+                  <div className="transit-mode-bar">
+                    <button
+                      type="button"
+                      className={`transit-mode-btn ${transportMode === "flight" ? "active" : ""}`}
+                      onClick={() => setTransportMode("flight")}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z" />
+                      </svg>
+                      Flights
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`transit-mode-btn ${transportMode === "train" ? "active" : ""}`}
+                      onClick={() => setTransportMode("train")}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="3" width="16" height="16" rx="2" />
+                        <path d="M4 11h16" />
+                        <path d="M12 3v8" />
+                        <path d="m8 19-2 3" />
+                        <path d="m16 19 2 3" />
+                        <circle cx="8" cy="15" r="1" />
+                        <circle cx="16" cy="15" r="1" />
+                      </svg>
+                      Express Trains
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`transit-mode-btn ${transportMode === "bus" ? "active" : ""}`}
+                      onClick={() => setTransportMode("bus")}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="3" width="16" height="16" rx="2" />
+                        <path d="M4 10h16" />
+                        <path d="m6 19-1 2" />
+                        <path d="m18 19 1 2" />
+                        <circle cx="8" cy="15" r="1" />
+                        <circle cx="16" cy="15" r="1" />
+                      </svg>
+                      Volvo Buses
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`transit-mode-btn ${transportMode === "cab" ? "active" : ""}`}
+                      onClick={() => setTransportMode("cab")}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H7.5c-.7 0-1.4.4-1.8.9L4 10.5C3.3 11 3 11.8 3 12.7V16c0 .6.4 1 1 1h2" />
+                        <circle cx="7" cy="17" r="2" />
+                        <path d="M9 17h6" />
+                        <circle cx="17" cy="17" r="2" />
+                      </svg>
+                      Outstation Cabs
+                    </button>
+                  </div>
+
+                  {/* Search Inputs */}
+                  <div className="travel-search-grid">
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">From Station / City</span>
+                      <input
+                        className="travel-search-field"
+                        placeholder="e.g. Mumbai, BOM, CSMT"
+                        value={transportFrom}
+                        onChange={(e) => setTransportFrom(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">To Destination</span>
+                      <input
+                        className="travel-search-field"
+                        placeholder="e.g. Goa, GOI, Delhi"
+                        value={transportTo}
+                        onChange={(e) => setTransportTo(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Date of Travel</span>
+                      <input
+                        type="date"
+                        className="travel-search-field"
+                        value={transportDate}
+                        onChange={(e) => setTransportDate(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Travelers</span>
+                      <select
+                        className="travel-search-field"
+                        value={travelersCount}
+                        onChange={(e) => setTravelersCount(Number(e.target.value))}
+                        style={{ background: "transparent", cursor: "pointer" }}
+                      >
+                        <option value={1}>1 Traveler</option>
+                        <option value={2}>2 Travelers</option>
+                        <option value={3}>3 Travelers</option>
+                        <option value={4}>4 Travelers</option>
+                        <option value={5}>5+ Travelers</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={{ padding: "14px 24px", height: "100%", display: "inline-flex", alignItems: "center", gap: "8px", justifyContent: "center" }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                {/* Transportation Results Listings */}
+                <div className="transit-results-grid">
+                  {MOCK_TRANSPORT_LISTINGS
+                    .filter((item) => item.type === transportMode)
+                    .filter((item) => {
+                      if (!transportFrom.trim() && !transportTo.trim()) return true;
+                      const fromMatch = !transportFrom.trim() ||
+                        item.from.toLowerCase().includes(transportFrom.toLowerCase()) ||
+                        item.fromCode.toLowerCase().includes(transportFrom.toLowerCase());
+                      const toMatch = !transportTo.trim() ||
+                        item.to.toLowerCase().includes(transportTo.toLowerCase()) ||
+                        item.toCode.toLowerCase().includes(transportTo.toLowerCase());
+                      return fromMatch && toMatch;
+                    })
+                    .map((item) => (
+                      <div key={item.id} className="transit-item-card">
+                        {/* Operator Column */}
+                        <div className="transit-operator-info">
+                          <div className="transit-icon-avatar">
+                            {item.type === "flight" && (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z" />
+                              </svg>
+                            )}
+                            {item.type === "train" && (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="4" y="3" width="16" height="16" rx="2" />
+                                <path d="M4 11h16" />
+                                <path d="M12 3v8" />
+                                <path d="m8 19-2 3" />
+                                <path d="m16 19 2 3" />
+                                <circle cx="8" cy="15" r="1" />
+                                <circle cx="16" cy="15" r="1" />
+                              </svg>
+                            )}
+                            {item.type === "bus" && (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="4" y="3" width="16" height="16" rx="2" />
+                                <path d="M4 10h16" />
+                                <path d="m6 19-1 2" />
+                                <path d="m18 19 1 2" />
+                                <circle cx="8" cy="15" r="1" />
+                                <circle cx="16" cy="15" r="1" />
+                              </svg>
+                            )}
+                            {item.type === "cab" && (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H7.5c-.7 0-1.4.4-1.8.9L4 10.5C3.3 11 3 11.8 3 12.7V16c0 .6.4 1 1 1h2" />
+                                <circle cx="7" cy="17" r="2" />
+                                <path d="M9 17h6" />
+                                <circle cx="17" cy="17" r="2" />
+                              </svg>
+                            )}
+                          </div>
+
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <b style={{ fontSize: "15px", color: "var(--k)" }}>{item.operator}</b>
+                              {item.badge && (
+                                <span style={{
+                                  fontSize: "9px",
+                                  fontWeight: 800,
+                                  background: "rgba(255, 107, 55, 0.12)",
+                                  color: "var(--o)",
+                                  padding: "2px 6px",
+                                  borderRadius: "6px"
+                                }}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            <small style={{ color: "#77736c", fontSize: "12px", display: "block", marginTop: "2px" }}>
+                              {item.subTitle}
+                            </small>
+                          </div>
+                        </div>
+
+                        {/* Times Column */}
+                        <div className="transit-times-col">
+                          <div className="transit-time-point" style={{ textAlign: "left" }}>
+                            <b>{item.depTime}</b>
+                            <small>{item.fromCode}</small>
+                          </div>
+
+                          <div className="transit-duration-line">
+                            <span>{item.duration}</span>
+                            <div className="transit-line-track" style={{ minWidth: "90px" }}>
+                              <div style={{
+                                position: "absolute",
+                                right: 0,
+                                top: "-3px",
+                                width: "8px",
+                                height: "8px",
+                                borderRadius: "50%",
+                                background: "var(--o)"
+                              }} />
+                            </div>
+                            <small style={{ fontSize: "10px", color: "#8c8880", marginTop: "3px" }}>
+                              {item.type === "flight" ? "Non-stop" : "Direct"}
+                            </small>
+                          </div>
+
+                          <div className="transit-time-point" style={{ textAlign: "right" }}>
+                            <b>{item.arrTime}</b>
+                            <small>{item.toCode}</small>
+                          </div>
+                        </div>
+
+                        {/* Class & Rating Pill */}
+                        <div style={{ minWidth: "150px" }}>
+                          <span style={{
+                            display: "inline-block",
+                            background: "#f6f5f2",
+                            border: "1px solid #eae5dc",
+                            borderRadius: "6px",
+                            padding: "3px 8px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: "var(--k)"
+                          }}>
+                            {item.classType}
+                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "5px" }}>
+                            <span style={{ fontSize: "11px", color: "#27ae60", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="#27ae60" stroke="#27ae60"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                              {item.rating}
+                            </span>
+                            <span style={{ fontSize: "11px", color: "#8c8880" }}>•</span>
+                            <span style={{ fontSize: "11px", color: item.seatsLeft && item.seatsLeft <= 5 ? "#e74c3c" : "#8c8880", fontWeight: 600 }}>
+                              {item.seatsLeft ? `${item.seatsLeft} seats left` : "Available"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Price & Booking Action */}
+                        <div className="transit-price-col">
+                          <b>₹{item.price.toLocaleString("en-IN")}</b>
+                          <small>per passenger</small>
+                          <button
+                            type="button"
+                            className="btn primary"
+                            style={{ padding: "8px 18px", fontSize: "12px", width: "100%" }}
+                            onClick={() => {
+                              setSelectedTravelItem({ item, category: "transport" });
+                              setBookingPassengerName(user?.name || "Demo Traveler");
+                              setBookingPassengerPhone(user?.phone || profilePhone || "+91 98200 12345");
+                              setBookingPassengerEmail(user?.email || "traveler@ticketwala.com");
+                            }}
+                          >
+                            {item.type === "cab" ? "Book Cab" : "Book Seat"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* 2. HOTELS & STAYS SECTION */}
+            {/* ========================================================= */}
+            {travelSubTab === "hotels" && (
+              <div>
+                <div className="travel-search-card">
+                  <div className="travel-search-grid">
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Destination City</span>
+                      <select
+                        className="travel-search-field"
+                        value={hotelCity}
+                        onChange={(e) => setHotelCity(e.target.value)}
+                        style={{ background: "transparent", cursor: "pointer" }}
+                      >
+                        <option value="All">All Premier Locations</option>
+                        <option value="Goa">Goa</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Bengaluru">Bengaluru</option>
+                        <option value="Jaipur">Jaipur</option>
+                      </select>
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Check-in Date</span>
+                      <input
+                        type="date"
+                        className="travel-search-field"
+                        value={hotelCheckIn}
+                        onChange={(e) => setHotelCheckIn(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Check-out Date</span>
+                      <input
+                        type="date"
+                        className="travel-search-field"
+                        value={hotelCheckOut}
+                        onChange={(e) => setHotelCheckOut(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-search-input-box">
+                      <span className="travel-search-label">Rooms & Guests</span>
+                      <select
+                        className="travel-search-field"
+                        style={{ background: "transparent", cursor: "pointer" }}
+                      >
+                        <option>1 Room, 2 Guests</option>
+                        <option>1 Room, 1 Guest</option>
+                        <option>2 Rooms, 4 Guests</option>
+                        <option>3+ Rooms (Group)</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={{ padding: "14px 24px", height: "100%", display: "inline-flex", alignItems: "center", gap: "8px", justifyContent: "center" }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      Search Stays
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filters Bar */}
+                <div className="hotel-filters-bar">
+                  <div className="hotel-filter-group">
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#8c8880", textTransform: "uppercase" }}>Rating:</span>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelStarFilter === "all" ? "active" : ""}`}
+                      onClick={() => setHotelStarFilter("all")}
+                    >
+                      All Stars
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelStarFilter === 5 ? "active" : ""}`}
+                      onClick={() => setHotelStarFilter(5)}
+                    >
+                      5★ Luxury
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelStarFilter === 4 ? "active" : ""}`}
+                      onClick={() => setHotelStarFilter(4)}
+                    >
+                      4★ Premier
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelStarFilter === 3 ? "active" : ""}`}
+                      onClick={() => setHotelStarFilter(3)}
+                    >
+                      3★ Smart
+                    </button>
+                  </div>
+
+                  <div className="hotel-filter-group">
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#8c8880", textTransform: "uppercase" }}>Price:</span>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelPriceFilter === "all" ? "active" : ""}`}
+                      onClick={() => setHotelPriceFilter("all")}
+                    >
+                      All Prices
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelPriceFilter === "under5k" ? "active" : ""}`}
+                      onClick={() => setHotelPriceFilter("under5k")}
+                    >
+                      Under ₹5,000
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelPriceFilter === "5to12k" ? "active" : ""}`}
+                      onClick={() => setHotelPriceFilter("5to12k")}
+                    >
+                      ₹5,000 - ₹12,000
+                    </button>
+                    <button
+                      type="button"
+                      className={`hotel-filter-btn ${hotelPriceFilter === "above12k" ? "active" : ""}`}
+                      onClick={() => setHotelPriceFilter("above12k")}
+                    >
+                      ₹12,000+
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hotel Cards Grid */}
+                <div className="hotel-cards-grid">
+                  {MOCK_HOTELS_LISTINGS
+                    .filter((h) => hotelCity === "All" || h.city.toLowerCase() === hotelCity.toLowerCase())
+                    .filter((h) => hotelStarFilter === "all" || h.stars === hotelStarFilter)
+                    .filter((h) => {
+                      if (hotelPriceFilter === "under5k") return h.pricePerNight < 5000;
+                      if (hotelPriceFilter === "5to12k") return h.pricePerNight >= 5000 && h.pricePerNight <= 12000;
+                      if (hotelPriceFilter === "above12k") return h.pricePerNight > 12000;
+                      return true;
+                    })
+                    .map((hotel) => (
+                      <div key={hotel.id} className="hotel-card">
+                        <div className="hotel-card-img-wrap">
+                          <img src={hotel.image} alt={hotel.name} className="hotel-card-img" />
+                          {hotel.badge && <span className="hotel-card-badge">{hotel.badge}</span>}
+                          <span className="hotel-card-rating">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="white" stroke="white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                            {hotel.rating} ({hotel.reviewCount})
+                          </span>
+                        </div>
+
+                        <div className="hotel-card-body">
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)", textTransform: "uppercase" }}>
+                                {hotel.city} · {"★".repeat(hotel.stars)}
+                              </span>
+                            </div>
+                            <h3 style={{ fontSize: "17px", fontWeight: 800, color: "var(--k)", margin: "4px 0 2px" }}>
+                              {hotel.name}
+                            </h3>
+                            <p style={{ fontSize: "12px", color: "#77736c", margin: 0 }}>
+                              {hotel.address}
+                            </p>
+
+                            <div className="hotel-amenities-row">
+                              {hotel.amenities.map((amenity, idx) => (
+                                <span key={idx} className="hotel-amenity-pill">
+                                  {amenity}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingTop: "14px",
+                            borderTop: "1px solid #f2f0ec"
+                          }}>
+                            <div>
+                              <b style={{ fontSize: "18px", color: "var(--k)", display: "block" }}>
+                                ₹{hotel.pricePerNight.toLocaleString("en-IN")}
+                              </b>
+                              <small style={{ fontSize: "11px", color: "#8c8880" }}>per room / night</small>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn primary"
+                              style={{ padding: "8px 18px", fontSize: "12px" }}
+                              onClick={() => {
+                                setSelectedTravelItem({ item: hotel, category: "hotel" });
+                                setBookingPassengerName(user?.name || "Demo Traveler");
+                                setBookingPassengerPhone(user?.phone || profilePhone || "+91 98200 12345");
+                                setBookingPassengerEmail(user?.email || "traveler@ticketwala.com");
+                              }}
+                            >
+                              Book Stay
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* 3. MY BOOKINGS SECTION */}
+            {/* ========================================================= */}
+            {travelSubTab === "bookings" && (
+              <div>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  marginBottom: "20px",
+                  flexWrap: "wrap"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    {["all", "flight", "train", "bus", "hotel", "cab"].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        className={`hotel-filter-btn ${bookingFilterType === type ? "active" : ""}`}
+                        onClick={() => setBookingFilterType(type)}
+                      >
+                        {type === "all" ? "All Reservations" : type.charAt(0).toUpperCase() + type.slice(1) + "s"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    background: "#ffffff",
+                    border: "1.5px solid #ded9d0",
+                    borderRadius: "10px",
+                    padding: "6px 14px",
+                    minWidth: "240px"
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c8880" strokeWidth="2.2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input
+                      placeholder="Search PNR or Destination..."
+                      value={bookingSearchPnr}
+                      onChange={(e) => setBookingSearchPnr(e.target.value)}
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        fontFamily: "inherit",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--k)",
+                        width: "100%",
+                        background: "transparent"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bookings Cards List */}
+                <div className="travel-bookings-list">
+                  {travelBookings
+                    .filter((b) => bookingFilterType === "all" || b.type === bookingFilterType)
+                    .filter((b) => {
+                      if (!bookingSearchPnr.trim()) return true;
+                      const q = bookingSearchPnr.toLowerCase();
+                      return b.pnr.toLowerCase().includes(q) ||
+                        b.title.toLowerCase().includes(q) ||
+                        b.fromToOrCity.toLowerCase().includes(q);
+                    })
+                    .length === 0 ? (
+                      <div style={{
+                        background: "#ffffff",
+                        border: "1.5px dashed #ded9d0",
+                        borderRadius: "20px",
+                        padding: "48px 24px",
+                        textAlign: "center"
+                      }}>
+                        <div style={{
+                          width: "56px",
+                          height: "56px",
+                          borderRadius: "16px",
+                          background: "#faf9f6",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#8c8880",
+                          marginBottom: "16px"
+                        }}>
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="6" width="20" height="12" rx="2" />
+                            <circle cx="12" cy="12" r="2" />
+                          </svg>
+                        </div>
+                        <h4 style={{ fontSize: "16px", fontWeight: 800, color: "var(--k)", margin: "0 0 6px" }}>
+                          No Travel Reservations Found
+                        </h4>
+                        <p style={{ fontSize: "13px", color: "#77736c", margin: "0 0 20px" }}>
+                          You don't have any matching tickets yet. Book your flight, train or hotel stay using the Fast Lane!
+                        </p>
+                        <button
+                          type="button"
+                          className="btn primary"
+                          onClick={() => setTravelSubTab("transport")}
+                        >
+                          Explore Transit Now
+                        </button>
+                      </div>
+                    ) : (
+                      travelBookings
+                        .filter((b) => bookingFilterType === "all" || b.type === bookingFilterType)
+                        .filter((b) => {
+                          if (!bookingSearchPnr.trim()) return true;
+                          const q = bookingSearchPnr.toLowerCase();
+                          return b.pnr.toLowerCase().includes(q) ||
+                            b.title.toLowerCase().includes(q) ||
+                            b.fromToOrCity.toLowerCase().includes(q);
+                        })
+                        .map((b) => (
+                          <div key={b.id} className="travel-booking-card">
+                            <div className="travel-booking-header">
+                              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                <span className="travel-pnr-badge">{b.pnr}</span>
+                                <span style={{
+                                  fontSize: "11px",
+                                  fontWeight: 800,
+                                  textTransform: "uppercase",
+                                  color: "var(--o)",
+                                  background: "rgba(255, 107, 55, 0.1)",
+                                  padding: "3px 8px",
+                                  borderRadius: "6px"
+                                }}>
+                                  {b.type.toUpperCase()}
+                                </span>
+                                <span style={{ fontSize: "12px", color: "#8c8880" }}>
+                                  Booked {b.bookedAt}
+                                </span>
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span className={`travel-status-pill ${b.status === "Confirmed" ? "travel-status-confirmed" : "travel-status-cancelled"}`}>
+                                  {b.status === "Confirmed" ? (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                  ) : (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                  )}
+                                  {b.status}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="travel-booking-body">
+                              <div>
+                                <h3 style={{ fontSize: "17px", fontWeight: 800, color: "var(--k)", margin: "0 0 4px" }}>
+                                  {b.title}
+                                </h3>
+                                <p style={{ fontSize: "13px", color: "#77736c", margin: "0 0 8px" }}>
+                                  {b.subtitle}
+                                </p>
+                                <div style={{ display: "flex", alignItems: "center", gap: "16px", fontSize: "12px", color: "var(--k)", fontWeight: 600 }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--o)" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                    {b.dateStr}
+                                  </span>
+                                  <span>•</span>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--o)" strokeWidth="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                    {b.passengers}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div style={{ textAlign: "right", minWidth: "140px" }}>
+                                <small style={{ fontSize: "11px", color: "#8c8880", display: "block" }}>Total Amount Paid</small>
+                                <b style={{ fontSize: "20px", color: "var(--k)" }}>₹{b.price.toLocaleString("en-IN")}</b>
+                                <span style={{ fontSize: "11px", color: "#27ae60", fontWeight: 700, display: "block", marginTop: "2px" }}>
+                                  0 Double-Booking Guarantee
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="travel-booking-footer">
+                              <div style={{ fontSize: "12px", color: "#77736c" }}>
+                                <b>Details:</b> {b.details}
+                              </div>
+
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                <button
+                                  type="button"
+                                  className="btn ghost"
+                                  style={{ padding: "6px 14px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                  onClick={() => {
+                                    setEticketAlert(`E-Ticket for PNR ${b.pnr} downloaded! Saved to profile wallet passes.`);
+                                    setTimeout(() => setEticketAlert(""), 4000);
+                                  }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                                  Download Pass
+                                </button>
+
+                                {b.status === "Confirmed" && (
+                                  <button
+                                    type="button"
+                                    className="btn ghost"
+                                    style={{ padding: "6px 14px", fontSize: "12px", color: "#e74c3c", borderColor: "#fdd" }}
+                                    onClick={() => {
+                                      if (window.confirm(`Cancel reservation for PNR ${b.pnr}? Full refund will be credited instantly.`)) {
+                                        setTravelBookings((prev) =>
+                                          prev.map((item) => (item.id === b.id ? { ...item, status: "Cancelled" } : item))
+                                        );
+                                        setEticketAlert(`Booking ${b.pnr} has been cancelled. Instant refund initiated.`);
+                                        setTimeout(() => setEticketAlert(""), 4000);
+                                      }
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* 4. ENHANCED PROFILE PAGE */}
         <div
           className={`page ${activePage === "profile" ? "on" : ""}`}
@@ -4161,6 +5443,303 @@ export default function TicketWalaPage() {
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TRAVEL BOOKING SUMMARY MODAL */}
+      {selectedTravelItem && (() => {
+        const isTransport = selectedTravelItem.category === "transport";
+        const transportItem = isTransport ? (selectedTravelItem.item as TravelTransportItem) : null;
+        const hotelItem = !isTransport ? (selectedTravelItem.item as TravelHotelItem) : null;
+        const basePrice = isTransport ? (transportItem!.price * travelersCount) : hotelItem!.pricePerNight;
+        const taxes = Math.round(basePrice * 0.05);
+        const totalFare = basePrice + taxes;
+
+        return (
+          <div className="travel-modal-overlay" onClick={() => setSelectedTravelItem(null)}>
+            <div className="travel-modal-box" onClick={(e) => e.stopPropagation()}>
+              <div className="travel-modal-header">
+                <h3>Review & Confirm Reservation</h3>
+                <button
+                  type="button"
+                  className="travel-modal-close"
+                  onClick={() => setSelectedTravelItem(null)}
+                  aria-label="Close"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+
+              {/* Item Card Overview */}
+              <div style={{
+                background: "#faf9f6",
+                border: "1.5px solid #eae5dc",
+                borderRadius: "16px",
+                padding: "16px 20px",
+                marginBottom: "20px"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
+                    {isTransport ? `${transportItem!.type.toUpperCase()} · ${transportItem!.classType}` : `HOTEL STAY · ${hotelItem!.city}`}
+                  </span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60" }}>
+                    Verified Fast Lane
+                  </span>
+                </div>
+                <h4 style={{ fontSize: "16px", fontWeight: 800, color: "var(--k)", margin: "0 0 4px" }}>
+                  {isTransport ? transportItem!.operator : hotelItem!.name}
+                </h4>
+                <p style={{ fontSize: "12px", color: "#77736c", margin: 0 }}>
+                  {isTransport ? `${transportItem!.from} → ${transportItem!.to} · ${transportDate}` : `${hotelItem!.address} · ${hotelCheckIn} to ${hotelCheckOut}`}
+                </p>
+              </div>
+
+              {/* Passenger / Guest Form */}
+              <div style={{ marginBottom: "20px" }}>
+                <h4 style={{ fontSize: "14px", fontWeight: 800, color: "var(--k)", margin: "0 0 12px" }}>
+                  Passenger / Primary Guest Info
+                </h4>
+
+                <div className="travel-form-group">
+                  <label>Full Legal Name</label>
+                  <input
+                    className="travel-form-input"
+                    placeholder="Enter full name"
+                    value={bookingPassengerName}
+                    onChange={(e) => setBookingPassengerName(e.target.value)}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="travel-form-group">
+                    <label>Mobile Number</label>
+                    <input
+                      className="travel-form-input"
+                      placeholder="+91 98200 12345"
+                      value={bookingPassengerPhone}
+                      onChange={(e) => setBookingPassengerPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="travel-form-group">
+                    <label>Email (for E-Ticket)</label>
+                    <input
+                      className="travel-form-input"
+                      placeholder="name@email.com"
+                      value={bookingPassengerEmail}
+                      onChange={(e) => setBookingPassengerEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Fare Summary */}
+              <div style={{
+                background: "#ffffff",
+                border: "1px solid #eae5dc",
+                borderRadius: "14px",
+                padding: "16px",
+                marginBottom: "20px"
+              }}>
+                <div className="travel-fare-row">
+                  <span>Base Fare ({isTransport ? `${travelersCount} Traveler` : "1 Room"})</span>
+                  <b>₹{basePrice.toLocaleString("en-IN")}</b>
+                </div>
+                <div className="travel-fare-row">
+                  <span>TicketWala Priority Token Lock</span>
+                  <span style={{ color: "#27ae60", fontWeight: 700 }}>₹0 (FREE)</span>
+                </div>
+                <div className="travel-fare-row">
+                  <span>Taxes & GST (5%)</span>
+                  <b>₹{taxes.toLocaleString("en-IN")}</b>
+                </div>
+                <div className="travel-fare-row total">
+                  <span>Total Payable</span>
+                  <b style={{ color: "var(--o)", fontSize: "18px" }}>₹{totalFare.toLocaleString("en-IN")}</b>
+                </div>
+              </div>
+
+              {/* Guarantees Pill */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "10px 14px",
+                background: "rgba(39, 174, 96, 0.08)",
+                borderRadius: "10px",
+                marginBottom: "20px"
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                <span style={{ fontSize: "12px", color: "#1e824c", fontWeight: 700 }}>
+                  Redis TTL Atomic Hold Active · 0 Double-Booking Guarantee
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ flex: 1, padding: "12px" }}
+                  onClick={() => setSelectedTravelItem(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn primary"
+                  style={{ flex: 2, padding: "12px", fontSize: "14px" }}
+                  onClick={() => {
+                    const prefix = isTransport
+                      ? transportItem!.type === "flight"
+                        ? "FL"
+                        : transportItem!.type === "train"
+                        ? "VB"
+                        : transportItem!.type === "bus"
+                        ? "BS"
+                        : "CB"
+                      : "HT";
+                    const pnr = `TW-${prefix}${Math.floor(10000 + Math.random() * 90000)}`;
+                    const newRecord: TravelBookingRecord = {
+                      id: `bk-${Date.now()}`,
+                      pnr,
+                      type: isTransport ? transportItem!.type : "hotel",
+                      title: isTransport
+                        ? `${transportItem!.operator} · ${transportItem!.fromCode} → ${transportItem!.toCode}`
+                        : hotelItem!.name,
+                      subtitle: isTransport
+                        ? transportItem!.subTitle
+                        : hotelItem!.address,
+                      fromToOrCity: isTransport
+                        ? `${transportItem!.from} → ${transportItem!.to}`
+                        : hotelItem!.city,
+                      dateStr: isTransport
+                        ? `${transportDate} · ${transportItem!.depTime}`
+                        : `${hotelCheckIn} - ${hotelCheckOut} (3 Nights)`,
+                      passengers: `${bookingPassengerName.trim() || user?.name || "Traveler"} (${isTransport ? travelersCount : 2} Pax)`,
+                      price: totalFare,
+                      status: "Confirmed",
+                      bookedAt: "Just now",
+                      details: isTransport
+                        ? `${transportItem!.classType} · Instant Seat Assigned`
+                        : "Luxury Room · Free Breakfast Included",
+                    };
+                    setTravelBookings([newRecord, ...travelBookings]);
+                    setSelectedTravelItem(null);
+                    setConfirmedTravelPass(newRecord);
+                  }}
+                >
+                  Confirm & Secure PNR
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* CONFIRMATION POPUP MODAL */}
+      {confirmedTravelPass && (
+        <div className="travel-modal-overlay" onClick={() => setConfirmedTravelPass(null)}>
+          <div className="travel-modal-box" style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              background: "rgba(39, 174, 96, 0.12)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#27ae60",
+              marginBottom: "16px"
+            }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+            </div>
+
+            <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--k)", margin: "0 0 6px" }}>
+              Reservation Confirmed!
+            </h3>
+            <p style={{ fontSize: "13px", color: "#77736c", margin: "0 0 20px" }}>
+              Your digital e-ticket has been tokenized and verified on TicketWala.
+            </p>
+
+            <div style={{
+              background: "#faf9f6",
+              border: "1.5px dashed #ded9d0",
+              borderRadius: "16px",
+              padding: "20px",
+              marginBottom: "24px"
+            }}>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#8c8880", textTransform: "uppercase" }}>
+                Booking Reference (PNR)
+              </span>
+              <div style={{
+                fontSize: "24px",
+                fontWeight: 800,
+                color: "var(--o)",
+                fontFamily: "monospace",
+                letterSpacing: "1px",
+                marginTop: "4px",
+                marginBottom: "12px"
+              }}>
+                {confirmedTravelPass.pnr}
+              </div>
+
+              <div style={{ fontSize: "13px", color: "var(--k)", fontWeight: 700, marginBottom: "4px" }}>
+                {confirmedTravelPass.title}
+              </div>
+              <div style={{ fontSize: "12px", color: "#77736c" }}>
+                {confirmedTravelPass.dateStr} · {confirmedTravelPass.passengers}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                className="btn primary"
+                style={{ padding: "12px", width: "100%", fontSize: "14px" }}
+                onClick={() => {
+                  setConfirmedTravelPass(null);
+                  setTravelSubTab("bookings");
+                  navigateTo("travel");
+                }}
+              >
+                View in My Bookings
+              </button>
+
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ padding: "12px", width: "100%", fontSize: "13px" }}
+                onClick={() => {
+                  setEticketAlert(`Digital Pass for PNR ${confirmedTravelPass.pnr} downloaded!`);
+                  setTimeout(() => setEticketAlert(""), 4000);
+                  setConfirmedTravelPass(null);
+                }}
+              >
+                Download Digital Pass & Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING TOAST NOTIFICATION */}
+      {eticketAlert && (
+        <div className="travel-toast">
+          <div style={{
+            width: "22px",
+            height: "22px",
+            borderRadius: "50%",
+            background: "#27ae60",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            flexShrink: 0
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+          </div>
+          <span>{eticketAlert}</span>
         </div>
       )}
     </>

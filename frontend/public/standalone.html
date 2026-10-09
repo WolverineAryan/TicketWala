@@ -393,6 +393,176 @@ footer{background:var(--k);color:#fff;padding:30px 5vw;text-align:center;font-si
 }
 @media (max-width: 600px) { .profile-section-pane { padding: 20px 18px; } }
 
+
+/* TICKETWALA TRAVEL SECTION */
+.travel-wrap { max-width: 1200px; margin: 28px auto 64px auto; padding: 0 24px; }
+.travel-hero {
+  position: relative; border-radius: 24px; overflow: hidden; background: #1a1918;
+  color: #ffffff; padding: 36px 40px; display: flex; align-items: center;
+  justify-content: space-between; gap: 24px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16);
+  margin-bottom: 24px;
+}
+.travel-hero-tag {
+  display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 107, 55, 0.2);
+  border: 1px solid rgba(255, 107, 55, 0.45); color: #fff; padding: 4px 12px;
+  border-radius: 99px; font-size: 11px; font-weight: 800; letter-spacing: 0.8px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.travel-hero h1 { font-size: clamp(24px, 3.5vw, 36px); font-weight: 800; line-height: 1.2; margin: 0 0 8px 0; color: #ffffff; }
+.travel-hero p { color: #d6d0c4; font-size: 13px; max-width: 540px; margin: 0; line-height: 1.5; }
+.travel-hero-stats { display: flex; gap: 14px; flex-wrap: wrap; }
+.travel-stat-pill { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; padding: 10px 16px; text-align: center; }
+.travel-stat-pill small { display: block; font-size: 10px; color: #aaa49a; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+.travel-stat-pill b { display: block; font-size: 16px; color: #fff; font-weight: 800; margin-top: 2px; }
+
+/* TRAVEL NAV TABS */
+.travel-nav-tabs {
+  display: flex; align-items: center; gap: 8px; background: #f6f5f2; padding: 6px;
+  border-radius: 16px; border: 1.5px solid #eae5dc; margin-bottom: 24px; overflow-x: auto;
+}
+.travel-nav-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 12px;
+  border: none; background: transparent; color: #77736c; font-family: inherit; font-size: 13px;
+  font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+}
+.travel-nav-btn:hover { color: var(--k); background: rgba(255, 255, 255, 0.7); }
+.travel-nav-btn.active { background: #ffffff; color: var(--k); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); border: 1px solid rgba(0, 0, 0, 0.06); }
+.travel-nav-btn.active svg { color: var(--o); }
+.travel-badge { background: var(--o); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; }
+
+/* SEARCH CARDS & MODES */
+.travel-search-card {
+  background: #ffffff; border: 1px solid rgba(43, 42, 40, 0.1); border-radius: 20px;
+  padding: 24px 28px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); margin-bottom: 24px;
+}
+.transit-mode-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+.transit-mode-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 99px;
+  border: 1.5px solid #ded9d0; background: #faf9f6; color: #77736c; font-family: inherit;
+  font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;
+}
+.transit-mode-btn:hover { border-color: var(--o); background: #fff; color: var(--k); }
+.transit-mode-btn.active { background: var(--k); color: #ffffff; border-color: var(--k); box-shadow: 0 4px 12px rgba(43, 42, 40, 0.18); }
+.transit-mode-btn.active svg { color: var(--o); }
+
+.travel-search-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) auto; gap: 12px; align-items: flex-end; }
+@media(max-width: 800px) { .travel-search-grid { grid-template-columns: 1fr; } }
+
+.travel-search-input-box {
+  background: #faf9f6; border: 1.5px solid #ded9d0; border-radius: 12px; padding: 10px 14px;
+  display: flex; flex-direction: column; transition: all 0.2s;
+}
+.travel-search-input-box:focus-within { border-color: var(--o); background: #ffffff; box-shadow: 0 0 0 3px rgba(255, 107, 55, 0.12); }
+.travel-search-label { font-size: 11px; font-weight: 700; color: #8c8880; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.travel-search-field { border: none; background: transparent; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--k); outline: none; width: 100%; }
+
+/* RESULTS LISTINGS */
+.transit-results-grid { display: flex; flex-direction: column; gap: 14px; }
+.transit-item-card {
+  background: #ffffff; border: 1.5px solid #eae5dc; border-radius: 18px; padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03); transition: all 0.2s ease;
+}
+.transit-item-card:hover { border-color: var(--o); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(43, 42, 40, 0.06); }
+.transit-operator-info { display: flex; align-items: center; gap: 14px; min-width: 200px; }
+.transit-icon-avatar {
+  width: 44px; height: 44px; border-radius: 12px; background: #f6f5f2; display: flex;
+  align-items: center; justify-content: center; color: var(--o); flex-shrink: 0; border: 1px solid #eae5dc;
+}
+.transit-times-col { display: flex; align-items: center; gap: 18px; min-width: 240px; }
+.transit-time-point b { display: block; font-size: 16px; font-weight: 800; color: var(--k); }
+.transit-time-point small { display: block; font-size: 11px; color: #77736c; margin-top: 2px; }
+.transit-duration-line { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+.transit-duration-line span { font-size: 11px; font-weight: 600; color: #8c8880; margin-bottom: 2px; }
+.transit-line-track { width: 100%; height: 2px; background: #ded9d0; position: relative; }
+.transit-price-col { text-align: right; min-width: 130px; }
+.transit-price-col b { display: block; font-size: 20px; font-weight: 800; color: var(--k); }
+.transit-price-col small { display: block; font-size: 11px; color: #8c8880; margin-bottom: 8px; }
+
+/* HOTEL CARDS */
+.hotel-filters-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.hotel-filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hotel-filter-btn {
+  background: #f6f5f2; border: 1px solid #eae5dc; border-radius: 99px; padding: 6px 14px;
+  font-family: inherit; font-size: 12px; font-weight: 700; color: #77736c; cursor: pointer; transition: all 0.2s;
+}
+.hotel-filter-btn:hover { border-color: var(--o); background: #fff; color: var(--k); }
+.hotel-filter-btn.active { background: var(--k); color: #fff; border-color: var(--k); }
+.hotel-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+.hotel-card {
+  background: #ffffff; border: 1.5px solid #eae5dc; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04); transition: all 0.2s ease; display: flex; flex-direction: column;
+}
+.hotel-card:hover { border-color: var(--o); transform: translateY(-3px); box-shadow: 0 12px 30px rgba(43, 42, 40, 0.08); }
+.hotel-card-img-wrap { position: relative; height: 190px; width: 100%; overflow: hidden; }
+.hotel-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+.hotel-card:hover .hotel-card-img { transform: scale(1.05); }
+.hotel-card-badge {
+  position: absolute; top: 12px; left: 12px; background: rgba(43, 42, 40, 0.85); backdrop-filter: blur(4px);
+  color: white; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700;
+}
+.hotel-card-rating {
+  position: absolute; top: 12px; right: 12px; background: #27ae60; color: white; padding: 3px 8px;
+  border-radius: 8px; font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 4px;
+}
+.hotel-card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.hotel-amenities-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 16px; }
+.hotel-amenity-pill { font-size: 11px; font-weight: 600; color: #77736c; background: #f6f5f2; padding: 3px 8px; border-radius: 6px; }
+
+/* TRAVEL BOOKINGS */
+.travel-bookings-list { display: flex; flex-direction: column; gap: 16px; }
+.travel-booking-card {
+  background: #ffffff; border: 1.5px solid #eae5dc; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03); transition: all 0.2s ease;
+}
+.travel-booking-card:hover { border-color: var(--o); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(43, 42, 40, 0.06); }
+.travel-booking-header {
+  padding: 16px 24px; background: #faf9f6; border-bottom: 1px dashed #ded9d0;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.travel-booking-body { padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.travel-booking-footer {
+  padding: 14px 24px; background: #faf9f6; border-top: 1px solid #f2f0ec;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.travel-pnr-badge { font-family: monospace; font-weight: 800; font-size: 13px; background: #1a1918; color: #fff; padding: 4px 10px; border-radius: 8px; letter-spacing: 0.5px; }
+.travel-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700; }
+.travel-status-confirmed { background: rgba(39, 174, 96, 0.12); color: #27ae60; }
+.travel-status-cancelled { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
+
+/* MODALS & FORMS */
+.travel-modal-overlay {
+  position: fixed; inset: 0; background: rgba(43, 42, 40, 0.68); backdrop-filter: blur(6px);
+  z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.travel-modal-box {
+  background: #ffffff; border-radius: 24px; width: 100%; max-width: 520px; max-height: 90vh;
+  overflow-y: auto; padding: 32px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); border: 1px solid rgba(43, 42, 40, 0.1);
+}
+.travel-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #f2f0ec; }
+.travel-modal-header h3 { font-size: 18px; font-weight: 800; color: var(--k); margin: 0; }
+.travel-modal-close { background: transparent; border: none; cursor: pointer; color: #8c8880; padding: 4px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.travel-modal-close:hover { color: var(--k); }
+
+.travel-form-group { margin-bottom: 16px; }
+.travel-form-group label { display: block; font-size: 11px; font-weight: 700; color: #77736c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.travel-form-input {
+  width: 100%; padding: 12px 16px !important; border: 1.5px solid #ded9d0; border-radius: 12px;
+  background: #faf9f6; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--k);
+  outline: none; transition: all 0.2s; box-sizing: border-box;
+}
+.travel-form-input:focus { border-color: var(--o); background: #fff; box-shadow: 0 0 0 3px rgba(255, 107, 55, 0.12); }
+.travel-fare-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 13px; color: #77736c; }
+.travel-fare-row.total { font-size: 16px; font-weight: 800; color: var(--k); border-top: 1.5px dashed #ded9d0; margin-top: 8px; padding-top: 12px; }
+
+.travel-toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1000000; background: #1a1918; color: #fff;
+  padding: 14px 22px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.15); animation: travelSlideUp 0.3s ease;
+}
+@keyframes travelSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
 </style>
 <script>
 window.go = function(p) {
@@ -644,13 +814,438 @@ function handleStandaloneRevokeSessions() {
 }
 
 // Hook into initial window loading
+
+// STANDALONE TRAVEL ENGINE
+const STANDALONE_TRANSPORTS = [
+  { id: "fl-1", type: "flight", operator: "IndiGo 6E-204", subTitle: "Airbus A321 Neo · Direct", from: "Mumbai (BOM)", fromCode: "BOM", to: "Goa (GOI)", toCode: "GOI", depTime: "06:15", arrTime: "07:30", duration: "1h 15m", price: 3899, badge: "FAST DROP", seatsLeft: 6, classType: "Economy Saver", rating: 4.8 },
+  { id: "fl-2", type: "flight", operator: "Air India AI-631", subTitle: "Boeing 787 Dreamliner", from: "Mumbai (BOM)", fromCode: "BOM", to: "Delhi (DEL)", toCode: "DEL", depTime: "08:30", arrTime: "10:45", duration: "2h 15m", price: 4650, badge: "FREE MEAL", seatsLeft: 12, classType: "Prime Cabin", rating: 4.6 },
+  { id: "fl-3", type: "flight", operator: "Akasa Air QP-1382", subTitle: "B737 MAX · Eco Speed", from: "Bengaluru (BLR)", fromCode: "BLR", to: "Mumbai (BOM)", toCode: "BOM", depTime: "14:10", arrTime: "15:50", duration: "1h 40m", price: 3249, badge: "BEST VALUE", seatsLeft: 9, classType: "Smart Saver", rating: 4.7 },
+  { id: "fl-4", type: "flight", operator: "Vistara UK-992", subTitle: "Club Vistara Premium", from: "Delhi (DEL)", fromCode: "DEL", to: "Mumbai (BOM)", toCode: "BOM", depTime: "18:00", arrTime: "20:15", duration: "2h 15m", price: 5420, badge: "PREMIUM", seatsLeft: 4, classType: "Premium Eco", rating: 4.9 },
+  { id: "tr-1", type: "train", operator: "Vande Bharat Express (22223)", subTitle: "Semi High-Speed · Fast Track", from: "CSMT Mumbai", fromCode: "CSMT", to: "Madgaon Goa", toCode: "MAO", depTime: "05:25", arrTime: "13:10", duration: "7h 45m", price: 1815, badge: "POPULAR", seatsLeft: 22, classType: "AC Chair Car", rating: 4.9 },
+  { id: "tr-2", type: "train", operator: "Tejas Express (82902)", subTitle: "Corporate Superfast · WiFi", from: "Ahmedabad (ADI)", fromCode: "ADI", to: "Mumbai Central (MMCT)", toCode: "MMCT", depTime: "06:40", arrTime: "13:05", duration: "6h 25m", price: 1430, badge: "MEAL INCLUDED", seatsLeft: 18, classType: "Executive Chair", rating: 4.8 },
+  { id: "tr-3", type: "train", operator: "Mumbai Rajdhani (12952)", subTitle: "Overnight Premier Superfast", from: "New Delhi (NDLS)", fromCode: "NDLS", to: "Mumbai Central (MMCT)", toCode: "MMCT", depTime: "16:55", arrTime: "08:35", duration: "15h 40m", price: 2890, badge: "VIP EXPRESS", seatsLeft: 8, classType: "2nd AC Sleeper", rating: 4.7 },
+  { id: "bs-1", type: "bus", operator: "Zingbus Maxx AC Sleeper", subTitle: "Volvo Multi-Axle B11R", from: "Mumbai (Borivali)", fromCode: "BOM", to: "Pune (Swargate)", toCode: "PUN", depTime: "22:30", arrTime: "02:45", duration: "4h 15m", price: 799, badge: "LIVE GPS", seatsLeft: 14, classType: "Luxury Sleeper (2+1)", rating: 4.7 },
+  { id: "bs-2", type: "bus", operator: "IntrCity SmartBus", subTitle: "Smart Lounge & Clean Linens", from: "Bengaluru (Majestic)", fromCode: "BLR", to: "Goa (Panaji)", toCode: "GOA", depTime: "21:00", arrTime: "08:30", duration: "11h 30m", price: 1299, badge: "SNACKS INCL", seatsLeft: 11, classType: "AC Sleeper 2+1", rating: 4.8 },
+  { id: "bs-3", type: "bus", operator: "VRL Travels I-Shift Volvo", subTitle: "Multi-Axle Semi-Sleeper", from: "Pune (Wakad)", fromCode: "PUN", to: "Bengaluru (Anand Rao)", toCode: "BLR", depTime: "19:15", arrTime: "07:45", duration: "12h 30m", price: 1650, badge: "CHARGING PORT", seatsLeft: 19, classType: "Multi-Axle Luxury", rating: 4.6 },
+  { id: "cb-1", type: "cab", operator: "Prime Sedan (Dzire / Etios)", subTitle: "Verified Chauffeur · AC On Always", from: "Mumbai Airport (T2)", fromCode: "BOM", to: "Pune Express City Center", toCode: "PUN", depTime: "Instant Pickup", arrTime: "3.5 hrs drive", duration: "Door-to-Door", price: 2499, badge: "TOP RATED", seatsLeft: 4, classType: "4 Seater Sedan", rating: 4.9 },
+  { id: "cb-2", type: "cab", operator: "Electric SUV (Nexon / ZS EV)", subTitle: "Eco-Fleet · Silent Ride", from: "Bengaluru Tech Park", fromCode: "BLR", to: "Mysore Palace Heritage", toCode: "MYS", depTime: "On-Demand (15m)", arrTime: "2.8 hrs drive", duration: "Door-to-Door", price: 3199, badge: "ZERO EMISSION", seatsLeft: 4, classType: "Compact EV SUV", rating: 4.8 },
+  { id: "cb-3", type: "cab", operator: "Outstation XL (Innova Crysta)", subTitle: "Captain Seats · Extra Luggage", from: "Delhi NCR Area", fromCode: "DEL", to: "Jaipur Pink City", toCode: "JAI", depTime: "Round-The-Clock", arrTime: "4.5 hrs drive", duration: "Express Highway", price: 4899, badge: "6 SEATER XL", seatsLeft: 6, classType: "Premium XL SUV", rating: 4.9 }
+];
+
+const STANDALONE_HOTELS = [
+  { id: "ht-1", name: "Grand Hyatt Goa Resort", city: "Goa", address: "Bambolim Bay, North Goa", stars: 5, rating: 4.9, reviewCount: 1420, pricePerNight: 9499, image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80", badge: "BEACHFRONT RESORT", amenities: ["Ocean View", "Private Beach", "Infinity Pool", "Free Breakfast", "Spa"] },
+  { id: "ht-2", name: "Taj Lands End Mumbai", city: "Mumbai", address: "Bandstand, Bandra West, Mumbai", stars: 5, rating: 4.9, reviewCount: 2180, pricePerNight: 14200, image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80", badge: "SEA-FACING LUXURY", amenities: ["Arabian Sea View", "Fine Dining", "Luxury Spa", "Valet Parking", "Pool"] },
+  { id: "ht-3", name: "The Leela Palace Bengaluru", city: "Bengaluru", address: "Old Airport Road, Kodihalli, Bengaluru", stars: 5, rating: 4.8, reviewCount: 1670, pricePerNight: 12500, image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80", badge: "ROYAL PALATIAL STAY", amenities: ["Royal Suites", "Michelin Dining", "Lush Gardens", "Heated Pool", "Butler"] },
+  { id: "ht-4", name: "W Goa - Beachfront Villa", city: "Goa", address: "Vagator Beach, Bardez, North Goa", stars: 5, rating: 4.8, reviewCount: 980, pricePerNight: 18900, image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80", badge: "ULTRA LUXURY VILLA", amenities: ["Rock Pool", "Private Balcony", "Sunset Bar", "Beach Access", "DJ Nights"] },
+  { id: "ht-5", name: "Heritage Haveli Palace", city: "Jaipur", address: "Amer Road, Amber, Jaipur", stars: 4, rating: 4.7, reviewCount: 740, pricePerNight: 5600, image: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80", badge: "HERITAGE COURTYARD", amenities: ["Fort View Rooftop", "Courtyard", "Rajasthani Folk Nights", "Free Breakfast"] },
+  { id: "ht-6", name: "Ginger Mumbai BKC", city: "Mumbai", address: "Bandra Kurla Complex, Mumbai", stars: 3, rating: 4.4, reviewCount: 1150, pricePerNight: 3850, image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80", badge: "SMART BUSINESS HUB", amenities: ["High Speed WiFi", "Express Check-in", "Work Desk", "Fitness Center"] }
+];
+
+let standaloneTravelBookings = [
+  { id: "bk-1", pnr: "TW-FL89201", type: "flight", title: "IndiGo 6E-204 · Mumbai → Goa", subtitle: "Chhatrapati Shivaji (BOM) to Dabolim (GOI)", fromToOrCity: "BOM → GOI", dateStr: "Tomorrow, 06:15 AM", passengers: "1 Passenger (Seat 14A)", price: 3899, status: "Confirmed", bookedAt: "2 hours ago", details: "Fast Track Boarding · Terminal 2 Gate 42B" },
+  { id: "bk-2", pnr: "TW-VB44910", type: "train", title: "Vande Bharat Express (22223)", subtitle: "CSMT Mumbai to Madgaon Goa", fromToOrCity: "CSMT → MAO", dateStr: "18 Oct 2026, 05:25 AM", passengers: "2 Passengers (Coach C4, 18-19)", price: 3630, status: "Confirmed", bookedAt: "Yesterday", details: "AC Chair Car · Instant PNR Verified" },
+  { id: "bk-3", pnr: "TW-HT77294", type: "hotel", title: "W Goa - Beachfront Villa", subtitle: "Vagator Beach, North Goa", fromToOrCity: "Goa (North)", dateStr: "18 Oct - 21 Oct (3 Nights)", passengers: "2 Guests (King Villa)", price: 56700, status: "Confirmed", bookedAt: "3 days ago", details: "Breakfast Included · Rock Pool View" }
+];
+
+let curTravelSubTab = "transport";
+let curTransitMode = "flight";
+let curHotelStar = "all";
+let curHotelPrice = "all";
+let curBookingFilter = "all";
+let curActiveTravelItem = null;
+let curConfirmedBooking = null;
+
+function switchStandaloneTravelTab(tab) {
+  curTravelSubTab = tab;
+  ['transport', 'hotels', 'bookings'].forEach(t => {
+    const pane = document.getElementById('trvPane' + t.charAt(0).toUpperCase() + t.slice(1));
+    const btn = document.getElementById('trvTab' + t.charAt(0).toUpperCase() + t.slice(1) + 'Btn');
+    if (pane) pane.style.display = (t === tab) ? 'block' : 'none';
+    if (btn) {
+      if (t === tab) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  if (tab === 'transport') renderStandaloneTransports();
+  if (tab === 'hotels') renderStandaloneHotels();
+  if (tab === 'bookings') renderStandaloneBookings();
+}
+
+function setStandaloneTransitMode(mode) {
+  curTransitMode = mode;
+  ['flight', 'train', 'bus', 'cab'].forEach(m => {
+    const btn = document.getElementById('trvMode' + m.charAt(0).toUpperCase() + m.slice(1) + 'Btn');
+    if (btn) {
+      if (m === mode) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  renderStandaloneTransports();
+}
+
+function renderStandaloneTransports() {
+  const container = document.getElementById('trvTransportsGrid');
+  if (!container) return;
+  const fromVal = (document.getElementById('trvFromInput')?.value || '').toLowerCase().trim();
+  const toVal = (document.getElementById('trvToInput')?.value || '').toLowerCase().trim();
+
+  const filtered = STANDALONE_TRANSPORTS
+    .filter(i => i.type === curTransitMode)
+    .filter(i => {
+      if (!fromVal && !toVal) return true;
+      const fMatch = !fromVal || i.from.toLowerCase().includes(fromVal) || i.fromCode.toLowerCase().includes(fromVal);
+      const tMatch = !toVal || i.to.toLowerCase().includes(toVal) || i.toCode.toLowerCase().includes(toVal);
+      return fMatch && tMatch;
+    });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:#8c8880">No scheduled routes found matching your query.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(item => {
+    return `
+      <div class="transit-item-card">
+        <div class="transit-operator-info">
+          <div class="transit-icon-avatar">
+            ${item.type === 'flight' ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z"/></svg>' :
+              item.type === 'train' ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m16 19 2 3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>' :
+              item.type === 'bus' ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="m6 19-1 2"/><path d="m18 19 1 2"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>' :
+              '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H7.5c-.7 0-1.4.4-1.8.9L4 10.5C3.3 11 3 11.8 3 12.7V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>'}
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <b style="font-size:15px;color:var(--k)">${item.operator}</b>
+              ${item.badge ? `<span style="font-size:9px;font-weight:800;background:rgba(255,107,55,0.12);color:var(--o);padding:2px 6px;border-radius:6px">${item.badge}</span>` : ''}
+            </div>
+            <small style="color:#77736c;font-size:12px;display:block;margin-top:2px">${item.subTitle}</small>
+          </div>
+        </div>
+
+        <div class="transit-times-col">
+          <div class="transit-time-point" style="text-align:left">
+            <b>${item.depTime}</b><small>${item.fromCode}</small>
+          </div>
+          <div class="transit-duration-line">
+            <span>${item.duration}</span>
+            <div class="transit-line-track" style="min-width:90px">
+              <div style="position:absolute;right:0;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--o)"></div>
+            </div>
+            <small style="font-size:10px;color:#8c8880;margin-top:3px">${item.type === 'flight' ? 'Non-stop' : 'Direct'}</small>
+          </div>
+          <div class="transit-time-point" style="text-align:right">
+            <b>${item.arrTime}</b><small>${item.toCode}</small>
+          </div>
+        </div>
+
+        <div style="min-width:150px">
+          <span style="display:inline-block;background:#f6f5f2;border:1px solid #eae5dc;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--k)">${item.classType}</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+            <span style="font-size:11px;color:#27ae60;font-weight:700">★ ${item.rating}</span>
+            <span style="font-size:11px;color:#8c8880">•</span>
+            <span style="font-size:11px;color:#8c8880;font-weight:600">${item.seatsLeft ? item.seatsLeft + ' seats left' : 'Available'}</span>
+          </div>
+        </div>
+
+        <div class="transit-price-col">
+          <b>₹${item.price.toLocaleString('en-IN')}</b>
+          <small>per passenger</small>
+          <button type="button" class="btn primary" style="padding:8px 18px;font-size:12px;width:100%" onclick="openStandaloneTravelModal('${item.id}', 'transport')">
+            ${item.type === 'cab' ? 'Book Cab' : 'Book Seat'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setStandaloneHotelStar(star) {
+  curHotelStar = star;
+  ['all', '5', '4', '3'].forEach(s => {
+    const btn = document.getElementById('trvStar' + (s === 'all' ? 'All' : s) + 'Btn');
+    if (btn) {
+      if ((s === 'all' && star === 'all') || (Number(s) === star)) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  renderStandaloneHotels();
+}
+
+function setStandaloneHotelPrice(p) {
+  curHotelPrice = p;
+  ['all', 'under5k', '5to12k', 'above12k'].forEach(key => {
+    const btn = document.getElementById('trvPrice' + (key === 'all' ? 'All' : key === 'under5k' ? 'Under5' : key === '5to12k' ? '5to12' : 'Above12') + 'Btn');
+    if (btn) {
+      if (key === p) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  renderStandaloneHotels();
+}
+
+function renderStandaloneHotels() {
+  const container = document.getElementById('trvHotelsGrid');
+  if (!container) return;
+  const city = document.getElementById('trvHotelCitySelect')?.value || 'All';
+
+  const filtered = STANDALONE_HOTELS
+    .filter(h => city === 'All' || h.city.toLowerCase() === city.toLowerCase())
+    .filter(h => curHotelStar === 'all' || h.stars === curHotelStar)
+    .filter(h => {
+      if (curHotelPrice === 'under5k') return h.pricePerNight < 5000;
+      if (curHotelPrice === '5to12k') return h.pricePerNight >= 5000 && h.pricePerNight <= 12000;
+      if (curHotelPrice === 'above12k') return h.pricePerNight > 12000;
+      return true;
+    });
+
+  container.innerHTML = filtered.map(hotel => {
+    return `
+      <div class="hotel-card">
+        <div class="hotel-card-img-wrap">
+          <img src="${hotel.image}" alt="${hotel.name}" class="hotel-card-img">
+          ${hotel.badge ? `<span class="hotel-card-badge">${hotel.badge}</span>` : ''}
+          <span class="hotel-card-rating">★ ${hotel.rating} (${hotel.reviewCount})</span>
+        </div>
+        <div class="hotel-card-body">
+          <div>
+            <span style="font-size:11px;font-weight:700;color:var(--o);text-transform:uppercase">${hotel.city} · ${'★'.repeat(hotel.stars)}</span>
+            <h3 style="font-size:17px;font-weight:800;color:var(--k);margin:4px 0 2px">${hotel.name}</h3>
+            <p style="font-size:12px;color:#77736c;margin:0">${hotel.address}</p>
+            <div class="hotel-amenities-row">
+              ${hotel.amenities.map(a => `<span class="hotel-amenity-pill">${a}</span>`).join('')}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid #f2f0ec">
+            <div>
+              <b style="font-size:18px;color:var(--k);display:block">₹${hotel.pricePerNight.toLocaleString('en-IN')}</b>
+              <small style="font-size:11px;color:#8c8880">per room / night</small>
+            </div>
+            <button type="button" class="btn primary" style="padding:8px 18px;font-size:12px" onclick="openStandaloneTravelModal('${hotel.id}', 'hotel')">
+              Book Stay
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setStandaloneBookingType(type) {
+  curBookingFilter = type;
+  ['all', 'flight', 'train', 'bus', 'hotel', 'cab'].forEach(t => {
+    const btn = document.getElementById('trvBkType' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (btn) {
+      if (t === type) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+  });
+  renderStandaloneBookings();
+}
+
+function renderStandaloneBookings() {
+  const container = document.getElementById('trvBookingsGrid');
+  const badge = document.getElementById('trvBookingsBadge');
+  if (badge) badge.textContent = standaloneTravelBookings.length;
+  if (!container) return;
+
+  const query = (document.getElementById('trvBkSearchInput')?.value || '').toLowerCase().trim();
+  const filtered = standaloneTravelBookings
+    .filter(b => curBookingFilter === 'all' || b.type === curBookingFilter)
+    .filter(b => {
+      if (!query) return true;
+      return b.pnr.toLowerCase().includes(query) || b.title.toLowerCase().includes(query) || b.fromToOrCity.toLowerCase().includes(query);
+    });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="background:#ffffff;border:1.5px dashed #ded9d0;border-radius:20px;padding:48px 24px;textAlign:center">
+        <h4 style="font-size:16px;font-weight:800;color:var(--k);margin:0 0 6px">No Travel Reservations Found</h4>
+        <p style="font-size:13px;color:#77736c;margin:0 0 20px">You don't have any matching tickets yet. Book your next journey using the Fast Lane!</p>
+        <button type="button" class="btn primary" onclick="switchStandaloneTravelTab('transport')">Explore Transit Now</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(b => {
+    return `
+      <div class="travel-booking-card">
+        <div class="travel-booking-header">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="travel-pnr-badge">${b.pnr}</span>
+            <span style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--o);background:rgba(255,107,55,0.1);padding:3px 8px;border-radius:6px">${b.type.toUpperCase()}</span>
+            <span style="font-size:12px;color:#8c8880">Booked ${b.bookedAt}</span>
+          </div>
+          <span class="travel-status-pill ${b.status === 'Confirmed' ? 'travel-status-confirmed' : 'travel-status-cancelled'}">
+            ${b.status === 'Confirmed' ? '✓' : '✕'} ${b.status}
+          </span>
+        </div>
+        <div class="travel-booking-body">
+          <div>
+            <h3 style="font-size:17px;font-weight:800;color:var(--k);margin:0 0 4px">${b.title}</h3>
+            <p style="font-size:13px;color:#77736c;margin:0 0 8px">${b.subtitle}</p>
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:var(--k);font-weight:600">
+              <span>${b.dateStr}</span> • <span>${b.passengers}</span>
+            </div>
+          </div>
+          <div style="text-align:right;min-width:140px">
+            <small style="font-size:11px;color:#8c8880;display:block">Total Amount Paid</small>
+            <b style="font-size:20px;color:var(--k)">₹${b.price.toLocaleString('en-IN')}</b>
+            <span style="font-size:11px;color:#27ae60;font-weight:700;display:block;margin-top:2px">0 Double-Booking Guarantee</span>
+          </div>
+        </div>
+        <div class="travel-booking-footer">
+          <div style="font-size:12px;color:#77736c"><b>Details:</b> ${b.details}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button type="button" class="btn ghost" style="padding:6px 14px;font-size:12px" onclick="showStandaloneToast('E-Ticket for PNR ${b.pnr} downloaded! Saved to profile wallet passes.')">Download Pass</button>
+            ${b.status === 'Confirmed' ? `<button type="button" class="btn ghost" style="padding:6px 14px;font-size:12px;color:#e74c3c;border-color:#fdd" onclick="cancelStandaloneBooking('${b.id}', '${b.pnr}')">Cancel</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function cancelStandaloneBooking(id, pnr) {
+  if (confirm('Cancel reservation for PNR ' + pnr + '? Full refund will be credited instantly.')) {
+    const bk = standaloneTravelBookings.find(x => x.id === id);
+    if (bk) bk.status = 'Cancelled';
+    renderStandaloneBookings();
+    showStandaloneToast('Booking ' + pnr + ' cancelled. Refund initiated.');
+  }
+}
+
+function openStandaloneTravelModal(id, cat) {
+  let item = null;
+  if (cat === 'transport') item = STANDALONE_TRANSPORTS.find(x => x.id === id);
+  else item = STANDALONE_HOTELS.find(x => x.id === id);
+  if (!item) return;
+
+  curActiveTravelItem = { item, category: cat };
+  const travelers = Number(document.getElementById('trvTravelersSelect')?.value || 1);
+  const basePrice = cat === 'transport' ? item.price * travelers : item.pricePerNight;
+  const taxes = Math.round(basePrice * 0.05);
+  const total = basePrice + taxes;
+
+  const summaryBox = document.getElementById('trvSummaryItemBox');
+  if (summaryBox) {
+    summaryBox.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:800;color:var(--o);text-transform:uppercase">${cat === 'transport' ? item.type.toUpperCase() + ' · ' + item.classType : 'HOTEL STAY · ' + item.city}</span>
+        <span style="font-size:11px;font-weight:700;color:#27ae60">Verified Fast Lane</span>
+      </div>
+      <h4 style="font-size:16px;font-weight:800;color:var(--k);margin:0 0 4px">${cat === 'transport' ? item.operator : item.name}</h4>
+      <p style="font-size:12px;color:#77736c;margin:0">${cat === 'transport' ? item.from + ' → ' + item.to : item.address}</p>
+    `;
+  }
+
+  const fareBox = document.getElementById('trvSummaryFareBox');
+  if (fareBox) {
+    fareBox.innerHTML = `
+      <div class="travel-fare-row"><span>Base Fare (${cat === 'transport' ? travelers + ' Traveler' : '1 Room'})</span><b>₹${basePrice.toLocaleString('en-IN')}</b></div>
+      <div class="travel-fare-row"><span>TicketWala Priority Token Lock</span><span style="color:#27ae60;font-weight:700">₹0 (FREE)</span></div>
+      <div class="travel-fare-row"><span>Taxes & GST (5%)</span><b>₹${taxes.toLocaleString('en-IN')}</b></div>
+      <div class="travel-fare-row total"><span>Total Payable</span><b style="color:var(--o);font-size:18px">₹${total.toLocaleString('en-IN')}</b></div>
+    `;
+  }
+
+  const modal = document.getElementById('trvSummaryModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeStandaloneTravelModal() {
+  const modal = document.getElementById('trvSummaryModal');
+  if (modal) modal.style.display = 'none';
+  curActiveTravelItem = null;
+}
+
+function confirmStandaloneTravelBooking() {
+  if (!curActiveTravelItem) return;
+  const { item, category } = curActiveTravelItem;
+  const name = document.getElementById('trvModalName')?.value.trim() || 'Demo Traveler';
+  const travelers = Number(document.getElementById('trvTravelersSelect')?.value || 1);
+  const basePrice = category === 'transport' ? item.price * travelers : item.pricePerNight;
+  const total = basePrice + Math.round(basePrice * 0.05);
+
+  const prefix = category === 'transport' ? (item.type === 'flight' ? 'FL' : item.type === 'train' ? 'VB' : item.type === 'bus' ? 'BS' : 'CB') : 'HT';
+  const pnr = 'TW-' + prefix + Math.floor(10000 + Math.random() * 90000);
+
+  const newBk = {
+    id: 'bk-' + Date.now(),
+    pnr: pnr,
+    type: category === 'transport' ? item.type : 'hotel',
+    title: category === 'transport' ? item.operator + ' · ' + item.fromCode + ' → ' + item.toCode : item.name,
+    subtitle: category === 'transport' ? item.subTitle : item.address,
+    fromToOrCity: category === 'transport' ? item.from + ' → ' + item.to : item.city,
+    dateStr: category === 'transport' ? '18 Oct 2026 · ' + item.depTime : '18 Oct - 21 Oct (3 Nights)',
+    passengers: name + ' (' + (category === 'transport' ? travelers : 2) + ' Pax)',
+    price: total,
+    status: 'Confirmed',
+    bookedAt: 'Just now',
+    details: category === 'transport' ? item.classType + ' · Instant Seat Assigned' : 'Premier Room · Instant Confirmation'
+  };
+
+  standaloneTravelBookings.unshift(newBk);
+  closeStandaloneTravelModal();
+
+  curConfirmedBooking = newBk;
+  const cBox = document.getElementById('trvConfirmDetailsBox');
+  if (cBox) {
+    cBox.innerHTML = `
+      <span style="font-size:11px;font-weight:700;color:#8c8880;text-transform:uppercase">Booking Reference (PNR)</span>
+      <div style="font-size:24px;font-weight:800;color:var(--o);font-family:monospace;letter-spacing:1px;margin:4px 0 12px">${newBk.pnr}</div>
+      <div style="font-size:13px;color:var(--k);font-weight:700;margin-bottom:4px">${newBk.title}</div>
+      <div style="font-size:12px;color:#77736c">${newBk.dateStr} · ${newBk.passengers}</div>
+    `;
+  }
+
+  const cModal = document.getElementById('trvConfirmModal');
+  if (cModal) cModal.style.display = 'flex';
+}
+
+function closeStandaloneConfirmModal() {
+  const cModal = document.getElementById('trvConfirmModal');
+  if (cModal) cModal.style.display = 'none';
+  curConfirmedBooking = null;
+}
+
+function viewInStandaloneBookings() {
+  closeStandaloneConfirmModal();
+  switchStandaloneTravelTab('bookings');
+  if (window.go) window.go('travel');
+}
+
+function downloadConfirmPass() {
+  if (curConfirmedBooking) {
+    showStandaloneToast('Digital Pass for PNR ' + curConfirmedBooking.pnr + ' downloaded!');
+  }
+  closeStandaloneConfirmModal();
+}
+
+function showStandaloneToast(text) {
+  const toast = document.getElementById('trvToast');
+  const tText = document.getElementById('trvToastText');
+  if (toast && tText) {
+    tText.textContent = text;
+    toast.style.display = 'flex';
+    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+  }
+}
+
+// Hook into initial window loading for travel
+window.addEventListener('DOMContentLoaded', () => {
+  renderStandaloneTransports();
+  renderStandaloneHotels();
+  renderStandaloneBookings();
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   initStandaloneProfile();
 });
 
 </script>
 <nav><div class="logo" onclick="go('home')" role="button" tabindex="0" style="cursor:pointer"><img src="logo-navbar.png" alt="TicketWala" style="height:46px;width:auto;object-fit:contain;display:block" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"><div style="display:none;align-items:center;gap:10px"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span><span style="color:#2B2A28">Ticket</span><span style="color:#FF6B35">Wala</span><small>TICKETS</small></span></div></div>
-<ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
+<ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#travel" onclick="go('travel');return false;" data-p="travel" role="button" style="cursor:pointer">Travel</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
 
 <main>
 
@@ -1275,6 +1870,174 @@ window.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+
+<div class="page" id="travel">
+  <div class="travel-wrap">
+    <!-- Travel Hero -->
+    <div class="travel-hero">
+      <div>
+        <span class="travel-hero-tag">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          TICKETWALA FAST LANE · TRAVEL
+        </span>
+        <h1>High-Velocity Transit &amp; Luxury Stays</h1>
+        <p>Zero waiting room lag, atomic seat holds, and instant PNR verification across premier Flights, Express Trains, Volvo Buses, Cabs &amp; Luxury Resorts.</p>
+      </div>
+      <div class="travel-hero-stats">
+        <div class="travel-stat-pill"><small>Daily Transit</small><b>400+ Routes</b></div>
+        <div class="travel-stat-pill"><small>Booking Fee</small><b style="color:#27ae60">₹0 Platform Fee</b></div>
+        <div class="travel-stat-pill"><small>Hold Speed</small><b style="color:var(--o)">Live TTL PNR</b></div>
+      </div>
+    </div>
+
+    <!-- Section Navigation Tabs -->
+    <div class="travel-nav-tabs">
+      <button type="button" class="travel-nav-btn active" id="trvTabTransportBtn" onclick="switchStandaloneTravelTab('transport')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z"/></svg>
+        Transportation
+        <span class="travel-badge">Fast Drop</span>
+      </button>
+
+      <button type="button" class="travel-nav-btn" id="trvTabHotelsBtn" onclick="switchStandaloneTravelTab('hotels')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h12"/><path d="M3 22h18"/><path d="M19 18V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v13"/><path d="M9 7h1"/><path d="M9 11h1"/><path d="M9 15h1"/><path d="M14 7h1"/><path d="M14 11h1"/><path d="M14 15h1"/></svg>
+        Hotels &amp; Stays
+        <span class="travel-badge">Premier</span>
+      </button>
+
+      <button type="button" class="travel-nav-btn" id="trvTabBookingsBtn" onclick="switchStandaloneTravelTab('bookings')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>
+        My Bookings
+        <span class="travel-badge" id="trvBookingsBadge" style="background:#27ae60">3</span>
+      </button>
+    </div>
+
+    <!-- 1. TRANSPORTATION VIEW -->
+    <div id="trvPaneTransport">
+      <div class="travel-search-card">
+        <div class="transit-mode-bar">
+          <button type="button" class="transit-mode-btn active" id="trvModeFlightBtn" onclick="setStandaloneTransitMode('flight')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.2-2 .9l-.5 1 5.8 3.3-3.4 3.4-2.8-.5-.9.9 3.2 2 2 3.2.9-.9-.5-2.8 3.4-3.4 3.3 5.8 1-.5c.7-.4 1.1-1.2.9-2Z"/></svg>
+            Flights
+          </button>
+          <button type="button" class="transit-mode-btn" id="trvModeTrainBtn" onclick="setStandaloneTransitMode('train')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m16 19 2 3"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
+            Express Trains
+          </button>
+          <button type="button" class="transit-mode-btn" id="trvModeBusBtn" onclick="setStandaloneTransitMode('bus')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 10h16"/><path d="m6 19-1 2"/><path d="m18 19 1 2"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
+            Volvo Buses
+          </button>
+          <button type="button" class="transit-mode-btn" id="trvModeCabBtn" onclick="setStandaloneTransitMode('cab')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H7.5c-.7 0-1.4.4-1.8.9L4 10.5C3.3 11 3 11.8 3 12.7V16c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+            Outstation Cabs
+          </button>
+        </div>
+
+        <div class="travel-search-grid">
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">From Station / City</span>
+            <input class="travel-search-field" id="trvFromInput" placeholder="e.g. Mumbai, BOM, CSMT" oninput="renderStandaloneTransports()">
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">To Destination</span>
+            <input class="travel-search-field" id="trvToInput" placeholder="e.g. Goa, GOI, Delhi" oninput="renderStandaloneTransports()">
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Date of Travel</span>
+            <input type="date" class="travel-search-field" id="trvDateInput" value="2026-10-18">
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Travelers</span>
+            <select class="travel-search-field" id="trvTravelersSelect" style="background:transparent;cursor:pointer">
+              <option value="1">1 Traveler</option>
+              <option value="2">2 Travelers</option>
+              <option value="3">3 Travelers</option>
+              <option value="4">4 Travelers</option>
+            </select>
+          </div>
+          <button type="button" class="btn primary" style="padding:14px 24px;height:100%" onclick="renderStandaloneTransports()">Search</button>
+        </div>
+      </div>
+
+      <div class="transit-results-grid" id="trvTransportsGrid"></div>
+    </div>
+
+    <!-- 2. HOTELS & STAYS VIEW -->
+    <div id="trvPaneHotels" style="display:none;">
+      <div class="travel-search-card">
+        <div class="travel-search-grid">
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Destination City</span>
+            <select class="travel-search-field" id="trvHotelCitySelect" onchange="renderStandaloneHotels()" style="background:transparent;cursor:pointer">
+              <option value="All">All Premier Locations</option>
+              <option value="Goa">Goa</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Jaipur">Jaipur</option>
+            </select>
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Check-in Date</span>
+            <input type="date" class="travel-search-field" value="2026-10-18">
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Check-out Date</span>
+            <input type="date" class="travel-search-field" value="2026-10-21">
+          </div>
+          <div class="travel-search-input-box">
+            <span class="travel-search-label">Rooms &amp; Guests</span>
+            <select class="travel-search-field" style="background:transparent;cursor:pointer">
+              <option>1 Room, 2 Guests</option>
+              <option>1 Room, 1 Guest</option>
+              <option>2 Rooms, 4 Guests</option>
+            </select>
+          </div>
+          <button type="button" class="btn primary" style="padding:14px 24px;height:100%" onclick="renderStandaloneHotels()">Search Stays</button>
+        </div>
+      </div>
+
+      <div class="hotel-filters-bar">
+        <div class="hotel-filter-group">
+          <span style="font-size:12px;font-weight:700;color:#8c8880;text-transform:uppercase">Rating:</span>
+          <button type="button" class="hotel-filter-btn active" id="trvStarAllBtn" onclick="setStandaloneHotelStar('all')">All Stars</button>
+          <button type="button" class="hotel-filter-btn" id="trvStar5Btn" onclick="setStandaloneHotelStar(5)">5★ Luxury</button>
+          <button type="button" class="hotel-filter-btn" id="trvStar4Btn" onclick="setStandaloneHotelStar(4)">4★ Premier</button>
+          <button type="button" class="hotel-filter-btn" id="trvStar3Btn" onclick="setStandaloneHotelStar(3)">3★ Smart</button>
+        </div>
+        <div class="hotel-filter-group">
+          <span style="font-size:12px;font-weight:700;color:#8c8880;text-transform:uppercase">Price:</span>
+          <button type="button" class="hotel-filter-btn active" id="trvPriceAllBtn" onclick="setStandaloneHotelPrice('all')">All Prices</button>
+          <button type="button" class="hotel-filter-btn" id="trvPriceUnder5Btn" onclick="setStandaloneHotelPrice('under5k')">Under ₹5,000</button>
+          <button type="button" class="hotel-filter-btn" id="trvPrice5to12Btn" onclick="setStandaloneHotelPrice('5to12k')">₹5,000 - ₹12,000</button>
+          <button type="button" class="hotel-filter-btn" id="trvPriceAbove12Btn" onclick="setStandaloneHotelPrice('above12k')">₹12,000+</button>
+        </div>
+      </div>
+
+      <div class="hotel-cards-grid" id="trvHotelsGrid"></div>
+    </div>
+
+    <!-- 3. MY BOOKINGS VIEW -->
+    <div id="trvPaneBookings" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" class="hotel-filter-btn active" id="trvBkTypeAll" onclick="setStandaloneBookingType('all')">All Reservations</button>
+          <button type="button" class="hotel-filter-btn" id="trvBkTypeFlight" onclick="setStandaloneBookingType('flight')">Flights</button>
+          <button type="button" class="hotel-filter-btn" id="trvBkTypeTrain" onclick="setStandaloneBookingType('train')">Trains</button>
+          <button type="button" class="hotel-filter-btn" id="trvBkTypeBus" onclick="setStandaloneBookingType('bus')">Buses</button>
+          <button type="button" class="hotel-filter-btn" id="trvBkTypeHotel" onclick="setStandaloneBookingType('hotel')">Hotels</button>
+          <button type="button" class="hotel-filter-btn" id="trvBkTypeCab" onclick="setStandaloneBookingType('cab')">Cabs</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#ffffff;border:1.5px solid #ded9d0;border-radius:10px;padding:6px 14px;min-width:240px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c8880" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input placeholder="Search PNR or Destination..." id="trvBkSearchInput" oninput="renderStandaloneBookings()" style="border:none;outline:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--k);width:100%;background:transparent">
+        </div>
+      </div>
+
+      <div class="travel-bookings-list" id="trvBookingsGrid"></div>
+    </div>
+  </div>
+</div>
 
 <div class="page" id="profile">
   <div class="profile-dash-wrap">
@@ -2604,6 +3367,68 @@ renderAuth();init();prof();updateCityUI();renderCarousel();go((location.hash||'#
     <div class="city-section-title">Popular Cities</div>
     <div class="popular-cities-grid" id="popularCitiesGrid"></div>
   </div>
+</div>
+
+
+<!-- TRAVEL SUMMARY MODAL -->
+<div class="travel-modal-overlay" id="trvSummaryModal" style="display:none;" onclick="closeStandaloneTravelModal()">
+  <div class="travel-modal-box" onclick="event.stopPropagation()">
+    <div class="travel-modal-header">
+      <h3>Review &amp; Confirm Reservation</h3>
+      <button type="button" class="travel-modal-close" onclick="closeStandaloneTravelModal()">×</button>
+    </div>
+    <div id="trvSummaryItemBox" style="background:#faf9f6;border:1.5px solid #eae5dc;border-radius:16px;padding:16px 20px;margin-bottom:20px"></div>
+    <div style="margin-bottom:20px">
+      <h4 style="font-size:14px;font-weight:800;color:var(--k);margin:0 0 12px">Passenger / Primary Guest Info</h4>
+      <div class="travel-form-group">
+        <label>Full Legal Name</label>
+        <input class="travel-form-input" id="trvModalName" placeholder="Enter full name" value="Demo Traveler">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="travel-form-group">
+          <label>Mobile Number</label>
+          <input class="travel-form-input" id="trvModalPhone" placeholder="+91 98200 12345" value="+91 98200 12345">
+        </div>
+        <div class="travel-form-group">
+          <label>Email Address</label>
+          <input class="travel-form-input" id="trvModalEmail" placeholder="name@email.com" value="traveler@ticketwala.com">
+        </div>
+      </div>
+    </div>
+    <div id="trvSummaryFareBox" style="background:#fff;border:1px solid #eae5dc;border-radius:14px;padding:16px;margin-bottom:20px"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(39,174,96,0.08);border-radius:10px;margin-bottom:20px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span style="font-size:12px;color:#1e824c;font-weight:700">Redis TTL Atomic Hold Active · 0 Double-Booking Guarantee</span>
+    </div>
+    <div style="display:flex;gap:12px">
+      <button type="button" class="btn ghost" style="flex:1;padding:12px" onclick="closeStandaloneTravelModal()">Cancel</button>
+      <button type="button" class="btn primary" style="flex:2;padding:12px;font-size:14px" onclick="confirmStandaloneTravelBooking()">Confirm &amp; Secure PNR</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRAVEL CONFIRMATION MODAL -->
+<div class="travel-modal-overlay" id="trvConfirmModal" style="display:none;" onclick="closeStandaloneConfirmModal()">
+  <div class="travel-modal-box" style="text-align:center" onclick="event.stopPropagation()">
+    <div style="width:64px;height:64px;border-radius:50%;background:rgba(39,174,96,0.12);display:inline-flex;align-items:center;justify-content:center;color:#27ae60;margin-bottom:16px">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3 style="font-size:22px;font-weight:800;color:var(--k);margin:0 0 6px">Reservation Confirmed!</h3>
+    <p style="font-size:13px;color:#77736c;margin:0 0 20px">Your digital e-ticket has been tokenized and verified on TicketWala.</p>
+    <div id="trvConfirmDetailsBox" style="background:#faf9f6;border:1.5px dashed #ded9d0;border-radius:16px;padding:20px;margin-bottom:24px"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button type="button" class="btn primary" style="padding:12px;width:100%;font-size:14px" onclick="viewInStandaloneBookings()">View in My Bookings</button>
+      <button type="button" class="btn ghost" style="padding:12px;width:100%;font-size:13px" onclick="downloadConfirmPass()">Download Digital Pass &amp; Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRAVEL TOAST -->
+<div class="travel-toast" id="trvToast" style="display:none;">
+  <div style="width:22px;height:22px;border-radius:50%;background:#27ae60;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <span id="trvToastText">E-Ticket downloaded</span>
 </div>
 
 </body></html>
