@@ -83,6 +83,49 @@ export const ReleaseRequestSchema = z.object({
 });
 export type ReleaseRequest = z.infer<typeof ReleaseRequestSchema>;
 
+// Organizer & Dynamic Pricing Schemas
+export const CreateEventSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
+  category: z.enum(["FLIGHT", "CONCERT", "SPORTS", "CINEMA", "TRANSIT"]),
+  categoryLabel: z.string(),
+  venue: z.string().min(2),
+  location: z.string().min(2),
+  dateTime: z.string().min(2),
+  totalSeats: z.number().int().min(10).max(10000).default(100),
+  basePrice: z.number().positive(),
+  currency: z.string().default("INR"),
+  badge: z.string().optional(),
+  description: z.string().min(10),
+  organizerId: z.string().default("org-default"),
+  tiers: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      price: z.number().positive(),
+      color: z.string(),
+      description: z.string(),
+    })
+  ).min(1),
+});
+export type CreateEventRequest = z.infer<typeof CreateEventSchema>;
+
+export const UpdatePricingSchema = z.object({
+  basePrice: z.number().positive().optional(),
+  surgeMultiplier: z.number().min(0.5).max(5.0).optional().default(1.0),
+  tierPrices: z.record(z.string(), z.number().positive()).optional(),
+});
+export type UpdatePricingRequest = z.infer<typeof UpdatePricingSchema>;
+
+export const VerifyPaymentRequestSchema = z.object({
+  holdToken: z.string().min(1, "holdToken is required"),
+  utr: z.string().min(6, "Valid UPI Reference Number / UTR is required"),
+  passengerName: z.string().min(2).default("Guest Traveler"),
+  email: z.string().email("Valid email address is required"),
+  phone: z.string().optional().default("+91 98765 43210"),
+  paymentMethod: z.enum(["UPI", "CARD", "NETBANKING"]).default("UPI"),
+});
+export type VerifyPaymentRequest = z.infer<typeof VerifyPaymentRequestSchema>;
+
 // Response Types
 export interface HoldResponse {
   reservationId: string;
