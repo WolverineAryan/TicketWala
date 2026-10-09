@@ -1491,12 +1491,16 @@ export default function TicketWalaPage() {
     setTimeout(() => setSessionsRevokedMsg(""), 3500);
   };
 
-<<<<<<< HEAD
-  const handleDownloadTicket = (item: { title?: string; e?: string; s?: string | number; pnr?: string }) => {
-    const title = item.title || item.e || "Event Boarding Pass";
-    const pnr = item.pnr || "TW-EVT-4201";
-    setEticketAlert(`E-Ticket for "${title}" (${pnr}) downloaded! Offline turnstile verified.`);
-    setTimeout(() => setEticketAlert(""), 4500);
+  const handleDownloadTicket = (item: any) => {
+    if (item) {
+      if (item.e && (item.s || item.pnr)) {
+        setTicketModalBooking(item as Booking);
+      }
+      const title = item.title || item.e || "Event Boarding Pass";
+      const pnr = item.pnr || "TW-EVT-4201";
+      setEticketAlert(`E-Ticket for "${title}" (${pnr}) downloaded! Offline turnstile verified.`);
+      setTimeout(() => setEticketAlert(""), 4500);
+    }
   };
 
   const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1560,10 +1564,6 @@ export default function TicketWalaPage() {
       setProfileTab("passes");
       navigateTo("profile");
     }
-=======
-  const handleDownloadTicket = (b: Booking) => {
-    setTicketModalBooking(b);
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
   };
 
   // 1. Telemetry Dashboard & Sparkline Chart Loop
@@ -1793,39 +1793,13 @@ export default function TicketWalaPage() {
       return;
     }
 
-<<<<<<< HEAD
-    const newPnr = `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`;
-    setBookings((prev) => [...prev, { s: seatLabel, e: eventName, tier: d.tier, price: d.price }]);
-    addLog(`COMMIT seat ${seatLabel} (${d.tier}) → queued for DB write`, "ok");
-=======
     const emailToSend = bookingPassengerEmail.trim() || user?.email || "ticketwala.org@gmail.com";
-    const nameToSend = bookingPassengerName.trim() || user?.name || "Verified Guest";
+    const nameToSend = bookingPassengerName.trim() || user?.name || profileName || "Verified Guest";
     const phoneToSend = bookingPassengerPhone.trim() || user?.phone || "+91 91461 99158";
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
 
     setIsVerifyingPayment(true);
     setPaymentError(null);
 
-<<<<<<< HEAD
-    setMine(null);
-    setStepNum(3);
-
-    // Automatically trigger the Premium Animated 3D Ticket!
-    setActive3DTicket({
-      ticketType: "Event",
-      bookingId: newPnr,
-      customerName: user?.name || profileName || "Demo Fan",
-      title: eventName,
-      subtitle: `${d.tier} · Seat #${seatLabel}`,
-      venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-      dateStr: "Tomorrow, 07:00 PM",
-      timeStr: "Gates 05:00 PM",
-      seatOrClass: `Seat ${seatLabel} (${d.tier})`,
-      price: d.price,
-      status: "Confirmed",
-      sourceType: "event",
-    });
-=======
     const venueName = CITY_VENUES[selectedCityId]?.[0]?.name || "DY Patil Sports Stadium, Mumbai";
     const dateTimeStr = `${events[currentEventIdx].month} ${events[currentEventIdx].day}, 2026 • 07:00 PM IST`;
 
@@ -1919,6 +1893,22 @@ export default function TicketWalaPage() {
       addLog(`CONFIRMED: Seat ${seatLabel} locked · PNR ${data.pnr} issued [EMAIL DISPATCHED to ${emailToSend}]`, "ok");
       setMine(null);
       setStepNum(3);
+
+      // Automatically trigger the Premium Animated 3D Ticket!
+      setActive3DTicket({
+        ticketType: "Event",
+        bookingId: data.pnr,
+        customerName: nameToSend,
+        title: eventName,
+        subtitle: `${d.tier} · Seat #${seatLabel}`,
+        venueOrRoute: venueName,
+        dateStr: dateTimeStr,
+        timeStr: "Gates 05:00 PM",
+        seatOrClass: `Seat ${seatLabel} (${d.tier})`,
+        price: totalAmount,
+        status: "Confirmed",
+        sourceType: "event",
+      });
     } catch (err: any) {
       // Fallback offline confirmation
       const fallbackPnr = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -1966,10 +1956,25 @@ export default function TicketWalaPage() {
       addLog(`CONFIRMED: Seat ${seatLabel} locked · PNR ${fallbackPnr} generated`, "ok");
       setMine(null);
       setStepNum(3);
+
+      // Automatically trigger the Premium Animated 3D Ticket!
+      setActive3DTicket({
+        ticketType: "Event",
+        bookingId: fallbackPnr,
+        customerName: nameToSend,
+        title: eventName,
+        subtitle: `${d.tier} · Seat #${seatLabel}`,
+        venueOrRoute: venueName,
+        dateStr: dateTimeStr,
+        timeStr: "Gates 05:00 PM",
+        seatOrClass: `Seat ${seatLabel} (${d.tier})`,
+        price: totalAmount,
+        status: "Confirmed",
+        sourceType: "event",
+      });
     } finally {
       setIsVerifyingPayment(false);
     }
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
   };
 
   const handleDrop = () => {
@@ -3757,6 +3762,48 @@ export default function TicketWalaPage() {
 
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                           <button
+                            type="button"
+                            className="btn primary"
+                            style={{
+                              width: "100%",
+                              background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
+                              border: "none",
+                              color: "#fff",
+                              padding: "12px",
+                              fontSize: "14px",
+                              fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                            }}
+                            onClick={() => {
+                              const lastBooking = bookings[0] || bookings[bookings.length - 1];
+                              const eventName = confirmedTicket?.eventTitle || (lastBooking ? lastBooking.e : events[currentEventIdx].name);
+                              const seatLabel = confirmedTicket?.seatLabel || (lastBooking ? lastBooking.s : "VIP");
+                              const tier = confirmedTicket?.tierName || (lastBooking ? lastBooking.tier : "Prime Access");
+                              const eventPrice = confirmedTicket?.amountPaid || (lastBooking && lastBooking.price ? lastBooking.price : 1598);
+                              const bookingPnr = confirmedTicket?.pnr || lastBooking?.pnr || `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`;
+                              setActive3DTicket({
+                                ticketType: "Event",
+                                bookingId: bookingPnr,
+                                customerName: confirmedTicket?.passengerName || user?.name || profileName || "Demo Fan",
+                                title: eventName,
+                                subtitle: `${tier} · Seat #${seatLabel}`,
+                                venueOrRoute: confirmedTicket?.venue || "DY Patil Stadium, Navi Mumbai",
+                                dateStr: confirmedTicket?.dateTime || "Tomorrow, 07:00 PM",
+                                timeStr: "Gates 05:00 PM",
+                                seatOrClass: `Seat ${seatLabel} (${tier})`,
+                                price: eventPrice,
+                                status: "Confirmed",
+                                sourceType: "event",
+                              });
+                            }}
+                          >
+                            ✨ View Ticket Pass
+                          </button>
+
+                          <button
                             className="btn"
                             style={{ width: "100%", padding: "12px", fontSize: "13px" }}
                             onClick={() => {
@@ -3802,57 +3849,6 @@ export default function TicketWalaPage() {
                             + Book Another Seat
                           </button>
                         </div>
-<<<<<<< HEAD
-                        <h3 style={{ fontSize: "20px", marginBottom: "6px" }}>Reservation Confirmed!</h3>
-                        <p style={{ fontSize: "13px", opacity: 0.75, marginBottom: "16px" }}>
-                          Your atomic lock was written to database asynchronously with sub-second consistency.
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                          <button
-                            type="button"
-                            className="btn primary"
-                            style={{
-                              width: "100%",
-                              background: "linear-gradient(135deg, #FF6B35 0%, #E63E00 100%)",
-                              border: "none",
-                              padding: "11px 18px",
-                              fontSize: "14px",
-                              fontWeight: 800,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "8px",
-                            }}
-                            onClick={() => {
-                              const lastBooking = bookings[bookings.length - 1];
-                              const eventName = lastBooking ? lastBooking.e : events[currentEventIdx].name;
-                              const seatLabel = lastBooking ? lastBooking.s : "VIP";
-                              const tier = lastBooking ? lastBooking.tier : "VIP Lounge";
-                              const eventPrice = (lastBooking && lastBooking.price) ? lastBooking.price : 2499;
-                              setActive3DTicket({
-                                ticketType: "Event",
-                                bookingId: `TW-EVT-${Math.floor(1000 + Math.random() * 9000)}`,
-                                customerName: user?.name || profileName || "Aryan Sharma",
-                                title: eventName,
-                                subtitle: `${tier} · Seat #${seatLabel}`,
-                                venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-                                dateStr: "Tomorrow, 07:00 PM",
-                                timeStr: "Gates 05:00 PM",
-                                seatOrClass: `Seat ${seatLabel} (${tier})`,
-                                price: eventPrice,
-                                status: "Confirmed",
-                                sourceType: "event",
-                              });
-                            }}
-                          >
-                            ✨ View Ticket Pass
-                          </button>
-                          <button className="btn k" style={{ width: "100%" }} onClick={() => navigateTo("profile")}>
-                            View E-Ticket in Profile →
-                          </button>
-                        </div>
-=======
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
                       </div>
                     ) : (
                       <div>
@@ -6662,7 +6658,6 @@ export default function TicketWalaPage() {
         </div>
       )}
 
-<<<<<<< HEAD
       {/* ============================================================ */}
       {/* PREMIUM ANIMATED 3D TICKET MODAL (INSPIRED BY REFERENCE IMAGE) */}
       {/* ============================================================ */}
@@ -6940,7 +6935,7 @@ export default function TicketWalaPage() {
         </div>
       </div>
     )}
-=======
+
       {/* FULL E-TICKET BOARDING PASS MODAL */}
       {ticketModalBooking && (
         <div className="travel-modal-overlay" onClick={() => setTicketModalBooking(null)}>
@@ -7031,7 +7026,6 @@ export default function TicketWalaPage() {
           </div>
         </div>
       )}
->>>>>>> e7c48c43df46ec78b57612ce65b02097b7b081d8
 
       {/* FLOATING TOAST NOTIFICATION */}
       {eticketAlert && (
