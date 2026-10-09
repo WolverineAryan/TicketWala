@@ -150,6 +150,13 @@ export default function Navbar() {
             </Link>
 
             <Link
+              href="/#travel"
+              className="text-xs font-medium px-3 py-2 rounded-lg transition text-slate-300 hover:text-white hover:bg-slate-900"
+            >
+              Travel
+            </Link>
+
+            <Link
               href="/profile"
               className={`text-xs font-medium px-3 py-2 rounded-lg transition ${
                 pathname === "/profile"

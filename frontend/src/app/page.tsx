@@ -977,8 +977,8 @@ function findNearestCity(lat: number, lng: number): City {
 }
 
 export default function TicketWalaPage() {
-  // Navigation & Page State (default to landing page or home)
-  const [activePage, setActivePage] = useState<string>("landing");
+  // Navigation & Page State (default to home)
+  const [activePage, setActivePage] = useState<string>("home");
 
   // Location Saver State
   const [selectedCityId, setSelectedCityId] = useState<string>("mumbai");
@@ -1157,13 +1157,18 @@ export default function TicketWalaPage() {
   const navigateTo = useCallback((page: string) => {
     setActivePage(page);
     try {
-      if (window.location.hash !== `#${page}`) {
-        window.history.pushState(null, "", `#${page}`);
+      if (typeof window !== "undefined") {
+        const targetHash = `#${page}`;
+        if (window.location.hash !== targetHash) {
+          window.location.hash = targetHash;
+        }
       }
     } catch {
       // ignore
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }, []);
 
   // Listen to browser hash changes & expose window.go
@@ -1173,12 +1178,16 @@ export default function TicketWalaPage() {
       const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
       if (["home", "landing", "events", "booking", "travel", "profile", "login", "signup"].includes(h)) {
         setActivePage(h);
+      } else if (!h) {
+        setActivePage("home");
       }
     };
     syncHash();
     window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
     return () => {
       window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
       delete (window as any).go;
     };
   }, [navigateTo]);

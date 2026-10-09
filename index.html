@@ -586,7 +586,7 @@ window.go = function(p) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   try {
     if (location.hash !== '#' + p) {
-      history.pushState(null, '', '#' + p);
+      location.hash = p;
     }
   } catch(e) {}
 };
@@ -1245,7 +1245,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 </script>
 <nav><div class="logo" onclick="go('home')" role="button" tabindex="0" style="cursor:pointer"><img src="logo-navbar.png" alt="TicketWala" style="height:46px;width:auto;object-fit:contain;display:block" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex'"><div style="display:none;align-items:center;gap:10px"><svg width="40" height="40" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="#FF6B35" stroke-width="6"/><circle cx="50" cy="24" r="10" fill="#fff" stroke="#2B2A28" stroke-width="3"/><path d="M50 18v7l4 3" stroke="#2B2A28" stroke-width="2.5" fill="none"/><rect x="30" y="46" width="42" height="22" rx="4" fill="#FF6B35" transform="rotate(-18 50 57)"/><circle cx="50" cy="57" r="6" fill="#fff"/></svg><span><span style="color:#2B2A28">Ticket</span><span style="color:#FF6B35">Wala</span><small>TICKETS</small></span></div></div>
-<ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#travel" onclick="go('travel');return false;" data-p="travel" role="button" style="cursor:pointer">Travel</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
+<ul id="nav"><li><a href="#home" onclick="go('home');return false;" data-p="home" class="on" role="button" style="cursor:pointer">Home</a></li><li><a href="#events" onclick="go('events');return false;" data-p="events" role="button" style="cursor:pointer">Events</a></li><li><a href="#booking" onclick="go('booking');return false;" data-p="booking" role="button" style="cursor:pointer">Booking</a></li><li><a href="#travel" onclick="go('travel');return false;" data-p="travel" role="button" style="cursor:pointer">Travel</a></li><li><a href="#landing" onclick="go('landing');return false;" data-p="landing" role="button" style="cursor:pointer">Architecture</a></li><li><a href="#profile" onclick="go('profile');return false;" data-p="profile" role="button" style="cursor:pointer">Profile</a></li></ul><div id="auth" style="display:flex;align-items:center"></div></nav>
 
 <main>
 
@@ -2907,6 +2907,10 @@ document.querySelectorAll('#nav a').forEach(function(a) {
     if (e) e.preventDefault();
     window.go(a.getAttribute('data-p') || a.dataset.p);
   };
+});
+window.addEventListener('popstate', function() {
+  var h = (location.hash || '').replace('#', '').trim();
+  if (h) window.go(h);
 });
 window.addEventListener('hashchange', function() {
   var h = (location.hash || '').replace('#', '').trim();
