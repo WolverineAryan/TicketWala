@@ -357,7 +357,7 @@ export default function CheckoutPage() {
                     <span className="text-slate-500 font-semibold text-[10px] uppercase block">Receiver UPI ID</span>
                     <div className="flex items-center gap-2 mt-1">
                       <code className="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-indigo-300 font-mono text-xs font-bold">
-                        {upiDetails?.upiId || "y9146199158@fam"}
+                        {upiDetails?.upiId || "9146199158@fam"}
                       </code>
                       <button
                         type="button"

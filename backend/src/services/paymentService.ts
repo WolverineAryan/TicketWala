@@ -30,7 +30,7 @@ export async function generateDynamicUpiPayment(params: {
   customUpiId?: string;
   customPayeeName?: string;
 }): Promise<DynamicUpiDetails> {
-  const upiId = params.customUpiId || process.env.PAYMENT_UPI_ID || "y9146199158@fam";
+  const upiId = params.customUpiId || process.env.PAYMENT_UPI_ID || "9146199158@fam";
   const payeeName = params.customPayeeName || process.env.PAYMENT_PAYEE_NAME || "TicketWala";
   const transactionRef = `TW-${params.reservationId.substring(0, 8).toUpperCase()}`;
   const note = `TicketWala ${params.pnr}`;
