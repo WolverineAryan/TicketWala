@@ -328,8 +328,24 @@ export async function createServer(): Promise<{
   });
 
   // ---------------------------------------------------------------------------
-  // Health Probes
+  // Root Service Status & Health Probes
   // ---------------------------------------------------------------------------
+  app.get("/", async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      service: "TicketWala High-Contention Flash-Reservation API",
+      status: "ONLINE",
+      version: "1.0.0",
+      engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
+      endpoints: {
+        health: "/health/live",
+        events: "/api/v1/events",
+        simulation: "/api/v1/simulation/run-scenario",
+        observability: "/api/v1/observability/stream-health",
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   app.get("/health/live", async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
       status: "alive",
