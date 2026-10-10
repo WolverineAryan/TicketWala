@@ -26,9 +26,9 @@ import { EventCategory, EventDetails } from "@/types/api";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const CATEGORIES: { id: string; label: string; icon: any; count: string }[] = [
-  { id: "ALL", label: "All Experiences", icon: Sparkles, count: "5 Verticals" },
+  { id: "ALL", label: "All Events", icon: Sparkles, count: "Browse all events" },
   { id: "CONCERT", label: "Live Concerts", icon: Music, count: "Arena & Stadium" },
-  { id: "CINEMA", label: "Movies & IMAX", icon: Film, count: "Dual Laser 4K" },
+  { id: "CINEMA", label: "Movies & IMAX", icon: Film, count: "Cinema" },
   { id: "SPORTS", label: "Cricket & Sports", icon: Trophy, count: "IPL & Leagues" },
   { id: "FLIGHT", label: "Commercial Flights", icon: Plane, count: "Direct Non-stop" },
   { id: "TRANSIT", label: "Vande Bharat Express", icon: Train, count: "High-Speed Rail" },
@@ -105,36 +105,42 @@ export default function HomePage() {
             className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white border border-slate-800 transition hidden sm:flex items-center gap-1.5 text-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>Sync Live</span>
+            <span>Refresh</span>
           </button>
         </div>
 
         {/* Hero Spotlight Banner */}
-        <div className="mb-10 rounded-3xl bg-gradient-to-r from-indigo-950/80 via-purple-950/50 to-slate-900 border border-indigo-500/20 p-6 sm:p-10 relative overflow-hidden shadow-2xl">
+        <div className="mb-8 rounded-3xl bg-gradient-to-r from-indigo-950/80 via-purple-950/50 to-slate-900 border border-indigo-500/20 p-6 sm:p-10 relative overflow-hidden shadow-2xl">
           <div className="relative z-10 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold tracking-wide uppercase mb-3">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Trending Drops in Mumbai • 120s Flash Hold Active</span>
+              <span>Trending Drops in Mumbai • 45s Flash Hold Active</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
-              Book Tickets with Zero Inconvenience Fees
+              Find something worth going out for.
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl leading-relaxed">
-              Experience authentic flash ticketing. Direct UPI payments to organizer, atomic seat reservation locks, and instant boarding pass QR delivery.
+              Explore events, choose your seats, and we’ll hold them for 45 seconds while you finish checkout.
             </p>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-300">
+              <span><strong className="text-indigo-300">1.</strong> Choose an event</span>
+              <span><strong className="text-indigo-300">2.</strong> Pick a seat</span>
+              <span><strong className="text-indigo-300">3.</strong> Complete checkout</span>
+            </div>
           </div>
         </div>
 
-        {/* Search Bar for Mobile */}
-        <div className="mb-6 sm:hidden">
+        {/* Search */}
+        <div className="mb-8 max-w-2xl">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search movies, concerts, sports, flights..."
-              className="w-full bg-slate-900 border border-slate-800 text-xs rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              placeholder="Search by event, venue, or location"
+              aria-label="Search events by name, venue, or location"
+              className="w-full bg-slate-900 border border-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
           </div>
         </div>
@@ -143,12 +149,12 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>Live Events Catalog</span>
+              <span>Explore events</span>
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-indigo-400 border border-slate-700">
-                {filteredEvents.length} Active Shows
+                {filteredEvents.length} events
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Select any event to pick your seat and lock it for 120 seconds</p>
+            <p className="text-xs text-slate-400 mt-0.5">Choose an event to see dates, prices, and available seats</p>
           </div>
         </div>
 
@@ -156,7 +162,7 @@ export default function HomePage() {
         {isLoading ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-500">
             <RefreshCw className="w-8 h-8 animate-spin text-indigo-500 mb-3" />
-            <p className="text-xs">Fetching live inventory...</p>
+            <p className="text-xs">Loading events and seat availability...</p>
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="py-20 text-center bg-slate-900/40 rounded-2xl border border-slate-800 p-8">
@@ -266,4 +272,3 @@ export default function HomePage() {
     </div>
   );
 }
-

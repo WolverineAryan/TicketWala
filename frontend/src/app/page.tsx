@@ -5,7 +5,7 @@ import confetti from "canvas-confetti";
 import { signInWithGoogle, logOut } from "@/lib/firebase";
 
 const N = 200;
-const TTL = 120; // 120 seconds TTL lock guarantee
+const TTL = 45; // 45 seconds TTL lock guarantee
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "9146199158@fam";
@@ -22,6 +22,11 @@ interface EventItem {
   day: string;
   name: string;
   sold: number;
+  category?: "concert" | "comedy" | "sports" | "travel";
+  coverArt?: "arijit-symphony" | "coldplay-tour" | "mumbai-nashik-train" | "mi-vs-csk";
+  venue?: string;
+  city?: string;
+  fromPrice?: number;
 }
 
 interface Booking {
@@ -54,6 +59,9 @@ interface User {
   notifyTtlAlarm?: boolean;
   notifyEmailInvoice?: boolean;
   fastLaneCheckout?: boolean;
+  profileCompleted?: boolean;
+  upiId?: string;
+  favoriteGenres?: string[];
 }
 
 interface City {
@@ -1112,6 +1120,17 @@ export default function TicketWalaPage() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean>(false);
   const [sessionsRevokedMsg, setSessionsRevokedMsg] = useState<string>("");
 
+  // Profile Setup Flow States (No OTP Required)
+  const [setupName, setSetupName] = useState<string>("");
+  const [setupPhone, setSetupPhone] = useState<string>("");
+  const [setupCity, setSetupCity] = useState<string>("mumbai");
+  const [setupAvatar, setSetupAvatar] = useState<string>("");
+  const [setupPassName, setSetupPassName] = useState<string>("");
+  const [setupGenres, setSetupGenres] = useState<string[]>(["Concerts & Music", "Live Sports"]);
+  const [setupUpiId, setSetupUpiId] = useState<string>("");
+  const [setupErr, setSetupErr] = useState<string>("");
+  const [isSubmittingSetup, setIsSubmittingSetup] = useState<boolean>(false);
+
   // Auth State
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<Record<string, User>>({
@@ -1122,6 +1141,7 @@ export default function TicketWalaPage() {
       phone: "+91 98201 23456",
       passName: "VIP Pass Holder",
       avatar: "",
+      profileCompleted: true,
     },
   });
   const [loginEmail, setLoginEmail] = useState("");
@@ -1139,12 +1159,65 @@ export default function TicketWalaPage() {
 
   // Events State
   const [events, setEvents] = useState<EventItem[]>([
-    { month: "OCT", day: "24", name: "Arijit Live — Mumbai", sold: 0 },
-    { month: "NOV", day: "02", name: "Coldplay Fan Fest", sold: 0 },
-    { month: "NOV", day: "15", name: "Mumbai–Nashik Express (Flash)", sold: 0 },
-    { month: "DEC", day: "01", name: "IPL Final Screening", sold: 0 },
+    {
+      month: "OCT",
+      day: "24",
+      name: "Arijit Singh Live Symphony",
+      sold: 0,
+      category: "concert",
+      coverArt: "arijit-symphony",
+      venue: "Jio World Garden, BKC",
+      city: "Mumbai",
+      fromPrice: 2499,
+    },
+    {
+      month: "JAN",
+      day: "18",
+      name: "Coldplay: Music of the Spheres",
+      sold: 0,
+      category: "concert",
+      coverArt: "coldplay-tour",
+      venue: "D.Y. Patil Sports Stadium",
+      city: "Mumbai",
+      fromPrice: 3500,
+    },
+    {
+      month: "NOV",
+      day: "15",
+      name: "Mumbai–Nashik Express (Flash)",
+      sold: 0,
+      category: "travel",
+      coverArt: "mumbai-nashik-train",
+      city: "Mumbai",
+    },
+    {
+      month: "MAR",
+      day: "23",
+      name: "Mumbai Indians vs CSK",
+      sold: 0,
+      category: "sports",
+      coverArt: "mi-vs-csk",
+      venue: "Wankhede Stadium",
+      city: "Mumbai",
+      fromPrice: 1500,
+    },
+    {
+      month: "TEST",
+      day: "₹1",
+      name: "UPI Live Test Gate (₹1 Pass)",
+      sold: 0,
+      category: "concert",
+      venue: "Razorpay Test Gate",
+      city: "Live UPI",
+      fromPrice: 1,
+    },
   ]);
   const [currentEventIdx, setCurrentEventIdx] = useState(0);
+  const [isOneRupeeTest, setIsOneRupeeTest] = useState(false);
+  const [eventSearchQuery, setEventSearchQuery] = useState("");
+  const [eventCategoryFilter, setEventCategoryFilter] = useState<"all" | "concert" | "comedy" | "sports" | "travel">("all");
+  const [eventSortOrder, setEventSortOrder] = useState<"featured" | "name-ascending" | "price-low" | "price-high">("featured");
+  const [eventPriceFilter, setEventPriceFilter] = useState<"all" | "under-2000" | "2000-2999" | "3000-plus">("all");
 
   // Seat Inventory & Booking State
   const [seats, setSeats] = useState<Seat[]>([]);
@@ -1181,7 +1254,7 @@ export default function TicketWalaPage() {
   const [historyPoints, setHistoryPoints] = useState<number[]>([]);
 
   // Home Page Interactive States
-  const [heroTtl, setHeroTtl] = useState<number>(29);
+  const [heroTtl, setHeroTtl] = useState<number>(44);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [activeArchNode, setActiveArchNode] = useState<number>(1);
   const [chaosMode, setChaosMode] = useState<string>("idle");
@@ -1189,7 +1262,7 @@ export default function TicketWalaPage() {
   // Hero pass live TTL countdown timer loop
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroTtl((prev) => (prev <= 1 ? 30 : prev - 1));
+      setHeroTtl((prev) => (prev <= 1 ? 45 : prev - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -1240,10 +1313,14 @@ export default function TicketWalaPage() {
 
   // Page Routing Helper with URL hash sync
   const navigateTo = useCallback((page: string) => {
-    setActivePage(page);
+    let targetPage = page;
+    if (user && (page === "login" || page === "signup")) {
+      targetPage = !user.profileCompleted ? "profile-setup" : "home";
+    }
+    setActivePage(targetPage);
     try {
       if (typeof window !== "undefined") {
-        const targetHash = `#${page}`;
+        const targetHash = `#${targetPage}`;
         if (window.location.hash !== targetHash) {
           window.location.hash = targetHash;
         }
@@ -1254,15 +1331,26 @@ export default function TicketWalaPage() {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, []);
+  }, [user]);
 
   // Listen to browser hash changes & expose window.go
   useEffect(() => {
     (window as any).go = (p: string) => navigateTo(p);
     const syncHash = () => {
       const h = (window.location.hash || "").replace("#", "").trim().toLowerCase();
-      if (["home", "landing", "events", "booking", "travel", "profile", "login", "signup"].includes(h)) {
+      // If user is already logged in, never let them land on login or signup
+      if (user && (h === "login" || h === "signup")) {
+        const target = !user.profileCompleted ? "profile-setup" : "home";
+        setActivePage(target);
+        try {
+          window.location.hash = `#${target}`;
+        } catch (_) {}
+        return;
+      }
+      if (["home", "landing", "events", "booking", "travel", "profile", "profile-setup", "login", "signup"].includes(h)) {
         setActivePage(h);
+      } else if (h === "landing") {
+        setActivePage("home");
       } else if (!h) {
         setActivePage("home");
       }
@@ -1275,7 +1363,15 @@ export default function TicketWalaPage() {
       window.removeEventListener("popstate", syncHash);
       delete (window as any).go;
     };
-  }, [navigateTo]);
+  }, [navigateTo, user]);
+
+  // Prevent authenticated user from ever viewing login or signup views
+  useEffect(() => {
+    if (user && (activePage === "login" || activePage === "signup")) {
+      const target = !user.profileCompleted ? "profile-setup" : "home";
+      navigateTo(target);
+    }
+  }, [user, activePage, navigateTo]);
 
   // Load saved city and authenticated user session
   useEffect(() => {
@@ -1294,9 +1390,23 @@ export default function TicketWalaPage() {
               email: parsed.email,
               pw: "google-verified-oauth",
               avatar: parsed.photoURL,
+              phone: parsed.phone,
+              city: parsed.city,
+              passName: parsed.passName,
+              profileCompleted: parsed.profileCompleted ?? true,
             };
             setUser(restored);
             setUsers((prev) => ({ ...prev, [restored.email]: restored }));
+
+            // If active hash or page is login/signup, redirect away immediately
+            const currentHash = (window.location.hash || "").replace("#", "").trim().toLowerCase();
+            if (currentHash === "login" || currentHash === "signup" || activePage === "login" || activePage === "signup") {
+              const target = !restored.profileCompleted ? "profile-setup" : "home";
+              setActivePage(target);
+              try {
+                window.location.hash = `#${target}`;
+              } catch (_) {}
+            }
           }
         } catch (_) {}
       }
@@ -1335,6 +1445,41 @@ export default function TicketWalaPage() {
     const matchesCat = selectedCategory === "all" || e.category === selectedCategory;
     return matchesCity && matchesCat;
   });
+  const eventCategoryCounts = events.reduce(
+    (counts, event) => {
+      if (event.category) counts[event.category] += 1;
+      counts.all += 1;
+      return counts;
+    },
+    { all: 0, concert: 0, comedy: 0, sports: 0, travel: 0 }
+  );
+  const eventPriceRanges = [
+    { id: "under-2000", label: "Under ₹2,000", matches: (price: number) => price < 2000 },
+    { id: "2000-2999", label: "₹2,000–₹2,999", matches: (price: number) => price >= 2000 && price < 3000 },
+    { id: "3000-plus", label: "₹3,000+", matches: (price: number) => price >= 3000 },
+  ] as const;
+  const eventPriceCounts = eventPriceRanges.map((range) => ({
+    ...range,
+    count: events.filter((event) => event.fromPrice !== undefined && range.matches(event.fromPrice)).length,
+  }));
+  const filteredEventRows = events
+    .filter((event) => {
+      const query = eventSearchQuery.trim().toLowerCase();
+      const matchesQuery = [event.name, event.venue, event.city]
+        .some((value) => value?.toLowerCase().includes(query));
+      const matchesCategory = eventCategoryFilter === "all" || event.category === eventCategoryFilter;
+      const matchesPrice = eventPriceFilter === "all" ||
+        (event.fromPrice !== undefined &&
+          eventPriceRanges.find((range) => range.id === eventPriceFilter)?.matches(event.fromPrice));
+      return matchesQuery && matchesCategory && matchesPrice;
+    })
+    .map((event, index) => ({ event, originalIndex: events.indexOf(event), index }))
+    .sort((a, b) => {
+      if (eventSortOrder === "name-ascending") return a.event.name.localeCompare(b.event.name);
+      if (eventSortOrder === "price-low") return (a.event.fromPrice ?? Number.MAX_SAFE_INTEGER) - (b.event.fromPrice ?? Number.MAX_SAFE_INTEGER);
+      if (eventSortOrder === "price-high") return (b.event.fromPrice ?? -1) - (a.event.fromPrice ?? -1);
+      return a.index - b.index;
+    });
 
   const selectCity = (cityId: string) => {
     setSelectedCityId(cityId);
@@ -1375,7 +1520,16 @@ export default function TicketWalaPage() {
 
   const bookEventFromHome = (eventData: BMSEvent) => {
     setEvents((prev) => [
-      { month: eventData.month, day: eventData.day, name: `${eventData.name} — ${eventData.cityName}`, sold: eventData.sold },
+      {
+        month: eventData.month,
+        day: eventData.day,
+        name: `${eventData.name} — ${eventData.cityName}`,
+        sold: eventData.sold,
+        category: eventData.category === "theatre" ? "comedy" : eventData.category,
+        venue: eventData.venue,
+        city: eventData.cityName,
+        fromPrice: eventData.price,
+      },
       ...prev.filter((e) => e.name !== `${eventData.name} — ${eventData.cityName}`),
     ]);
     setCurrentEventIdx(0);
@@ -1509,6 +1663,7 @@ export default function TicketWalaPage() {
     setTimeout(() => setSessionsRevokedMsg(""), 3500);
   };
 
+<<<<<<< HEAD
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const reqId = `TW-SUP-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -1607,6 +1762,8 @@ export default function TicketWalaPage() {
     }),
   ];
 
+=======
+>>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
   const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -1668,6 +1825,17 @@ export default function TicketWalaPage() {
       setProfileTab("passes");
       navigateTo("profile");
     }
+<<<<<<< HEAD
+=======
+  };
+
+  const handleDownloadTicket = (booking: Partial<Booking> & { title?: string }) => {
+    setTicketModalBooking({
+      ...booking,
+      s: booking.s ?? "",
+      e: booking.e ?? booking.title ?? "Event Boarding Pass",
+    });
+>>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
   };
 
   // 1. Telemetry Dashboard & Sparkline Chart Loop
@@ -1742,20 +1910,39 @@ export default function TicketWalaPage() {
   }, [mine, addLog]);
 
   // Helper: Seat Metadata by Index (0 - 199 across Rows A - J)
+  const getTierPrice = (tier: "vip" | "prime" | "std") => {
+    const startingPrice = events[currentEventIdx]?.fromPrice ?? 899;
+    if (tier === "vip") return startingPrice + 1600;
+    if (tier === "prime") return startingPrice + 600;
+    return startingPrice;
+  };
+
   const getSeatDetails = (idx: number) => {
     const rowIdx = Math.floor(idx / 20);
     const rowChar = String.fromCharCode(65 + rowIdx);
     const seatNum = (idx % 20) + 1;
+
+    const isTestMode = isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1");
+    if (isTestMode) {
+      return {
+        rowChar,
+        seatNum,
+        tier: "UPI Live Test Pass (₹1)",
+        price: 1,
+        badgeClass: "vip",
+      };
+    }
+
     let tier = "Standard Gallery";
-    let price = 899;
+    let price = getTierPrice("std");
     let badgeClass = "std";
     if (rowIdx < 2) {
       tier = "VIP Lounge";
-      price = 2499;
+      price = getTierPrice("vip");
       badgeClass = "vip";
     } else if (rowIdx < 6) {
       tier = "Executive Prime";
-      price = 1499;
+      price = getTierPrice("prime");
       badgeClass = "prime";
     }
     return { rowChar, seatNum, tier, price, badgeClass };
@@ -1797,7 +1984,7 @@ export default function TicketWalaPage() {
     addLog(`EVAL lock.lua seat ${seatLabel} (${d.tier}) → OK ttl=${TTL}s`, "ok");
     setStepNum(2);
 
-    const totalAmount = d.price + 99;
+    const totalAmount = d.price === 1 ? 1 : d.price + 99;
     const resId = `res-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     const pnrDraft = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     setCurrentReservationId(resId);
@@ -1889,7 +2076,7 @@ export default function TicketWalaPage() {
     const d = getSeatDetails(mine);
     const seatLabel = `${d.rowChar}-${d.seatNum}`;
     const eventName = events[currentEventIdx].name;
-    const totalAmount = d.price + 99;
+    const totalAmount = d.price === 1 ? 1 : d.price + 99;
 
     const cleanUtr = utrInput.trim().replace(/\s+/g, "");
     if (!cleanUtr || cleanUtr.length < 8) {
@@ -2204,8 +2391,20 @@ export default function TicketWalaPage() {
     setUser(targetUser);
     setLoginErr("");
     setLoginPw("");
-    navigateTo(nextPage);
-    setNextPage("home");
+
+    // If profile not completed, redirect to profile setup flow
+    if (!targetUser.profileCompleted) {
+      setSetupName(targetUser.name || "");
+      setSetupPhone(targetUser.phone || "");
+      setSetupCity(targetUser.city || selectedCityId || "mumbai");
+      setSetupAvatar(targetUser.avatar || "");
+      setSetupPassName(targetUser.passName || `${(targetUser.name || "Fan").split(" ")[0]} (VIP Pass)`);
+      setSetupErr("");
+      navigateTo("profile-setup");
+    } else {
+      navigateTo(nextPage);
+      setNextPage("home");
+    }
   };
 
   const handleSignup = () => {
@@ -2228,14 +2427,26 @@ export default function TicketWalaPage() {
       return;
     }
 
-    const newUser: User = { name: nm, email: em, pw: signupPw };
+    const newUser: User = { 
+      name: nm, 
+      email: em, 
+      pw: signupPw,
+      profileCompleted: false,
+    };
     setUsers((prev) => ({ ...prev, [em]: newUser }));
     setUser(newUser);
     setSignupErr("");
     setSignupPw("");
     setSignupPw2("");
-    navigateTo(nextPage);
-    setNextPage("home");
+
+    // Immediately redirect new user to profile setup with prefilled name
+    setSetupName(nm);
+    setSetupPhone("");
+    setSetupCity(selectedCityId || "mumbai");
+    setSetupAvatar("");
+    setSetupPassName(`${nm.split(" ")[0]} (VIP Pass)`);
+    setSetupErr("");
+    navigateTo("profile-setup");
   };
 
   const handleGoogleAuth = async () => {
@@ -2253,11 +2464,17 @@ export default function TicketWalaPage() {
       }
 
       if (fbUser) {
+        const existing = users[fbUser.email || ""];
+        const isCompleted = existing?.profileCompleted === true;
+
         const realUser: User = {
-          name: fbUser.displayName || fbUser.email?.split("@")[0] || "TicketWala Member",
+          name: fbUser.displayName || existing?.name || fbUser.email?.split("@")[0] || "TicketWala Member",
           email: fbUser.email || "user@ticketwala.com",
-          pw: "google-verified-oauth",
-          avatar: fbUser.photoURL || undefined,
+          pw: existing?.pw || "google-verified-oauth",
+          avatar: fbUser.photoURL || existing?.avatar || undefined,
+          phone: existing?.phone || "",
+          city: existing?.city || selectedCityId || "mumbai",
+          profileCompleted: isCompleted,
         };
 
         setUsers((prev) => ({ ...prev, [realUser.email]: realUser }));
@@ -2268,14 +2485,29 @@ export default function TicketWalaPage() {
             displayName: realUser.name,
             email: realUser.email,
             photoURL: realUser.avatar,
+            phone: realUser.phone,
+            city: realUser.city,
+            profileCompleted: isCompleted,
           }));
         } catch (_) {}
 
         setLoginErr("");
         setSignupErr("");
         addLog(`OAUTH Google verified: ${realUser.email} (${realUser.name})`, "ok");
-        navigateTo(nextPage);
-        setNextPage("home");
+
+        // If new or profile not completed, redirect to profile setup flow
+        if (!isCompleted) {
+          setSetupName(realUser.name);
+          setSetupPhone(realUser.phone || "");
+          setSetupCity(realUser.city || selectedCityId || "mumbai");
+          setSetupAvatar(realUser.avatar || "");
+          setSetupPassName(`${realUser.name.split(" ")[0]} (VIP Pass)`);
+          setSetupErr("");
+          navigateTo("profile-setup");
+        } else {
+          navigateTo(nextPage);
+          setNextPage("home");
+        }
       }
     } catch (err: any) {
       const msg = err.message || "Failed to authenticate with Google.";
@@ -2283,6 +2515,98 @@ export default function TicketWalaPage() {
       setSignupErr(msg);
       addLog(`Google OAuth error: ${msg}`, "no");
     }
+  };
+
+  // Profile Setup Submission (Zero OTP verification)
+  const handleSaveProfileSetup = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSetupErr("");
+
+    const trimmedName = setupName.trim();
+    if (!trimmedName) {
+      setSetupErr("Please enter your full name.");
+      return;
+    }
+
+    const cleanPhone = setupPhone.trim();
+    if (!cleanPhone || cleanPhone.replace(/\D/g, "").length < 10) {
+      setSetupErr("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setIsSubmittingSetup(true);
+
+    const formattedPhone = cleanPhone.startsWith("+91") ? cleanPhone : `+91 ${cleanPhone.replace(/^0+/, "")}`;
+    const generatedPassName = setupPassName.trim() || `${trimmedName.split(" ")[0]} (VIP Pass)`;
+
+    const updatedUser: User = {
+      ...(user || { email: "user@ticketwala.com", pw: "oauth" }),
+      name: trimmedName,
+      phone: formattedPhone,
+      city: setupCity,
+      avatar: setupAvatar,
+      passName: generatedPassName,
+      profileCompleted: true,
+      upiId: setupUpiId.trim() || undefined,
+      favoriteGenres: setupGenres,
+    };
+
+    setUser(updatedUser);
+    setUsers((prev) => ({ ...prev, [updatedUser.email]: updatedUser }));
+
+    // Sync profile state fields
+    setProfileName(trimmedName);
+    setProfilePhone(formattedPhone);
+    setProfileCity(setupCity);
+    setProfileAvatar(setupAvatar);
+    setProfilePassName(generatedPassName);
+
+    // Save to localStorage
+    try {
+      localStorage.setItem("tw_user", JSON.stringify({
+        displayName: updatedUser.name,
+        email: updatedUser.email,
+        photoURL: updatedUser.avatar,
+        phone: updatedUser.phone,
+        city: updatedUser.city,
+        passName: updatedUser.passName,
+        profileCompleted: true,
+      }));
+    } catch (_) {}
+
+    // Async sync with backend
+    try {
+      await fetch(`${API_BASE}/api/v1/users/profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: updatedUser.email,
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          city: updatedUser.city,
+          avatar: updatedUser.avatar,
+          passName: updatedUser.passName,
+          favoriteGenres: setupGenres,
+          profileCompleted: true,
+        }),
+      });
+    } catch (err) {
+      console.warn("Backend user sync note:", err);
+    }
+
+    setIsSubmittingSetup(false);
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    addLog(`Profile setup completed · Welcome ${trimmedName}! Instant access activated (No OTP required)`, "ok");
+
+    const targetDestination = nextPage && !["login", "signup", "profile-setup"].includes(nextPage) ? nextPage : "home";
+    navigateTo(targetDestination);
+    setNextPage("home");
+  };
+
+  const handleSkipProfileSetup = () => {
+    const targetDestination = nextPage && !["login", "signup", "profile-setup"].includes(nextPage) ? nextPage : "home";
+    navigateTo(targetDestination);
+    setNextPage("home");
   };
 
   const fillDemoCredentials = () => {
@@ -2394,7 +2718,7 @@ export default function TicketWalaPage() {
           />
         </div>
         <div style={{ fontSize: "14px", color: "#8c8880", fontWeight: 600 }}>
-          Initializing TicketWala Engine...
+          Loading TicketWala...
         </div>
       </div>
     );
@@ -2487,21 +2811,6 @@ export default function TicketWalaPage() {
               suppressHydrationWarning
             >
               Travel
-            </a>
-          </li>
-          <li>
-            <a
-              href="#landing"
-              role="button"
-              style={{ cursor: "pointer" }}
-              className={activePage === "landing" ? "on" : ""}
-              onClick={(e) => {
-                e.preventDefault();
-                navigateTo("landing");
-              }}
-              suppressHydrationWarning
-            >
-              Architecture
             </a>
           </li>
           <li>
@@ -2606,7 +2915,7 @@ export default function TicketWalaPage() {
               <div className="bms-hero-gradient" />
               <div className="bms-hero-content">
                 <span className="bms-hero-tag">
-                  <span className="live-dot-sm" /> {featuredEvents[carouselIdx]?.badge || "HEADLINER DROP"} · {featuredEvents[carouselIdx]?.contention}
+                  <span className="live-dot-sm" /> {featuredEvents[carouselIdx]?.badge || "FEATURED EVENT"}
                 </span>
                 <h1 className="bms-hero-title">
                   {featuredEvents[carouselIdx]?.name}
@@ -2639,9 +2948,9 @@ export default function TicketWalaPage() {
                     type="button"
                     className="btn ghost"
                     style={{ color: "#fff", borderColor: "rgba(255,255,255,0.4)", padding: "13px 22px" }}
-                    onClick={() => navigateTo("landing")}
+                    onClick={() => navigateTo("events")}
                   >
-                    View Architecture Lab
+                    Browse all events
                   </button>
                 </div>
               </div>
@@ -2664,7 +2973,7 @@ export default function TicketWalaPage() {
             <div className="bms-categories-bar">
               <div className="bms-categories-list">
                 {[
-                  { id: "all", label: "All Drops" },
+                  { id: "all", label: "All events" },
                   { id: "concert", label: "Concerts & Music" },
                   { id: "comedy", label: "Standup Comedy" },
                   { id: "sports", label: "Live Stadium Sports" },
@@ -2682,32 +2991,28 @@ export default function TicketWalaPage() {
               </div>
             </div>
 
-            {/* Edge Technology Ribbon */}
+            {/* Booking benefits */}
             <div className="bms-edge-ribbon" style={{ marginBottom: "32px" }}>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                <span><b>Zero Double-Bookings</b> Guaranteed</span>
-              </div>
-              <div className="bms-edge-pill">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                <span><b>0.38ms Redis Lua Lock</b></span>
+                <span><b>Clear seat availability</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                <span><b>30s TTL Hold Ring</b></span>
+                <span><b>45s TTL Hold Ring</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                <span><b>10k RPS Bot Shield</b></span>
+                <span><b>Simple checkout</b></span>
               </div>
             </div>
 
             {/* Events in City Section Header */}
             <div className="bms-section-header">
               <div>
-                <h2>Live Drops in {currentCity.name}</h2>
+                <h2>Events in {currentCity.name}</h2>
                 <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
-                  Showing high-velocity ticket drops in {currentCity.name}. Live Redis locks protect every seat.
+                  Find upcoming events and check seat availability before you book.
                 </p>
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
@@ -2751,7 +3056,7 @@ export default function TicketWalaPage() {
                         position: "absolute",
                         top: "12px",
                         left: "12px",
-                        background: evt.contention === "FLASH DROP" ? "var(--o)" : "var(--k)",
+                        background: "var(--k)",
                         color: "#fff",
                         padding: "3px 10px",
                         borderRadius: "6px",
@@ -2759,7 +3064,7 @@ export default function TicketWalaPage() {
                         fontWeight: 800,
                         letterSpacing: "0.5px"
                       }}>
-                        {evt.contention}
+                        {evt.categoryLabel}
                       </span>
                       <span style={{
                         position: "absolute",
@@ -2861,7 +3166,7 @@ export default function TicketWalaPage() {
               ))}
             </div>
 
-            {/* Architecture Callout Banner */}
+            {/* Booking callout */}
             <div style={{
               background: "linear-gradient(135deg, #2B2A28 0%, #191817 100%)",
               borderRadius: "20px",
@@ -2876,22 +3181,22 @@ export default function TicketWalaPage() {
             }}>
               <div style={{ maxWidth: "600px" }}>
                 <span style={{ color: "var(--o)", fontSize: "12px", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" }}>
-                  ENGINEERING BEHIND THE CURTAIN
+                  YOUR NEXT GREAT EXPERIENCE
                 </span>
                 <h3 style={{ fontSize: "24px", fontWeight: 800, marginTop: "6px", marginBottom: "8px", color: "#fff" }}>
-                  How does TicketWala prevent double-booking at 10,000 RPS?
+                  Found something you’d love to see?
                 </h3>
                 <p style={{ color: "#d6d0c4", fontSize: "14px", lineHeight: 1.5 }}>
-                  Redis Lua atomic script execution, 30s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
+                  Redis Lua atomic script execution, 45s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
                 </p>
               </div>
               <button
                 type="button"
                 className="btn"
-                onClick={() => navigateTo("landing")}
+                onClick={() => navigateTo("events")}
                 style={{ padding: "14px 26px", fontSize: "14px", whiteSpace: "nowrap" }}
               >
-                Explore Architecture & Chaos Lab →
+                Browse events →
               </button>
             </div>
           </div>
@@ -2957,7 +3262,7 @@ export default function TicketWalaPage() {
                 </div>
                 <div className="tk">
                   <div>
-                    <span>HOLD · TTL</span>00:30
+                    <span>HOLD · TTL</span>00:45
                   </div>
                   <b>
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3056,7 +3361,7 @@ export default function TicketWalaPage() {
                 <div className="code-preview-box">
                   <span className="code-comment">-- Atomic Lua allocation</span><br />
                   <span className="code-keyword">if</span> redis.<span className="code-func">call</span>(<span className="code-string">&apos;get&apos;</span>, k) == <span className="code-keyword">false</span> <span className="code-keyword">then</span><br />
-                  &nbsp;&nbsp;redis.<span className="code-func">call</span>(<span className="code-string">&apos;setex&apos;</span>, k, 30, uid)<br />
+                  &nbsp;&nbsp;redis.<span className="code-func">call</span>(<span className="code-string">&apos;setex&apos;</span>, k, 45, uid)<br />
                   &nbsp;&nbsp;<span className="code-keyword">return</span> 1 <span className="code-comment">-- Lock granted (0.4ms)</span><br />
                   <span className="code-keyword">end</span>
                 </div>
@@ -3065,7 +3370,7 @@ export default function TicketWalaPage() {
                 <div className="n">2</div>
                 <h3>TTL Hold</h3>
                 <p>
-                  The seat key is stored with an ephemeral 30-second TTL. Abandon checkout or close your tab, and Redis auto-evicts the key back to the public pool instantly.
+                  The seat key is stored with an ephemeral 45-second TTL. Abandon checkout or close your tab, and Redis auto-evicts the key back to the public pool instantly.
                 </p>
                 <div style={{ marginTop: "16px", padding: "14px 16px", background: "#fff", borderRadius: "12px", border: "1px solid #0001", display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--o)", animation: "pulse 1.2s infinite" }}></div>
@@ -3148,14 +3453,14 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="arch-node-title">Ephemeral 30s TTL</div>
+                  <div className="arch-node-title">Ephemeral 45s TTL</div>
                   <div className="arch-node-desc">
-                    Keys are stored with a strict 30-second TTL. If payment drops or tab closes, Redis automatically evicts the lock with zero database garbage accumulation.
+                    Keys are stored with a strict 45-second TTL. If payment drops or tab closes, Redis automatically evicts the lock with zero database garbage accumulation.
                   </div>
                 </div>
                 <div className="arch-node-meta">
                   <span>Auto-Recycling</span>
-                  <span className="arch-node-metric">30s Hardware TTL</span>
+                  <span className="arch-node-metric">45s Hardware TTL</span>
                 </div>
               </div>
 
@@ -3279,7 +3584,7 @@ export default function TicketWalaPage() {
                   </li>
                   <li>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Hardware-enforced 30s TTL automatically reclaims abandoned reservations without background sweeper lags.</span>
+                    <span>Hardware-enforced 45s TTL automatically reclaims abandoned reservations without background sweeper lags.</span>
                   </li>
                   <li>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -3523,12 +3828,12 @@ export default function TicketWalaPage() {
 
               <div className={`faq-card ${openFaq === 1 ? "open" : ""}`}>
                 <div className="faq-header" onClick={() => setOpenFaq(openFaq === 1 ? null : 1)}>
-                  <span>What happens if a user closes their tab or loses internet during the 30-second hold?</span>
+                  <span>What happens if a user closes their tab or loses internet during the 45-second hold?</span>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 {openFaq === 1 && (
                   <div className="faq-body">
-                    Every seat reservation has a hardware-enforced 30-second TTL (Time-To-Live). If the user doesn&apos;t confirm checkout before the TTL timer expires, Redis automatically evicts the key without needing any cleanup cron job, and the seat is immediately available on the next millisecond to everyone waiting.
+                    Every seat reservation has a hardware-enforced 45-second TTL (Time-To-Live). If the user doesn&apos;t confirm checkout before the TTL timer expires, Redis automatically evicts the key without needing any cleanup cron job, and the seat is immediately available on the next millisecond to everyone waiting.
                   </div>
                 )}
               </div>
@@ -3567,38 +3872,167 @@ export default function TicketWalaPage() {
           style={{ display: activePage === "events" ? "block" : "none" }}
         >
           <section>
-            <h2>
-              Upcoming <em>flash drops</em>
-            </h2>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
+              <div>
+                <h2>
+                  Upcoming <em>events</em>
+                </h2>
+                <p style={{ color: "#77736c", fontSize: "14px", marginTop: "4px" }}>
+                  Find your next experience by name or type.
+                </p>
+              </div>
+              <span style={{ color: "#77736c", fontSize: "13px", fontWeight: 600 }}>
+                {filteredEventRows.length} {filteredEventRows.length === 1 ? "event" : "events"}
+              </span>
+            </div>
+            <div className="event-discovery-tools">
+              <label className="event-search">
+                <span className="event-search-icon" aria-hidden="true">⌕</span>
+                <input
+                  type="search"
+                  value={eventSearchQuery}
+                  onChange={(event) => setEventSearchQuery(event.target.value)}
+                  placeholder="Search events"
+                  aria-label="Search events"
+                />
+                {eventSearchQuery && (
+                  <button type="button" onClick={() => setEventSearchQuery("")} aria-label="Clear event search">×</button>
+                )}
+              </label>
+              <label className="event-sort">
+                <span>Sort</span>
+                <select
+                  value={eventSortOrder}
+                  onChange={(event) => setEventSortOrder(event.target.value as typeof eventSortOrder)}
+                  aria-label="Sort events"
+                >
+                  <option value="featured">Featured</option>
+                  <option value="name-ascending">Name: A to Z</option>
+                  <option value="price-low">Price: low to high</option>
+                  <option value="price-high">Price: high to low</option>
+                </select>
+              </label>
+            </div>
+            <div className="event-filter-pills" aria-label="Filter events by category">
+              {([
+                ["all", "All events"],
+                ["concert", "Concerts"],
+                ["comedy", "Comedy"],
+                ["sports", "Sports"],
+                ["travel", "Travel"],
+              ] as const)
+                .filter(([category]) => category === "all" || eventCategoryCounts[category] > 0)
+                .map(([category, label]) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`event-filter-pill ${eventCategoryFilter === category ? "active" : ""}`}
+                  aria-pressed={eventCategoryFilter === category}
+                  onClick={() => setEventCategoryFilter(category)}
+                >
+                  {label}
+                  <span>{eventCategoryCounts[category]}</span>
+                </button>
+              ))}
+              {(eventCategoryFilter !== "all" || eventSearchQuery || eventPriceFilter !== "all") && (
+                <button
+                  type="button"
+                  className="event-clear-filters"
+                  onClick={() => {
+                    setEventSearchQuery("");
+                    setEventCategoryFilter("all");
+                    setEventPriceFilter("all");
+                    setEventSortOrder("featured");
+                  }}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="event-price-filters" aria-label="Filter events by starting price">
+              <span className="event-price-label">Price range</span>
+              <button
+                type="button"
+                className={`event-price-pill ${eventPriceFilter === "all" ? "active" : ""}`}
+                aria-pressed={eventPriceFilter === "all"}
+                onClick={() => setEventPriceFilter("all")}
+              >
+                Any price
+              </button>
+              {eventPriceCounts.filter((range) => range.count > 0).map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  className={`event-price-pill ${eventPriceFilter === range.id ? "active" : ""}`}
+                  aria-pressed={eventPriceFilter === range.id}
+                  onClick={() => setEventPriceFilter(range.id)}
+                >
+                  {range.label}
+                  <span>{range.count}</span>
+                </button>
+              ))}
+            </div>
             <div id="evl">
-              {events.map((e, idx) => {
-                const percent = idx === currentEventIdx ? (e.sold / N) * 100 : [35, 60, 82, 15][idx];
+              {filteredEventRows.length === 0 ? (
+                <div className="event-empty-state">
+                  <strong>No events match your search.</strong>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventSearchQuery("");
+                      setEventCategoryFilter("all");
+                      setEventPriceFilter("all");
+                      setEventSortOrder("featured");
+                    }}
+                  >
+                    Clear search and filters
+                  </button>
+                </div>
+              ) : filteredEventRows.map(({ event: e, originalIndex }) => {
+                const categoryLabel = e.category
+                  ? e.category.charAt(0).toUpperCase() + e.category.slice(1)
+                  : "Event";
                 return (
-                  <div key={idx} className="ev">
-                    <div className="d">
-                      <small>{e.month}</small>
-                      {e.day}
-                    </div>
-                    <div>
-                      <b>{e.name}</b>
-                      <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                        {N} seats · 5,000+ expected
-                      </div>
-                      <div className="bar">
-                        <i style={{ width: `${percent}%` }}></i>
-                      </div>
-                    </div>
-                    <button
-                      className="btn"
-                      onClick={() => {
-                        setCurrentEventIdx(idx);
-                        initSeats();
-                        navigateTo("booking");
-                      }}
+                  <article key={`${e.name}-${originalIndex}`} className={`ev event-card ${originalIndex === currentEventIdx ? "selected" : ""}`}>
+                    <div
+                      className={`event-card-cover event-cover-${e.category || "general"}${e.coverArt ? ` event-art-${e.coverArt}` : ""}`}
+                      aria-hidden="true"
                     >
-                      Reserve
-                    </button>
-                  </div>
+                      <span className="event-cover-category">{categoryLabel}</span>
+                      <span className="event-cover-art">
+                        {e.category === "concert" ? "LIVE" : e.category === "sports" ? "GAME" : e.category === "travel" ? "GO" : e.category === "comedy" ? "LOL" : "EVENT"}
+                      </span>
+                      <span className="event-cover-date">
+                        <strong>{e.month}</strong>
+                        <b>{e.day}</b>
+                      </span>
+                    </div>
+                    <div className="event-card-content">
+                      <div className="event-card-details">
+                        <h3>{e.name}</h3>
+                        <div className="event-card-meta">
+                          <span>{[e.venue, e.city].filter(Boolean).join(" · ") || "Venue details available when booking"}</span>
+                        </div>
+                      </div>
+                      <div className="event-card-footer">
+                        <span className="event-card-price">
+                          {e.fromPrice !== undefined
+                            ? <>From <strong>₹{e.fromPrice.toLocaleString("en-IN")}</strong></>
+                            : <span className="event-price-unlisted">Price not listed</span>}
+                        </span>
+                        <button
+                          className="btn"
+                          onClick={() => {
+                            setCurrentEventIdx(originalIndex);
+                            initSeats();
+                            navigateTo("booking");
+                          }}
+                        >
+                          Reserve
+                        </button>
+                      </div>
+                    </div>
+                  </article>
                 );
               })}
             </div>
@@ -3618,27 +4052,55 @@ export default function TicketWalaPage() {
                   Interactive <em>Seat Selection</em>
                 </h2>
                 <p style={{ opacity: 0.75, fontSize: "14px", marginTop: "4px" }}>
-                  Select your preferred tier. Live Redis TTL locking guarantees zero double-bookings.
+                  Choose an available seat to see its ticket type and price.
                 </p>
               </div>
 
-              {/* Quick event selector pills */}
-              <div className="event-picker-tabs">
-                {events.map((e, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`event-tab ${currentEventIdx === idx ? "active" : ""}`}
-                    onClick={() => {
-                      if (mine !== null) handleDrop();
-                      setCurrentEventIdx(idx);
-                      initSeats();
-                    }}
-                  >
-                    <span className="badge-date">{e.month} {e.day}</span>
-                    <span>{e.name}</span>
-                  </button>
-                ))}
+              {/* Quick event selector pills & ₹1 Test Switch */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <div className="event-picker-tabs">
+                  {events.map((e, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`event-tab ${currentEventIdx === idx ? "active" : ""}`}
+                      onClick={() => {
+                        if (mine !== null) handleDrop();
+                        setCurrentEventIdx(idx);
+                        initSeats();
+                      }}
+                    >
+                      <span className="badge-date">{e.month} {e.day}</span>
+                      <span>{e.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (mine !== null) handleDrop();
+                    setIsOneRupeeTest(!isOneRupeeTest);
+                  }}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: isOneRupeeTest ? "2px solid #FF6B35" : "1px dashed #b5afa4",
+                    background: isOneRupeeTest ? "#FFF5EB" : "#FAF8F5",
+                    color: isOneRupeeTest ? "#FF6B35" : "#555",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    transition: "all 0.2s ease"
+                  }}
+                  title="Toggle ₹1 Test Ticket Mode for live UPI testing"
+                >
+                  <span>🧪</span>
+                  <span>{isOneRupeeTest ? "₹1 Test Mode: ACTIVE" : "₹1 Test Ticket"}</span>
+                </button>
               </div>
             </div>
 
@@ -3647,7 +4109,7 @@ export default function TicketWalaPage() {
                 1 · Select Seat
               </div>
               <div id="st2" className={stepNum > 2 ? "done" : stepNum === 2 ? "on" : ""}>
-                2 · Lock &amp; Hold (30s)
+                2 · Lock &amp; Hold (45s)
               </div>
               <div id="st3" className={stepNum === 3 ? "on" : ""}>
                 3 · Confirm Order
@@ -3663,6 +4125,38 @@ export default function TicketWalaPage() {
                 </div>
 
                 {/* Stadium Seat Map Frame */}
+                {(isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1")) && (
+                  <div style={{
+                    background: "#FFF5EB",
+                    border: "1px solid #FFD8BE",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    marginBottom: "14px",
+                    fontSize: "12px",
+                    color: "#B23A00",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between"
+                  }}>
+                    <span><strong>🧪 ₹1 Test Gate Active:</strong> Real ₹1 live payment with ₹0 service fee. Scan QR with GPay/PhonePe to pay ₹1 and verify instant ticket generation.</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsOneRupeeTest(false)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#B23A00",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        fontSize: "11px"
+                      }}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
+
                 <div className="theater-frame">
                   {/* VIP Tier */}
                   <div className="tier-section">
@@ -3671,9 +4165,9 @@ export default function TicketWalaPage() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="#d97706">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                         </svg>
-                        VIP Lounge (Rows A - B)
+                        {isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "Live UPI Test Gate (Rows A - B)" : "VIP Lounge (Rows A - B)"}
                       </span>
-                      <span className="tier-price">₹2,499</span>
+                      <span className="tier-price">{isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "₹1" : `₹${getTierPrice("vip").toLocaleString("en-IN")}`}</span>
                     </div>
                     <div className="seat-rows">
                       {[0, 1].map((rIdx) => renderRow(rIdx))}
@@ -3688,9 +4182,9 @@ export default function TicketWalaPage() {
                           <circle cx="12" cy="12" r="10" />
                           <polygon points="12 8 8 12 12 16 16 12 12 8" />
                         </svg>
-                        Executive Prime (Rows C - F)
+                        {isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "Live UPI Test Gate (Rows C - F)" : "Executive Prime (Rows C - F)"}
                       </span>
-                      <span className="tier-price">₹1,499</span>
+                      <span className="tier-price">{isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "₹1" : `₹${getTierPrice("prime").toLocaleString("en-IN")}`}</span>
                     </div>
                     <div className="seat-rows">
                       {[2, 3, 4, 5].map((rIdx) => renderRow(rIdx))}
@@ -3704,9 +4198,9 @@ export default function TicketWalaPage() {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" />
                         </svg>
-                        Standard Gallery (Rows G - J)
+                        {isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "Live UPI Test Gate (Rows G - J)" : "Standard Gallery (Rows G - J)"}
                       </span>
-                      <span className="tier-price">₹899</span>
+                      <span className="tier-price">{isOneRupeeTest || events[currentEventIdx]?.month === "TEST" || events[currentEventIdx]?.name?.includes("₹1") ? "₹1" : `₹${getTierPrice("std").toLocaleString("en-IN")}`}</span>
                     </div>
                     <div className="seat-rows">
                       {[6, 7, 8, 9].map((rIdx) => renderRow(rIdx))}
@@ -3721,11 +4215,11 @@ export default function TicketWalaPage() {
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#fef3c7", border: "1px solid #fcd34d" }}></span>
-                      <span>VIP (₹2,499)</span>
+                      <span>VIP (₹{getTierPrice("vip").toLocaleString("en-IN")})</span>
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#FF6B35" }}></span>
-                      <span>Held (TTL)</span>
+                      <span>Held</span>
                     </div>
                     <div className="leg-item">
                       <span className="leg-box" style={{ background: "#2B2A28" }}></span>
@@ -3738,20 +4232,8 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
 
-                {/* Bottom Controls / Burst Sim */}
+                {/* Seat availability summary */}
                 <div style={{ marginTop: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                  <button
-                    className="btn k"
-                    onClick={runFlashDropStorm}
-                    disabled={isBusy}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#FF6B35">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                    </svg>
-                    Simulate 5,000 Concurrent Users
-                  </button>
-
                   <div style={{ display: "flex", gap: "16px", fontSize: "13px", fontWeight: 600 }}>
                     <span style={{ color: "#27ae60" }}>
                       ● {seats.filter((s) => s.st === 0).length} Available
@@ -3766,7 +4248,7 @@ export default function TicketWalaPage() {
                 </div>
               </div>
 
-              {/* Right Column: Checkout Card + Broker Terminal */}
+              {/* Booking details */}
               <div>
                 <div className="checkout-card" id="panel">
                   {mine === null ? (
@@ -3858,7 +4340,7 @@ export default function TicketWalaPage() {
                               </div>
                               <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "4px", borderTop: "1px dashed #ded9d0" }}>
                                 <span style={{ color: "#77736c" }}>Total Paid:</span>
-                                <b style={{ color: "var(--o)", fontSize: "14px" }}>₹{confirmedTicket?.amountPaid?.toLocaleString() || "1,598"}</b>
+                                <b style={{ color: "var(--o)", fontSize: "14px" }}>₹{confirmedTicket?.amountPaid !== undefined ? confirmedTicket.amountPaid.toLocaleString() : "1"}</b>
                               </div>
                             </div>
                           </div>
@@ -3965,20 +4447,20 @@ export default function TicketWalaPage() {
                         </div>
                         <h3 style={{ fontSize: "18px", marginBottom: "6px" }}>Select an Available Seat</h3>
                         <p style={{ fontSize: "13px", opacity: 0.75, lineHeight: 1.5, marginBottom: "16px" }}>
-                          Click any seat in the theater map to claim an atomic Redis lock. You will get 120 seconds to review, scan UPI QR, and pay.
+                          Click any seat in the theater map to claim an atomic Redis lock. You will get 45 seconds to review, scan UPI QR, and pay.
                         </p>
                         <div style={{ background: "var(--g)", borderRadius: "12px", padding: "12px 16px", textAlign: "left", fontSize: "12px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                             <span style={{ color: "#666" }}>VIP Lounge:</span>
-                            <b>₹2,499</b>
+                            <b>₹{getTierPrice("vip").toLocaleString("en-IN")}</b>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                             <span style={{ color: "#666" }}>Executive Prime:</span>
-                            <b>₹1,499</b>
+                            <b>₹{getTierPrice("prime").toLocaleString("en-IN")}</b>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between" }}>
                             <span style={{ color: "#666" }}>Standard Gallery:</span>
-                            <b>₹899</b>
+                            <b>₹{getTierPrice("std").toLocaleString("en-IN")}</b>
                           </div>
                         </div>
                       </div>
@@ -4010,11 +4492,11 @@ export default function TicketWalaPage() {
                         </div>
                         <div className="ticket-price-row" style={{ fontSize: "12px", marginBottom: "4px" }}>
                           <span>Service &amp; Booking Fee</span>
-                          <span>₹99</span>
+                          <span>{getSeatDetails(mine).price === 1 ? "₹0 (Waived for Test)" : "₹99"}</span>
                         </div>
                         <div className="ticket-price-total" style={{ fontSize: "14px", fontWeight: 800, borderTop: "1px dashed #ded9d0", paddingTop: "6px" }}>
                           <span>Total Amount</span>
-                          <span style={{ color: "var(--o)" }}>₹{(getSeatDetails(mine).price + 99).toLocaleString()}</span>
+                          <span style={{ color: "var(--o)" }}>₹{(getSeatDetails(mine).price === 1 ? 1 : getSeatDetails(mine).price + 99).toLocaleString()}</span>
                         </div>
                       </div>
 
@@ -4029,7 +4511,7 @@ export default function TicketWalaPage() {
 
                         <div className="upi-qr-image-wrapper">
                           <img
-                            src={upiDetails?.qrCodeDataUrl || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiDetails?.intentUrl || `upi://pay?pa=9146199158@fam&pn=TicketWala&am=${getSeatDetails(mine).price + 99}&cu=INR`)}&size=250x250&color=2B2A28`}
+                            src={upiDetails?.qrCodeDataUrl || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiDetails?.intentUrl || `upi://pay?pa=9146199158@fam&pn=TicketWala&am=${getSeatDetails(mine).price === 1 ? 1 : getSeatDetails(mine).price + 99}&cu=INR`)}&size=250x250&color=2B2A28`}
                             alt="Dynamic UPI QR Code"
                           />
                         </div>
@@ -4048,27 +4530,6 @@ export default function TicketWalaPage() {
                             {copiedUpi ? "✓ Copied" : "Copy"}
                           </button>
                         </div>
-
-                        {/* Direct Mobile UPI Link Button */}
-                        {upiDetails?.intentUrl && (
-                          <a
-                            href={upiDetails.intentUrl}
-                            className="btn"
-                            style={{
-                              display: "block",
-                              width: "100%",
-                              padding: "9px",
-                              fontSize: "12px",
-                              textDecoration: "none",
-                              marginBottom: "8px",
-                              background: "#2B2A28",
-                              color: "#fff",
-                              textAlign: "center"
-                            }}
-                          >
-                            📱 Pay via UPI Mobile App
-                          </a>
-                        )}
 
                         <div className="upi-supported-apps">
                           <span className="upi-app-pill">GPay</span>
@@ -4164,7 +4625,7 @@ export default function TicketWalaPage() {
                         onClick={handleVerifyPayment}
                         disabled={isVerifyingPayment}
                       >
-                        {isVerifyingPayment ? "Verifying Payment & Issuing Pass..." : `Verify Payment & Issue E-Ticket (₹${(getSeatDetails(mine).price + 99).toLocaleString()})`}
+                        {isVerifyingPayment ? "Verifying Payment & Issuing Pass..." : `Verify Payment & Issue E-Ticket (₹${(getSeatDetails(mine).price === 1 ? 1 : getSeatDetails(mine).price + 99).toLocaleString()})`}
                       </button>
 
                       <button
@@ -4179,29 +4640,6 @@ export default function TicketWalaPage() {
                   )}
                 </div>
 
-                {/* Broker Terminal */}
-                <div className="broker-terminal">
-                  <div className="terminal-header">
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="4 17 10 11 4 5" />
-                        <line x1="12" y1="19" x2="20" y2="19" />
-                      </svg>
-                      Broker Telemetry
-                    </span>
-                    <span className="terminal-badge">
-                      <span className="pulse-dot"></span>
-                      Redis Engine Online
-                    </span>
-                  </div>
-                  <div className="terminal-body" id="log" ref={logContainerRef}>
-                    {logs.map((l, i) => (
-                      <div key={i} className={l.cls}>
-                        {l.time} {l.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </section>
@@ -4221,11 +4659,11 @@ export default function TicketWalaPage() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
-                  TICKETWALA FAST LANE · TRAVEL
+                  PLAN YOUR NEXT TRIP
                 </span>
-                <h1>High-Velocity Transit & Luxury Stays</h1>
+                <h1>Travel and stays</h1>
                 <p>
-                  Zero waiting room lag, atomic seat holds, and instant PNR verification across premier Flights, Express Trains, Volvo Buses, Cabs & Luxury Resorts.
+                  Explore travel options, compare prices, and keep your trip details together in one place.
                 </p>
               </div>
 
@@ -4240,7 +4678,7 @@ export default function TicketWalaPage() {
                 </div>
                 <div className="travel-stat-pill">
                   <small>Hold Speed</small>
-                  <b style={{ color: "var(--o)" }}>Live TTL PNR</b>
+                  <b style={{ color: "var(--o)" }}>Trip options</b>
                 </div>
               </div>
             </div>
@@ -5298,10 +5736,327 @@ export default function TicketWalaPage() {
                     </div>
                   </aside>
 
+<<<<<<< HEAD
                   {/* RIGHT COLUMN: SELECTED SECTION CONTENT */}
                   <main className="bms-main-content">
                     {/* OPTION 1: MY BOOKED TICKETS */}
                     {profileTab === "passes" && (
+=======
+                  {/* Turnstile Gate Access Guide */}
+                  <div className="gate-guide-card">
+                    <div className="gate-guide-header">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--o)" strokeWidth="2.2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                      </svg>
+                      <span>Turnstile Gate Access Guide</span>
+                    </div>
+
+                    <div className="gate-guide-grid">
+                      <div className="gate-guide-item">
+                        <b>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          Offline Gate Ready
+                        </b>
+                        <span>Screenshots and saved PDF e-tickets are valid at all venue entry turnstiles.</span>
+                      </div>
+
+                      <div className="gate-guide-item">
+                        <b>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          Screen Brightness
+                        </b>
+                        <span>Turn screen brightness to 100% and hold QR 15 cm from the optical laser reader.</span>
+                      </div>
+
+                      <div className="gate-guide-item">
+                        <b>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          Photo ID Verification
+                        </b>
+                        <span>Keep government photo ID matching your ticket pass moniker ready for marshals.</span>
+                      </div>
+
+                      <div className="gate-guide-item">
+                        <b>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                          Gate Helpdesk 24/7
+                        </b>
+                        <span>In case of scan issues, quote your 10-digit PNR at Turnstile Gate Support.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: PROFILE & CONTACT */}
+              {profileTab === "personal" && (
+                <div className="profile-section-pane">
+                  <div style={{ marginBottom: "22px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
+                      Profile &amp; Contact Details
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                      Manage your legal identity, printed boarding pass moniker, and verified phone contact.
+                    </p>
+                  </div>
+
+                  <form className="profile-form" onSubmit={handleSaveProfile}>
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label">Full Legal Name</label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profileName}
+                            onChange={(e) => setProfileName(e.target.value)}
+                            placeholder="Your full name"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label">Pass Moniker (Printed on Tickets)</label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profilePassName}
+                            onChange={(e) => setProfilePassName(e.target.value)}
+                            placeholder="Moniker on boarding pass"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Primary Mobile Phone</span>
+                          <span style={{ color: "#27ae60", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
+                        </label>
+                        <div className="input-field-box">
+                          <input
+                            className="input-field-input"
+                            value={profilePhone}
+                            onChange={(e) => setProfilePhone(e.target.value)}
+                            placeholder="+91 98201 23456"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Registered Account Email</span>
+                          <span style={{ color: "#8c8880", fontSize: "10px", fontWeight: 700 }}>Primary</span>
+                        </label>
+                        <div className="input-field-box" style={{ background: "#f8f7f5", opacity: 0.85 }}>
+                          <input
+                            className="input-field-input"
+                            value={user.email}
+                            disabled
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="input-field-group">
+                      <label className="input-field-label">Home Metro Region</label>
+                      <div className="input-field-box">
+                        <select
+                          className="input-field-input"
+                          value={profileCity}
+                          onChange={(e) => setProfileCity(e.target.value)}
+                          style={{ background: "transparent", border: "none", outline: "none" }}
+                        >
+                          {CITIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} — {c.tagline}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-actions-row" style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f2f0ec" }}>
+                      {profileSuccessMsg && (
+                        <span className="profile-success-text">{profileSuccessMsg}</span>
+                      )}
+                      <button type="submit" className="btn" style={{ padding: "10px 24px" }}>
+                        Save Profile Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* TAB 3: SECURITY & ACCESS */}
+              {profileTab === "security" && (
+                <div className="profile-section-pane">
+                  <div style={{ marginBottom: "22px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
+                      Security &amp; Password
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
+                      Update account password, enable two-factor protection, and manage device sessions.
+                    </p>
+                  </div>
+
+                  <form className="profile-form" onSubmit={handleUpdatePassword}>
+                    <div className="input-field-group">
+                      <label className="input-field-label">Current Password</label>
+                      <div className="input-field-box input-with-eye">
+                        <input
+                          type={showOldPw ? "text" : "password"}
+                          className="input-field-input"
+                          value={oldPw}
+                          onChange={(e) => setOldPw(e.target.value)}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          className="pw-eye-btn"
+                          onClick={() => setShowOldPw((prev) => !prev)}
+                          title={showOldPw ? "Hide password" : "Show password"}
+                        >
+                          {showOldPw ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-row-2">
+                      <div className="input-field-group">
+                        <label className="input-field-label">New Password</label>
+                        <div className="input-field-box input-with-eye">
+                          <input
+                            type={showNewPw ? "text" : "password"}
+                            className="input-field-input"
+                            value={newPw}
+                            onChange={(e) => setNewPw(e.target.value)}
+                            placeholder="At least 6 characters"
+                          />
+                          <button
+                            type="button"
+                            className="pw-eye-btn"
+                            onClick={() => setShowNewPw((prev) => !prev)}
+                            title={showNewPw ? "Hide password" : "Show password"}
+                          >
+                            {showNewPw ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                <line x1="1" y1="1" x2="23" y2="23" />
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="input-field-group">
+                        <label className="input-field-label">Confirm New Password</label>
+                        <div className="input-field-box input-with-eye">
+                          <input
+                            type={showConfirmPw ? "text" : "password"}
+                            className="input-field-input"
+                            value={confirmPw}
+                            onChange={(e) => setConfirmPw(e.target.value)}
+                            placeholder="Repeat new password"
+                          />
+                          <button
+                            type="button"
+                            className="pw-eye-btn"
+                            onClick={() => setShowConfirmPw((prev) => !prev)}
+                            title={showConfirmPw ? "Hide password" : "Show password"}
+                          >
+                            {showConfirmPw ? (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                                <line x1="1" y1="1" x2="23" y2="23" />
+                              </svg>
+                            ) : (
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Password Strength Line */}
+                    {newPw && (
+                      <div className="pw-strength-wrap">
+                        <div className="pw-strength-track">
+                          <div
+                            className="pw-strength-bar"
+                            style={{
+                              width: `${getProfilePwStrength(newPw).percent}%`,
+                              backgroundColor: getProfilePwStrength(newPw).color,
+                            }}
+                          ></div>
+                        </div>
+                        <div className="pw-strength-label">
+                          <span>Password Strength:</span>
+                          <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="form-actions-row">
+                      {pwMsg && (
+                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
+                          {pwMsg}
+                        </span>
+                      )}
+                      <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
+                        Update Password
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Two-Factor Authentication */}
+                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
+                    <div className="toggle-setting-row">
+                      <div className="toggle-setting-info">
+                        <b>Two-Factor Authentication (2FA)</b>
+                        <span>Require SMS verification before accessing turnstile boarding passes.</span>
+                      </div>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={twoFactorEnabled}
+                          onChange={(e) => {
+                            setTwoFactorEnabled(e.target.checked);
+                            setProfileSuccessMsg(e.target.checked ? "2FA Protection Enabled!" : "2FA Protection Disabled.");
+                            setTimeout(() => setProfileSuccessMsg(""), 3000);
+                          }}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+
+                  {/* Active Sessions */}
+                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+>>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
                       <div>
                         {/* Section Header */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
@@ -6084,6 +6839,66 @@ export default function TicketWalaPage() {
           id="login"
           style={{ display: activePage === "login" ? "block" : "none" }}
         >
+          {user ? (
+            <div className="auth-wrap" style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div style={{
+                maxWidth: "480px",
+                margin: "0 auto",
+                background: "#fff",
+                borderRadius: "24px",
+                padding: "40px 32px",
+                border: "1px solid #e7e2d9",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.06)"
+              }}>
+                <div style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  background: "#edfbf3",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px"
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--k)", margin: "0 0 8px" }}>
+                  Already Logged In
+                </h2>
+                <p style={{ color: "#777", fontSize: "14px", margin: "0 0 24px", lineHeight: 1.5 }}>
+                  You are signed in as <b>{user.name}</b> ({user.email}).
+                </p>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: "12px 24px", fontSize: "14px" }}
+                    onClick={() => navigateTo("home")}
+                  >
+                    Go to Home →
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: "12px 20px", fontSize: "14px" }}
+                    onClick={() => navigateTo("profile")}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: "12px 20px", fontSize: "14px", borderColor: "#e74c3c", color: "#e74c3c" }}
+                    onClick={handleLogout}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="auth-wrap">
             <div className="auth">
               {/* Left Side: Brand & Security Proof */}
@@ -6098,14 +6913,14 @@ export default function TicketWalaPage() {
                   </div>
 
                   <span className="pill" style={{ background: "rgba(255, 107, 55, 0.18)", color: "#fff", border: "1px solid rgba(255, 107, 55, 0.35)", marginBottom: "16px" }}>
-                    <i className="dot"></i> Next flash release in minutes
+                    <i className="dot"></i> Discover upcoming events
                   </span>
 
                   <h2>
                     Welcome back to the <em>TicketWala</em>.
                   </h2>
                   <p>
-                    Log in to lock high-contention seats before the other 5,000 fans. Your active holds, e-tickets, and VIP queue status are waiting.
+                    Sign in to view your bookings and continue planning your next outing.
                   </p>
 
                   <div className="auth-features">
@@ -6116,8 +6931,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Sub-Second Redis Lock</b>
-                        <span>Atomic Lua scripts secure your seat in under 1 millisecond.</span>
+                        <b>Easy seat selection</b>
+                        <span>See available seats and ticket prices before you book.</span>
                       </div>
                     </div>
 
@@ -6129,8 +6944,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Anti-Bot Token Bucket Shield</b>
-                        <span>Guaranteed fair access for verified human ticket buyers.</span>
+                        <b>Clear booking steps</b>
+                        <span>Choose an event, select a seat, and review your booking.</span>
                       </div>
                     </div>
 
@@ -6142,8 +6957,8 @@ export default function TicketWalaPage() {
                         </svg>
                       </div>
                       <div className="auth-feature-text">
-                        <b>Bank-Grade 256-Bit Encryption</b>
-                        <span>PCI-DSS compliant checkouts with instant async DB commits.</span>
+                        <b>Booking details in one place</b>
+                        <span>Find your event and booking information from your profile.</span>
                       </div>
                     </div>
                   </div>
@@ -6152,11 +6967,11 @@ export default function TicketWalaPage() {
                 <div className="auth-status-card">
                   <div className="status-indicator">
                     <span className="live-dot"></span>
-                    <span>Broker Engine Online</span>
+                    <span>Welcome to TicketWala</span>
                   </div>
                   <div className="status-stat">
-                    <b>0 Double-Allocations</b>
-                    <div style={{ opacity: 0.7 }}>5,000 users capacity</div>
+                    <b>Your next outing starts here</b>
+                    <div style={{ opacity: 0.7 }}>Explore events and book a seat</div>
                   </div>
                 </div>
               </div>
@@ -6296,6 +7111,7 @@ export default function TicketWalaPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* 6. SIGNUP PAGE */}
@@ -6304,6 +7120,66 @@ export default function TicketWalaPage() {
           id="signup"
           style={{ display: activePage === "signup" ? "block" : "none" }}
         >
+          {user ? (
+            <div className="auth-wrap" style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div style={{
+                maxWidth: "480px",
+                margin: "0 auto",
+                background: "#fff",
+                borderRadius: "24px",
+                padding: "40px 32px",
+                border: "1px solid #e7e2d9",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.06)"
+              }}>
+                <div style={{
+                  width: "52px",
+                  height: "52px",
+                  borderRadius: "50%",
+                  background: "#edfbf3",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px"
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--k)", margin: "0 0 8px" }}>
+                  Account Active
+                </h2>
+                <p style={{ color: "#777", fontSize: "14px", margin: "0 0 24px", lineHeight: 1.5 }}>
+                  You are already signed in as <b>{user.name}</b> ({user.email}).
+                </p>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: "12px 24px", fontSize: "14px" }}
+                    onClick={() => navigateTo("home")}
+                  >
+                    Go to Home →
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: "12px 20px", fontSize: "14px" }}
+                    onClick={() => navigateTo("profile")}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: "12px 20px", fontSize: "14px", borderColor: "#e74c3c", color: "#e74c3c" }}
+                    onClick={handleLogout}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="auth-wrap">
             <div className="auth">
               {/* Left Side: Brand & Perks */}
@@ -6325,7 +7201,7 @@ export default function TicketWalaPage() {
                     Join the <em>exclusive drop lane</em>.
                   </h2>
                   <p>
-                    One account unlocks every high-velocity ticket drop: atomic seat locks, 30-second hold rings, and zero double-booking assurance.
+                    One account unlocks every high-velocity ticket drop: atomic seat locks, 45-second hold rings, and zero double-booking assurance.
                   </p>
 
 
@@ -6338,9 +7214,59 @@ export default function TicketWalaPage() {
                     />
                     <div className="auth-image-overlay">
                       <span className="auth-image-tag">
-                        <span className="live-dot-sm"></span> HIGH-VELOCITY ARENA ACCESS
+                        <span className="live-dot-sm"></span> LIVE EVENTS
                       </span>
                     </div>
+                  </div>
+
+                  <div className="auth-features">
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Explore events</b>
+                        <span>Find concerts, sports, comedy, and more.</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Choose your seat</b>
+                        <span>Review seat availability and ticket prices before checkout.</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Instant Digital E-Tickets</b>
+                        <span>Boarding pass styled passes delivered directly to your profile.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="auth-status-card">
+                  <div className="status-indicator">
+                    <span className="live-dot"></span>
+                    <span>Welcome to TicketWala</span>
+                  </div>
+                  <div className="status-stat">
+                    <b>No Hidden Fees</b>
+                    <div style={{ opacity: 0.7 }}>Instant cancellation support</div>
                   </div>
                 </div>
               </div>
@@ -6349,7 +7275,7 @@ export default function TicketWalaPage() {
               <div className="auth-box">
                 <div className="auth-box-header">
                   <h2>Create Your Account</h2>
-                  <p>Get instant access to live flash reservations.</p>
+                  <p>Create an account to keep your profile and booking details together.</p>
                 </div>
 
                 {/* Full Name */}
@@ -6507,11 +7433,327 @@ export default function TicketWalaPage() {
               </div>
             </div>
           </div>
+          )}
+        </div>
+
+        {/* 7. PROFILE SETUP ONBOARDING FLOW (NO OTP REQUIRED) */}
+        <div
+          className={`page ${activePage === "profile-setup" ? "on" : ""}`}
+          id="profile-setup"
+          style={{ display: activePage === "profile-setup" ? "block" : "none" }}
+        >
+          <div className="auth-wrap" style={{ padding: "32px 5vw", minHeight: "calc(100vh - 80px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div className="auth" style={{ maxWidth: "1060px" }}>
+              {/* Left Side: Brand & Identity Benefits (1fr ratio, charcoal theme, spacious) */}
+              <div className="auth-side" style={{ padding: "50px 48px", justifyContent: "center" }}>
+                <div>
+                  <div className="auth-brand" style={{ marginBottom: "20px" }}>
+                    <img
+                      src="/logo-white.png"
+                      alt="TicketWala"
+                      style={{ height: "40px", width: "auto", objectFit: "contain" }}
+                    />
+                  </div>
+
+                  <span className="pill" style={{ background: "rgba(255, 107, 55, 0.18)", color: "#fff", border: "1px solid rgba(255, 107, 55, 0.35)", marginBottom: "16px", fontSize: "11.5px", padding: "5px 14px" }}>
+                    Account Profile Setup
+                  </span>
+
+                  <h2 style={{ fontSize: "28px", margin: "14px 0 10px", lineHeight: 1.25 }}>
+                    Complete your <em>member profile</em>.
+                  </h2>
+                  <p style={{ fontSize: "13.5px", lineHeight: 1.6, marginBottom: "26px", opacity: 0.82 }}>
+                    Set up your details once for instant ticket delivery, automated seat allocations, and verified venue entry.
+                  </p>
+
+                  <div className="auth-features" style={{ gap: "18px", marginBottom: 0 }}>
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon" style={{ width: "36px", height: "36px" }}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                          <circle cx="8" cy="15" r="1" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Direct E-Ticket Dispatch</b>
+                        <span>Instant QR boarding passes sent directly to your phone and email.</span>
+                      </div>
+                    </div>
+
+                    <div className="auth-feature-item">
+                      <div className="auth-feature-icon" style={{ width: "36px", height: "36px" }}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                          <path d="m9 12 2 2 4-4" />
+                        </svg>
+                      </div>
+                      <div className="auth-feature-text">
+                        <b>Turnstile ID Verification</b>
+                        <span>Fast gate clearance matching official entry protocols.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: Setup Form (1.15fr ratio, white theme, spacious layout) */}
+              <div className="auth-box" style={{ padding: "48px 50px" }}>
+                <div className="auth-box-header" style={{ marginBottom: "18px" }}>
+                  <h2 style={{ fontSize: "26px", marginBottom: "4px" }}>Profile Details</h2>
+                  <p style={{ fontSize: "13px", margin: 0 }}>Confirm your information to personalize ticket delivery and entry.</p>
+                </div>
+
+                <form onSubmit={handleSaveProfileSetup}>
+                  {setupErr && (
+                    <div className="err" style={{ marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px" }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{setupErr}</span>
+                    </div>
+                  )}
+
+                  {/* Profile Avatar Selection (Spacious) */}
+                  <div className="input-field-group" style={{ marginBottom: "16px" }}>
+                    <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "6px", display: "block" }}>Profile Avatar</label>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{
+                        width: "44px",
+                        height: "44px",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        border: "2px solid var(--o)",
+                        background: "#faf8f5",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "15px",
+                        fontWeight: 700,
+                        color: "var(--k)",
+                        flexShrink: 0
+                      }}>
+                        {setupAvatar ? (
+                          <img src={setupAvatar} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          (setupName || "TW").slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        {PRESET_AVATARS.slice(0, 4).map((av) => (
+                          <button
+                            key={av.id}
+                            type="button"
+                            onClick={() => setSetupAvatar(av.url)}
+                            style={{
+                              width: "34px",
+                              height: "34px",
+                              borderRadius: "50%",
+                              padding: 0,
+                              border: setupAvatar === av.url ? "2px solid var(--o)" : "1.5px solid #ded8cf",
+                              background: "#faf8f5",
+                              cursor: "pointer",
+                              overflow: "hidden",
+                              transition: "transform 0.15s ease"
+                            }}
+                            title={av.label}
+                          >
+                            <img src={av.url} alt={av.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </button>
+                        ))}
+
+                        {user?.avatar && setupAvatar !== user.avatar && (
+                          <button
+                            type="button"
+                            onClick={() => setSetupAvatar(user.avatar || "")}
+                            style={{
+                              padding: "5px 10px",
+                              borderRadius: "7px",
+                              border: "1px solid #ded8cf",
+                              background: "#faf8f5",
+                              cursor: "pointer",
+                              fontSize: "11.5px",
+                              fontWeight: 500,
+                              color: "#444"
+                            }}
+                          >
+                            Google Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2x2 Grid: Full Name, Mobile, Email, City (Spacious Inputs) */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                    {/* Full Name */}
+                    <div className="input-field-group" style={{ marginBottom: 0 }}>
+                      <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "6px", display: "block" }}>Full Name</label>
+                      <div className="input-field-box" style={{ height: "46px" }}>
+                        <span className="input-field-icon" style={{ left: "14px" }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          className="input-field-input"
+                          style={{ paddingLeft: "42px", fontSize: "13.5px" }}
+                          placeholder="Aryan Sharma"
+                          value={setupName}
+                          onChange={(e) => setSetupName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Mobile Number */}
+                    <div className="input-field-group" style={{ marginBottom: 0 }}>
+                      <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "6px", display: "block" }}>Mobile Number</label>
+                      <div className="input-field-box" style={{ height: "46px" }}>
+                        <span className="input-field-icon" style={{ fontSize: "13px", fontWeight: 700, color: "var(--k)", left: "14px" }}>
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          className="input-field-input"
+                          style={{ paddingLeft: "46px", fontSize: "13.5px" }}
+                          placeholder="98200 12345"
+                          value={setupPhone.replace(/^\+91\s*/, "")}
+                          onChange={(e) => setSetupPhone(e.target.value)}
+                          maxLength={15}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email (Readonly) */}
+                    <div className="input-field-group" style={{ marginBottom: 0 }}>
+                      <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "6px", display: "block" }}>Email (Verified)</label>
+                      <div className="input-field-box" style={{ height: "46px" }}>
+                        <span className="input-field-icon" style={{ left: "14px" }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                            <polyline points="22,6 12,13 2,6" />
+                          </svg>
+                        </span>
+                        <input
+                          type="email"
+                          className="input-field-input"
+                          style={{ paddingLeft: "42px", fontSize: "13.5px", background: "#f5f3ef", color: "#666" }}
+                          value={user?.email || "user@ticketwala.com"}
+                          disabled
+                        />
+                      </div>
+                    </div>
+
+                    {/* City Selector */}
+                    <div className="input-field-group" style={{ marginBottom: 0 }}>
+                      <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "6px", display: "block" }}>Home City</label>
+                      <div className="input-field-box" style={{ height: "46px" }}>
+                        <span className="input-field-icon" style={{ left: "14px" }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                        </span>
+                        <select
+                          className="input-field-input"
+                          value={setupCity}
+                          onChange={(e) => setSetupCity(e.target.value)}
+                          style={{ paddingLeft: "42px", fontSize: "13.5px", background: "#faf8f5", cursor: "pointer" }}
+                        >
+                          {CITIES.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Interests */}
+                  <div className="input-field-group" style={{ marginBottom: "20px" }}>
+                    <label className="input-field-label" style={{ fontSize: "12px", marginBottom: "8px", display: "block" }}>Preferred Categories</label>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      {[
+                        "Concerts & Music",
+                        "Standup Comedy",
+                        "Live Sports",
+                        "Theatre & Plays"
+                      ].map((cat) => {
+                        const selected = setupGenres.includes(cat);
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => {
+                              if (selected) {
+                                setSetupGenres(setupGenres.filter((g) => g !== cat));
+                              } else {
+                                setSetupGenres([...setupGenres, cat]);
+                              }
+                            }}
+                            style={{
+                              padding: "6px 14px",
+                              borderRadius: "8px",
+                              border: selected ? "1.5px solid var(--o)" : "1.5px solid #ded8cf",
+                              background: selected ? "#FFF5EB" : "#faf8f5",
+                              color: selected ? "var(--o)" : "#444",
+                              fontSize: "12.5px",
+                              fontWeight: selected ? 600 : 500,
+                              cursor: "pointer",
+                              transition: "all 0.15s ease"
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "16px" }}>
+                    <button
+                      type="submit"
+                      className="btn"
+                      disabled={isSubmittingSetup}
+                      style={{ flex: 1, padding: "13px 22px", fontSize: "14.5px", fontWeight: 700, borderRadius: "99px" }}
+                    >
+                      {isSubmittingSetup ? "Saving Profile..." : "Save Profile & Continue →"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSkipProfileSetup}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#8c8880",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        padding: "10px 14px",
+                        textDecoration: "underline"
+                      }}
+                    >
+                      Skip for now
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 
       {/* FOOTER */}
-      <footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
+      <footer>© 2026 TicketWala · Discover events. Make memories.</footer>
 
       {/* CITY SELECTOR MODAL */}
       {showCityModal && (
@@ -6689,7 +7931,7 @@ export default function TicketWalaPage() {
                   <b>₹{basePrice.toLocaleString("en-IN")}</b>
                 </div>
                 <div className="travel-fare-row">
-                  <span>TicketWala Priority Token Lock</span>
+                  <span>Booking fee</span>
                   <span style={{ color: "#27ae60", fontWeight: 700 }}>₹0 (FREE)</span>
                 </div>
                 <div className="travel-fare-row">
@@ -6714,7 +7956,7 @@ export default function TicketWalaPage() {
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                 <span style={{ fontSize: "12px", color: "#1e824c", fontWeight: 700 }}>
-                  Redis TTL Atomic Hold Active · 0 Double-Booking Guarantee
+                  Review your trip details before continuing
                 </span>
               </div>
 
@@ -7164,7 +8406,10 @@ export default function TicketWalaPage() {
         </div>
       </div>
     )}
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
       {/* FULL E-TICKET BOARDING PASS MODAL */}
       {ticketModalBooking && (
         <div className="travel-modal-overlay" onClick={() => setTicketModalBooking(null)}>
@@ -7255,6 +8500,10 @@ export default function TicketWalaPage() {
           </div>
         </div>
       )}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
 
       {/* FLOATING TOAST NOTIFICATION */}
       {eticketAlert && (

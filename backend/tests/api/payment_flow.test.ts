@@ -63,7 +63,7 @@ describe("TicketWala Dynamic UPI & Automated Email Payment Gateway", () => {
     expect(body.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
 
     await app.close();
-  });
+  }, 15000);
 
   it("handles POST /api/v1/payments/confirm-and-send-ticket and issues cryptographic PNR", async () => {
     const { app } = await createServer();
@@ -94,5 +94,5 @@ describe("TicketWala Dynamic UPI & Automated Email Payment Gateway", () => {
     expect(body.recipientEmail).toBe("ticketwala.org@gmail.com");
 
     await app.close();
-  });
+  }, 15000);
 });

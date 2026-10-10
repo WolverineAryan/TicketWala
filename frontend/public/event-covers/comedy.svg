@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" fill="none">
+  <defs>
+    <linearGradient id="room" x1="600" y1="0" x2="600" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3516"/>
+      <stop offset=".55" stop-color="#D65A18"/>
+      <stop offset="1" stop-color="#321C28"/>
+    </linearGradient>
+    <radialGradient id="spot" cx="0" cy="0" r="1" gradientTransform="matrix(0 390 -360 0 600 90)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE6A1" stop-opacity=".84"/>
+      <stop offset="1" stop-color="#FFE6A1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mic" x1="582" y1="100" x2="648" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF4D5"/>
+      <stop offset="1" stop-color="#E9B767"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#room)" d="M0 0h1200v650H0z"/>
+  <path fill="url(#spot)" d="M0 0h1200v650H0z"/>
+  <path d="M112 0h155v485H112zM933 0h155v485H933z" fill="#351925" fill-opacity=".28"/>
+  <path d="m0 0 166 0-55 480H0zM1200 0h-166l55 480h111z" fill="#260F25" fill-opacity=".2"/>
+  <path d="M0 476c170-57 336-57 600 0 264-57 430-57 600 0v174H0V476Z" fill="#271623" fill-opacity=".78"/>
+  <path d="M576 135a48 48 0 0 1 96 0v213a48 48 0 1 1-96 0V135Z" fill="url(#mic)"/>
+  <path d="M555 319v30a69 69 0 0 0 138 0v-30" stroke="#FFF4D5" stroke-width="13" stroke-linecap="round"/>
+  <path d="M624 418v65m-50 0h100" stroke="#E9B767" stroke-width="13" stroke-linecap="round"/>
+  <g stroke="#FFF4D5" stroke-opacity=".4" stroke-width="4">
+    <path d="M590 165h68M590 196h68M590 227h68M590 258h68"/>
+  </g>
+  <g fill="#211520" fill-opacity=".78">
+    <circle cx="100" cy="560" r="34"/><circle cx="203" cy="579" r="27"/><circle cx="315" cy="554" r="37"/>
+    <circle cx="439" cy="584" r="26"/><circle cx="770" cy="578" r="29"/><circle cx="892" cy="556" r="38"/>
+    <circle cx="1022" cy="582" r="27"/><circle cx="1124" cy="555" r="35"/>
+  </g>
+</svg>

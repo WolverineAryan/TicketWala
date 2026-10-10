@@ -59,7 +59,7 @@ const DATABASE_URL =
   process.env.DATABASE_DIRECT_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "120", 10);
+const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "45", 10);
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
   : ["*"];
@@ -200,6 +200,17 @@ export const MULTIPURPOSE_EVENTS: EventDetails[] = [
     ],
   },
 ];
+
+function tierForUnit(event: EventDetails, unitId: string): EventDetails["tiers"][number] {
+  const unitNumber = parseInt(unitId.replace("unit-", ""), 10) || 1;
+  if (unitNumber <= Math.floor(event.totalSeats * 0.15)) {
+    return event.tiers[0];
+  }
+  if (unitNumber <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+    return event.tiers[1];
+  }
+  return event.tiers[event.tiers.length - 1];
+}
 
 // In-Memory user confirmed bookings store
 const userBookingsRegistry = new Map<string, any[]>();
@@ -444,7 +455,7 @@ export async function createServer(): Promise<{
   app.get("/api/v1/events", async (req: FastifyRequest, reply: FastifyReply) => {
     const { category } = req.query as { category?: string };
 
-    let events = MULTIPURPOSE_EVENTS;
+    let events = MULTIPURPOSE_EVENTS.filter((event) => !event.id.startsWith("evt-demo-"));
     if (category && category !== "ALL") {
       events = events.filter((e) => e.category.toUpperCase() === category.toUpperCase());
     }
@@ -538,13 +549,7 @@ export async function createServer(): Promise<{
         }
       }
 
-      // Determine Tier based on seat index
-      let tier = event.tiers[event.tiers.length - 1]; // Default lowest
-      if (i <= Math.floor(totalSeats * 0.15)) {
-        tier = event.tiers[0]; // Top tier (First / VIP)
-      } else if (i <= Math.floor(totalSeats * 0.45) && event.tiers.length > 2) {
-        tier = event.tiers[1]; // Mid tier (Business / Standing)
-      }
+      const tier = tierForUnit(event, unitId);
 
       const row = Math.ceil(i / 6);
       const col = ((i - 1) % 6) + 1;
@@ -666,12 +671,7 @@ export async function createServer(): Promise<{
       telemetry.holdsCreated++;
 
       const unitNum = parseInt(claimResult.unitId.replace("unit-", ""), 10) || 1;
-      let selectedTier = event.tiers[event.tiers.length - 1];
-      if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
-        selectedTier = event.tiers[0];
-      } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
-        selectedTier = event.tiers[1];
-      }
+      const selectedTier = tierForUnit(event, claimResult.unitId);
 
       return reply.status(201).send({
         reservationId: claimResult.reservationId,
@@ -682,6 +682,7 @@ export async function createServer(): Promise<{
         version: claimResult.version,
         eventId: event.id,
         eventTitle: event.title,
+        seatLabel: `${Math.ceil(unitNum / 6)}${"ABCDEF"[((unitNum - 1) % 6)]}`,
         tierName: selectedTier.name,
         price: selectedTier.price,
         currency: event.currency,
@@ -763,12 +764,7 @@ export async function createServer(): Promise<{
     telemetry.holdsCreated++;
 
     const unitNum = parseInt(unitIdToClaim.replace("unit-", ""), 10) || 1;
-    let selectedTier = event.tiers[event.tiers.length - 1];
-    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
-      selectedTier = event.tiers[0];
-    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
-      selectedTier = event.tiers[1];
-    }
+    const selectedTier = tierForUnit(event, unitIdToClaim);
 
     const holdPayload = {
       reservationId,
@@ -779,6 +775,7 @@ export async function createServer(): Promise<{
       version: 1,
       eventId: event.id,
       eventTitle: event.title,
+      seatLabel: `${Math.ceil(unitNum / 6)}${"ABCDEF"[((unitNum - 1) % 6)]}`,
       tierName: selectedTier.name,
       price: selectedTier.price,
       currency: event.currency,
@@ -882,13 +879,7 @@ export async function createServer(): Promise<{
         error: { code: "EVENT_NOT_FOUND", message: "Reservation event not found", retryable: false, timestamp: new Date().toISOString() },
       });
     }
-    const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
-    let selectedTier = event.tiers[event.tiers.length - 1];
-    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
-      selectedTier = event.tiers[0];
-    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
-      selectedTier = event.tiers[1];
-    }
+    const selectedTier = tierForUnit(event, unitId);
 
     const confirmedTicketData = {
       reservationId,
@@ -1002,6 +993,25 @@ export async function createServer(): Promise<{
     });
   });
 
+  /**
+   * POST /api/v1/users/profile
+   * Saves or updates a user profile without OTP verification
+   */
+  app.post("/api/v1/users/profile", async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = (req.body as any) || {};
+    const email = body.email || "guest@ticketwala.com";
+    return reply.status(200).send({
+      success: true,
+      message: "Profile configured successfully without OTP",
+      profile: {
+        ...body,
+        email,
+        profileCompleted: true,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // Zero-Cost Dynamic UPI Payment & Verification
   // ---------------------------------------------------------------------------
@@ -1013,13 +1023,30 @@ export async function createServer(): Promise<{
   app.get("/api/v1/reservations/:id/upi-qr", async (req: FastifyRequest, reply: FastifyReply) => {
     const { id: reservationId } = req.params as { id: string };
     const query = (req.query as any) || {};
-    const eventId = isRedisAvailable
-      ? (await redis.hget(`ticketwala:reservation:${reservationId}`, "event_id")) || ""
-      : inMemoryReservations.get(reservationId)?.eventId || "";
+    let eventId = "";
+    let unitId = "";
+    if (isRedisAvailable) {
+      const [storedEventId, storedUnitId] = await redis.hmget(
+        `ticketwala:reservation:${reservationId}`,
+        "event_id",
+        "unit_id"
+      );
+      eventId = storedEventId || "";
+      unitId = storedUnitId || "";
+    } else {
+      const reservation = inMemoryReservations.get(reservationId);
+      eventId = reservation?.eventId || "";
+      unitId = reservation?.unitId || "";
+    }
     const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
-
-    const amount = Number(query.amount) || (event ? event.basePrice : 1499);
-    const eventTitle = query.eventTitle || (event ? event.title : "TicketWala Live Event");
+    if (!event || !unitId) {
+      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Reservation not found" } });
+    }
+    const selectedTier = tierForUnit(event, unitId);
+    const amount = selectedTier.price;
+    const eventTitle = typeof query.eventTitle === "string" && query.eventTitle
+      ? query.eventTitle
+      : event.title;
 
     const upiData = await generateDynamicUpiPayment({
       amount,
@@ -1037,7 +1064,7 @@ export async function createServer(): Promise<{
    */
   app.post("/api/v1/payments/generate-upi", async (req: FastifyRequest, reply: FastifyReply) => {
     const body = (req.body as any) || {};
-    const amount = Number(body.amount) || 1499;
+    const amount = body.amount !== undefined && !isNaN(Number(body.amount)) ? Number(body.amount) : 1499;
     const reservationId = body.reservationId || uuidv4();
     const pnr = body.pnr || `TW-${reservationId.substring(0, 6).toUpperCase()}`;
     const eventTitle = body.eventTitle || "TicketWala Live Event";
@@ -1102,7 +1129,7 @@ export async function createServer(): Promise<{
     const passengerName = body.passengerName || "Verified Guest";
     const email = body.email || "ticketwala.org@gmail.com";
     const tierName = body.tierName || "Premium Access";
-    const amountPaid = Number(body.amountPaid) || 1499;
+    const amountPaid = body.amountPaid !== undefined && !isNaN(Number(body.amountPaid)) ? Number(body.amountPaid) : 1499;
     const currency = body.currency || "INR";
     const paymentRef = `UPI-UTR-${utr}`;
     const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
@@ -1281,13 +1308,7 @@ export async function createServer(): Promise<{
         ],
       };
     }
-    const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
-    let selectedTier = event.tiers[event.tiers.length - 1];
-    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
-      selectedTier = event.tiers[0];
-    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
-      selectedTier = event.tiers[1];
-    }
+    const selectedTier = tierForUnit(event, unitId);
 
     const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
 
@@ -2011,7 +2032,7 @@ export async function createServer(): Promise<{
         outcomes: results.map((r) => ({
           contender: r.name,
           httpStatus: r.statusCode,
-          outcome: r.statusCode === 201 ? "GRANTED_120S_HOLD" : "REJECTED_ALREADY_RESERVED",
+          outcome: r.statusCode === 201 ? "GRANTED_45S_HOLD" : "REJECTED_ALREADY_RESERVED",
         })),
         durationMs: +(performance.now() - startTime).toFixed(2),
         timestamp: new Date().toISOString(),
