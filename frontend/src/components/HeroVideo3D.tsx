@@ -133,7 +133,7 @@ export const HeroVideo3D: React.FC<HeroVideo3DProps> = ({
             }}
           >
             Decoupled write traffic via an in-memory transactional Redis Lua broker with token buckets,
-            enforcing atomic 120s TTL holds, eliminating race-condition double-allocations, and
+            enforcing atomic 60s TTL holds, eliminating race-condition double-allocations, and
             asynchronously persisting to Postgres.
           </p>
 
@@ -403,7 +403,7 @@ export const HeroVideo3D: React.FC<HeroVideo3DProps> = ({
             </div>
             <div>
               <div style={{ fontSize: "14px", fontWeight: 800, color: "#2B2A28" }}>Sub-second FCFS</div>
-              <div style={{ fontSize: "11px", color: "#FF6B35", fontWeight: 700 }}>120s TTL Lock Safety</div>
+              <div style={{ fontSize: "11px", color: "#FF6B35", fontWeight: 700 }}>60s TTL Lock Safety</div>
             </div>
           </div>
         </div>

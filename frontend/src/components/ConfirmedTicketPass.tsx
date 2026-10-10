@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { ConfirmResponse } from "@/types/api";
 import { Ticket, CheckCircle2, QrCode, Copy, Check, Download, Plane, Calendar, MapPin, User, ShieldCheck } from "lucide-react";
+import { printExactTicket } from "@/lib/printTicket";
 
 interface ConfirmedTicketPassProps {
   booking?: ConfirmResponse;
@@ -25,7 +26,20 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    printExactTicket({
+      ticketType: "Event",
+      bookingId: booking.pnr || booking.reservationId,
+      customerName: booking.passengerName || "Confirmed Guest",
+      title: booking.eventTitle || "Multipurpose Event Booking",
+      subtitle: `${booking.tierName || "Pass"} · Seat #${booking.unitId || "Reserved"}`,
+      venueOrRoute: booking.venue || "Official Venue",
+      dateStr: booking.dateTime ? booking.dateTime.split("·")[0].trim() : "Confirmed Date",
+      timeStr: booking.dateTime && booking.dateTime.includes("·") ? booking.dateTime.split("·")[1].trim() : "05:00 PM",
+      seatOrClass: `Seat #${booking.unitId || "General"} (${booking.tierName || "Pass"})`,
+      price: booking.amountPaid || 0,
+      status: "Confirmed",
+      sourceType: "event",
+    });
   };
 
   return (
@@ -54,10 +68,10 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
         <CheckCircle2 size={24} color="#10B981" />
         <div>
           <span style={{ fontSize: "16px", fontWeight: 800, color: "#065F46", display: "block" }}>
-            Booking Confirmed! 🎉
+            Booking created
           </span>
           <span style={{ fontSize: "12px", color: "#047857" }}>
-            Your seat is durably locked. A copy of the e-ticket has been issued with PNR: {booking.pnr || "CONFIRMED"}.
+            Your seat is reserved. Booking reference: {booking.pnr || booking.reservationId}.
           </span>
         </div>
       </div>
@@ -88,7 +102,7 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Ticket size={18} color="#FF6B35" />
             <span style={{ fontWeight: 800, fontSize: "14px", letterSpacing: "0.5px" }}>
-              TICKETWALA VERIFIED PASS
+              TICKETWALA BOOKING SUMMARY
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -183,13 +197,13 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", borderTop: "1px dashed rgba(255, 255, 255, 0.15)", paddingTop: "14px" }}>
             <div>
               <span style={{ color: "#94A3B8", display: "block" }}>Passenger / Attendee</span>
-              <span style={{ fontWeight: 700, color: "#F8FAFC" }}>{booking.passengerName || "Verified Guest"}</span>
+              <span style={{ fontWeight: 700, color: "#F8FAFC" }}>{booking.passengerName || "Guest"}</span>
             </div>
 
             <div style={{ textAlign: "right" }}>
-              <span style={{ color: "#94A3B8", display: "block" }}>Amount Paid</span>
+              <span style={{ color: "#94A3B8", display: "block" }}>Booking amount</span>
               <span style={{ fontWeight: 800, color: "#10B981", fontSize: "15px" }}>
-                ₹{(booking.amountPaid || 4500).toLocaleString("en-IN")}
+                {typeof booking.amountPaid === "number" ? `₹${booking.amountPaid.toLocaleString("en-IN")}` : "—"}
               </span>
             </div>
           </div>
@@ -217,7 +231,7 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
           }}
         >
           <Download size={16} />
-          <span>Save / Print E-Ticket</span>
+          <span>Save / Print Booking Summary</span>
         </button>
 
         <button

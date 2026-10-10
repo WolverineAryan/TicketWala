@@ -21,11 +21,12 @@ export const options = {
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8000';
+const EVENT_ID = __ENV.EVENT_ID || 'evt-flight-ai101';
 
 export default function () {
   const idempKey = `k6-${__VU}-${__ITER}-${Date.now()}`;
   const payload = JSON.stringify({
-    eventId: 'evt-main',
+    eventId: EVENT_ID,
   });
 
   const params = {

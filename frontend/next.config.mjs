@@ -4,6 +4,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  webpack: (config) => {
+    config.output.uniqueName = "ticketwala";
+    return config;
+  },
 };
 
 export default nextConfig;

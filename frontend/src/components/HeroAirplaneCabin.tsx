@@ -359,7 +359,7 @@ export const HeroAirplaneCabin: React.FC<HeroAirplaneCabinProps> = ({
               }}
             >
               Choose from a fleet of high-velocity flash allocations, each protected by an in-memory
-              transactional Redis Lua broker with sub-second holding locks, automatic 120s TTL revocation,
+              transactional Redis Lua broker with sub-second holding locks, automatic 60s TTL revocation,
               and verified zero double-allocations.
             </p>
 

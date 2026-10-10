@@ -1124,8 +1124,9 @@ export async function createServer(): Promise<{
     const existing = userBookingsRegistry.get(defaultUser) || [];
     userBookingsRegistry.set(defaultUser, [confirmedTicketData, ...existing]);
 
-    // 3. Automated Email Dispatch (Asynchronous, does not block HTTP response)
-    sendTicketEmail({
+    // Confirmation is complete before email delivery. A mail outage must not
+    // roll back the reservation or make the ticket appear unconfirmed.
+    const emailResult = await sendTicketEmail({
       toEmail: email,
       passengerName: passengerName || "Verified Guest",
       pnr: pnrCode,
@@ -1139,18 +1140,52 @@ export async function createServer(): Promise<{
       currency: event.currency,
       paymentRef,
       qrCodePayload,
-    }).catch((err) => {
-      app.log.error(`Email dispatch error: ${err.message}`);
     });
 
     return reply.status(200).send({
       ...confirmedTicketData,
-      emailDispatched: true,
+      emailDispatched: emailResult.success,
+      ...(emailResult.success ? {} : { emailError: emailResult.error || "Email delivery failed" }),
       recipientEmail: email,
     });
   });
 
   // ---------------------------------------------------------------------------
+  app.post("/api/v1/payments/generate-upi", async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = (req.body as Record<string, unknown>) || {};
+    const amount = body.amount !== undefined && !Number.isNaN(Number(body.amount))
+      ? Number(body.amount)
+      : 1499;
+    const reservationId = typeof body.reservationId === "string" && body.reservationId
+      ? body.reservationId
+      : uuidv4();
+    const pnr = typeof body.pnr === "string" && body.pnr
+      ? body.pnr
+      : `TW-${reservationId.substring(0, 6).toUpperCase()}`;
+
+    const upiData = await generateDynamicUpiPayment({
+      amount,
+      reservationId,
+      pnr,
+      eventTitle: typeof body.eventTitle === "string" ? body.eventTitle : "TicketWala Live Event",
+      customUpiId: typeof body.upiId === "string" ? body.upiId : undefined,
+      customPayeeName: typeof body.payeeName === "string" ? body.payeeName : undefined,
+    });
+
+    return reply.status(200).send(upiData);
+  });
+
+  app.post("/api/v1/payments/confirm-and-send-ticket", async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(410).send({
+      error: {
+        code: "ENDPOINT_RETIRED",
+        message: "Use POST /api/v1/reservations/:id/verify-payment with the reservation hold token.",
+        retryable: false,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
+
   // Organizer Management & Dynamic Surge Pricing Endpoints
   // ---------------------------------------------------------------------------
 

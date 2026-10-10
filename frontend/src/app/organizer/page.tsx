@@ -146,7 +146,7 @@ export default function OrganizerPortalPage() {
   const currentEvent = events.find((e) => e.id === selectedEventId) || events[0];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="organizer-page min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
@@ -357,7 +357,7 @@ export default function OrganizerPortalPage() {
             )}
 
             <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-[10px] text-slate-500">Atomic FIFO Queue Guarded</span>
+              <span className="text-[10px] text-slate-500">Seat availability updates live</span>
               <Link
                 href={`/events/${currentEvent?.id}`}
                 className="text-xs text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1"

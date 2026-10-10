@@ -7,6 +7,7 @@ export const options = {
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8000';
+const EVENT_ID = __ENV.EVENT_ID || 'evt-flight-ai101';
 
 export default function () {
   // 1. Health Probe
@@ -16,7 +17,7 @@ export default function () {
   });
 
   // 2. Claim Hold
-  const holdPayload = JSON.stringify({ eventId: 'evt-main' });
+  const holdPayload = JSON.stringify({ eventId: EVENT_ID });
   const holdParams = {
     headers: {
       'Content-Type': 'application/json',
@@ -26,7 +27,7 @@ export default function () {
 
   const holdRes = http.post(`${BASE_URL}/api/v1/reservations/hold`, holdPayload, holdParams);
   check(holdRes, {
-    'hold returns 201 or 409': (r) => r.status === 201 || r.status === 409,
+    'hold returns an expected status': (r) => [201, 409, 429].includes(r.status),
   });
 
   sleep(1);
