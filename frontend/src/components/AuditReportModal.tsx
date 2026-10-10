@@ -103,8 +103,18 @@ export const AuditReportModal: React.FC<AuditReportModalProps> = ({
             marginBottom: "20px",
           }}
         >
-          <div style={{ fontSize: "14px", fontWeight: 800, color: report.passed ? "#065F46" : "#991B1B" }}>
-            {report.passed ? "✅ 100% PASS — ZERO DOUBLE ALLOCATIONS VERIFIED" : "❌ AUDIT ANOMALY DETECTED"}
+          <div style={{ fontSize: "14px", fontWeight: 800, color: report.passed ? "#065F46" : "#991B1B", display: "flex", alignItems: "center", gap: "8px" }}>
+            {report.passed ? (
+              <>
+                <CheckCircle2 size={16} />
+                <span>100% PASS — ZERO DOUBLE ALLOCATIONS VERIFIED</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle size={16} />
+                <span>AUDIT ANOMALY DETECTED</span>
+              </>
+            )}
           </div>
           <div style={{ fontSize: "12px", color: report.passed ? "#047857" : "#B91C1C", marginTop: "4px" }}>
             Every inventory unit adheres strictly to single-ownership and capacity preservation axioms.

@@ -247,7 +247,8 @@ export default function SimulationPage() {
             </Link>
 
             <span className="text-sm font-extrabold text-white flex items-center gap-2">
-              <span>⚡ FlashLock Collision & Concurrency Lab</span>
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>FlashLock Collision &amp; Concurrency Lab</span>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
                 Blueprint Evidence
               </span>
@@ -540,7 +541,7 @@ export default function SimulationPage() {
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Inventory</span>
                     <span className="text-2xl font-black text-white mt-1 block">{auditReport.totalConfiguredCapacity}</span>
-                    <span className="text-[10px] text-emerald-400 font-bold">100% Conserved ✓</span>
+                    <span className="text-[10px] text-emerald-400 font-bold inline-flex items-center gap-1">100% Conserved <Check className="w-3 h-3" /></span>
                   </div>
                 </div>
 

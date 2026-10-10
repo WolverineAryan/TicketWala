@@ -4,6 +4,31 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import confetti from "canvas-confetti";
 import { signInWithGoogle, logOut } from "@/lib/firebase";
 import { printExactTicket } from "@/lib/printTicket";
+import {
+  Sparkles,
+  Music,
+  Mic,
+  Trophy,
+  Drama,
+  Plane,
+  TrainFront,
+  Bus,
+  Zap,
+  MapPin,
+  FlaskConical,
+  CheckCircle2,
+  Printer,
+  Mail,
+  AlertTriangle,
+  Star,
+  User,
+  Lightbulb,
+  Ticket,
+  Search,
+  Copy,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 
 const N = 200;
 const TTL = 60; // 60 seconds TTL lock guarantee
@@ -3432,38 +3457,16 @@ export default function TicketWalaPage() {
               </div>
             </div>
 
-            {/* REAL-TIME PLATFORM PULSE TICKER */}
-            <div className="bms-live-pulse-ticker">
-              <div className="bms-pulse-badge">
-                <span className="live-dot-sm" />
-                <span>LIVE TICKET PULSE</span>
-              </div>
-              <div className="bms-pulse-scroll-track">
-                <span>🔥 <b>8,420 seats locked today</b> across India</span>
-                <span className="bms-pulse-sep">•</span>
-                <span>⚡ <b>0.4ms Redis Lua</b> engine latency guarantee</span>
-                <span className="bms-pulse-sep">•</span>
-                <span>🎟️ <b>Turnstile QR codes</b> verified offline</span>
-                <span className="bms-pulse-sep">•</span>
-                <span>🛡️ <b>60s TTL sliding hold</b> · Zero double booking</span>
-                <span className="bms-pulse-sep">•</span>
-                <span>🚅 <b>Vande Bharat Express</b> &amp; Flight passes now live</span>
-              </div>
-              <div className="bms-pulse-status">
-                <span className="bms-status-dot" />
-                <span>All Systems Operational</span>
-              </div>
-            </div>
-
+         
             {/* Category Filter Navigation with Icons */}
             <div className="bms-categories-bar">
               <div className="bms-categories-list">
                 {[
-                  { id: "all", label: "All Drops", icon: "✨" },
-                  { id: "concert", label: "Concerts & Music", icon: "🎸" },
-                  { id: "comedy", label: "Standup Comedy", icon: "🎙️" },
-                  { id: "sports", label: "Live Stadium Sports", icon: "🏏" },
-                  { id: "theatre", label: "Theatre & Broadway", icon: "🎭" },
+                  { id: "all", label: "All Drops", icon: <Sparkles size={15} /> },
+                  { id: "concert", label: "Concerts & Music", icon: <Music size={15} /> },
+                  { id: "comedy", label: "Standup Comedy", icon: <Mic size={15} /> },
+                  { id: "sports", label: "Live Stadium Sports", icon: <Trophy size={15} /> },
+                  { id: "theatre", label: "Theatre & Broadway", icon: <Drama size={15} /> },
                 ].map((cat) => (
                   <button
                     key={cat.id}
@@ -3471,7 +3474,7 @@ export default function TicketWalaPage() {
                     className={`bms-cat-pill ${selectedCategory === cat.id ? "active" : ""}`}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
-                    <span>{cat.icon}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>{cat.icon}</span>
                     <span>{cat.label}</span>
                   </button>
                 ))}
@@ -3485,53 +3488,14 @@ export default function TicketWalaPage() {
                   }}
                   title="Explore direct flights, trains & buses"
                 >
-                  <span>✈️</span>
+                  <Plane size={15} />
                   <span>Flight &amp; Train Passes</span>
                   <span style={{ fontSize: "10px", fontWeight: 800, background: "var(--o)", color: "#fff", padding: "1px 6px", borderRadius: "99px", marginLeft: "2px" }}>60s TTL</span>
                 </button>
               </div>
             </div>
 
-            {/* High-Density Modern Platform Guarantees Strip */}
-            <div className="bms-guarantee-strip">
-              <div className="bms-guarantee-card">
-                <div className="bms-guarantee-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                </div>
-                <div className="bms-guarantee-text">
-                  <b>0.4ms Atomic Lua Mutex</b>
-                  <span>Sub-millisecond memory lock prevents race conditions</span>
-                </div>
-              </div>
-              <div className="bms-guarantee-card">
-                <div className="bms-guarantee-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                </div>
-                <div className="bms-guarantee-text">
-                  <b>60-Second TTL Sliding Ring</b>
-                  <span>Live countdown automatically returns abandoned inventory</span>
-                </div>
-              </div>
-              <div className="bms-guarantee-card">
-                <div className="bms-guarantee-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="m9 12 2 2 4-4" /></svg>
-                </div>
-                <div className="bms-guarantee-text">
-                  <b>Turnstile Laser QR Pass</b>
-                  <span>Cryptographic live QR code verified at stadium gates</span>
-                </div>
-              </div>
-              <div className="bms-guarantee-card">
-                <div className="bms-guarantee-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="4" width="20" height="16" rx="2" /><line x1="6" y1="12" x2="10" y2="12" /><line x1="14" y1="12" x2="18" y2="12" /></svg>
-                </div>
-                <div className="bms-guarantee-text">
-                  <b>Direct UPI Zero-Drop</b>
-                  <span>Native NPCI deep-links with real UTR bank reconciliation</span>
-                </div>
-              </div>
-            </div>
-
+            
             {/* Events in City Section Header */}
             <div className="bms-section-header">
               <div>
@@ -3674,11 +3638,17 @@ export default function TicketWalaPage() {
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                       <span className="bms-travel-badge">
-                        {tr.type === "flight" ? "✈️ FLIGHT" : tr.type === "train" ? "🚅 EXPRESS TRAIN" : "🚌 AC BUS"}
+                        {tr.type === "flight" ? (
+                          <><Plane size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />FLIGHT</>
+                        ) : tr.type === "train" ? (
+                          <><TrainFront size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />EXPRESS TRAIN</>
+                        ) : (
+                          <><Bus size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />AC BUS</>
+                        )}
                         <span style={{ opacity: 0.7 }}>· {tr.badge}</span>
                       </span>
-                      <span style={{ fontSize: "11px", fontWeight: 800, color: "#27ae60", background: "rgba(39, 174, 96, 0.08)", padding: "2px 6px", borderRadius: "4px" }}>
-                        ⚡ {tr.seatsLeft} Left
+                      <span style={{ fontSize: "11px", fontWeight: 800, color: "#27ae60", background: "rgba(39, 174, 96, 0.08)", padding: "2px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                        <Zap size={11} /> {tr.seatsLeft} Left
                       </span>
                     </div>
 
@@ -3772,9 +3742,12 @@ export default function TicketWalaPage() {
                       borderRadius: "6px",
                       fontSize: "11px",
                       fontWeight: 800,
-                      letterSpacing: "0.5px"
+                      letterSpacing: "0.5px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
                     }}>
-                      📍 {evt.cityName}
+                      <MapPin size={11} /> {evt.cityName}
                     </span>
                     <span style={{
                       position: "absolute",
@@ -3903,68 +3876,7 @@ export default function TicketWalaPage() {
               </div>
             </div>
 
-            {/* SECTION 5: WHY TICKETWALA ENGINE ARCHITECTURE */}
-            <div className="bms-section-header">
-              <div>
-                <h2>
-                  Engineered for <span>Zero Double-Bookings</span>
-                </h2>
-                <p className="bms-section-sub">
-                  How TicketWala's FlashLock engine guarantees fair, lightning-fast reservations under extreme flash drops.
-                </p>
-              </div>
-            </div>
-
-            <div className="bms-engine-grid">
-              <div className="bms-engine-card">
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255, 81, 38, 0.1)", color: "var(--o)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "12px", fontSize: "18px" }}>
-                  ⚡
-                </div>
-                <h4 style={{ fontSize: "15px", fontWeight: 800, margin: "0 0 6px", color: "var(--k)" }}>
-                  Atomic Redis Lua Mutex
-                </h4>
-                <p style={{ fontSize: "12.5px", color: "#77736c", margin: 0, lineHeight: 1.5 }}>
-                  Every seat and travel berth is evaluated in-memory via single-threaded Lua script in 0.4ms before PostgreSQL transactions.
-                </p>
-              </div>
-
-              <div className="bms-engine-card">
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(39, 174, 96, 0.1)", color: "#27ae60", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "12px", fontSize: "18px" }}>
-                  ⏱️
-                </div>
-                <h4 style={{ fontSize: "15px", fontWeight: 800, margin: "0 0 6px", color: "var(--k)" }}>
-                  Strict 60s Sliding TTL Leases
-                </h4>
-                <p style={{ fontSize: "12.5px", color: "#77736c", margin: 0, lineHeight: 1.5 }}>
-                  Reservations carry a strict 60-second countdown. If payment is abandoned, inventory instantly returns to the public pool.
-                </p>
-              </div>
-
-              <div className="bms-engine-card">
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "12px", fontSize: "18px" }}>
-                  🎟️
-                </div>
-                <h4 style={{ fontSize: "15px", fontWeight: 800, margin: "0 0 6px", color: "var(--k)" }}>
-                  Turnstile Optical QR Pass
-                </h4>
-                <p style={{ fontSize: "12.5px", color: "#77736c", margin: 0, lineHeight: 1.5 }}>
-                  High-density dynamic QR codes signed cryptographically, scannable at venue optical laser turnstiles even with offline gates.
-                </p>
-              </div>
-
-              <div className="bms-engine-card">
-                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "12px", fontSize: "18px" }}>
-                  💳
-                </div>
-                <h4 style={{ fontSize: "15px", fontWeight: 800, margin: "0 0 6px", color: "var(--k)" }}>
-                  Dynamic Zero-Drop UPI Intent
-                </h4>
-                <p style={{ fontSize: "12.5px", color: "#77736c", margin: 0, lineHeight: 1.5 }}>
-                  Real-time NPCI intent links and dynamic QR barcodes with automated bank UTR reconciliation eliminate payment timeout drops.
-                </p>
-              </div>
-            </div>
-
+            
             {/* SECTION 6: ICONIC VENUES IN CITY */}
             <div className="bms-section-header">
               <div>
@@ -4010,62 +3922,6 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* SECTION 7: FAN & TRAVELER REVIEWS */}
-            <div className="bms-section-header">
-              <div>
-                <h2>
-                  Loved by <span>450,000+ Fans &amp; Travelers</span>
-                </h2>
-                <p className="bms-section-sub">
-                  Real experiences from verified attendees across 12 cities in India.
-                </p>
-              </div>
-            </div>
-
-            <div className="bms-reviews-grid">
-              <div className="bms-review-card">
-                <div style={{ color: "#f59e0b", fontSize: "14px", marginBottom: "8px" }}>★★★★★</div>
-                <p style={{ fontSize: "13px", color: "var(--k)", lineHeight: 1.5, margin: "0 0 14px", fontStyle: "italic" }}>
-                  "Booked Coldplay tickets in 8 seconds flat. The 60-second hold timer gave me complete peace of mind to pay via UPI without worrying about losing my seats."
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#2B2A28", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800 }}>AS</div>
-                  <div>
-                    <b style={{ fontSize: "13px", color: "var(--k)", display: "block" }}>Aarav Sharma</b>
-                    <small style={{ fontSize: "11px", color: "#27ae60", fontWeight: 700 }}>✓ Verified Attendee · Delhi</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bms-review-card">
-                <div style={{ color: "#f59e0b", fontSize: "14px", marginBottom: "8px" }}>★★★★★</div>
-                <p style={{ fontSize: "13px", color: "var(--k)", lineHeight: 1.5, margin: "0 0 14px", fontStyle: "italic" }}>
-                  "Got my Vande Bharat train pass with live turnstile QR. Scanned at gate with zero hassle! No more paper printouts or website crashes."
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--o)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800 }}>PM</div>
-                  <div>
-                    <b style={{ fontSize: "13px", color: "var(--k)", display: "block" }}>Priya Menon</b>
-                    <small style={{ fontSize: "11px", color: "#27ae60", fontWeight: 700 }}>✓ Verified Traveler · Mumbai</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bms-review-card">
-                <div style={{ color: "#f59e0b", fontSize: "14px", marginBottom: "8px" }}>★★★★★</div>
-                <p style={{ fontSize: "13px", color: "var(--k)", lineHeight: 1.5, margin: "0 0 14px", fontStyle: "italic" }}>
-                  "No double-booking horror stories like other ticketing apps. TicketWala is crazy fast, transparent, and the 3D ticket pass is super slick."
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#3b82f6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 800 }}>RK</div>
-                  <div>
-                    <b style={{ fontSize: "13px", color: "var(--k)", display: "block" }}>Rohan Kulkarni</b>
-                    <small style={{ fontSize: "11px", color: "#27ae60", fontWeight: 700 }}>✓ Verified Attendee · Bengaluru</small>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Booking callout */}
@@ -5000,7 +4856,7 @@ export default function TicketWalaPage() {
                   }}
                   title="Toggle ₹1 Test Ticket Mode for live UPI testing"
                 >
-                  <span>🧪</span>
+                  <FlaskConical size={14} />
                   <span>{isOneRupeeTest ? "₹1 Test Mode: ACTIVE" : "₹1 Test Ticket"}</span>
                 </button>
               </div>
@@ -5040,7 +4896,7 @@ export default function TicketWalaPage() {
                     alignItems: "center",
                     justifyContent: "space-between"
                   }}>
-                    <span><strong>🧪 ₹1 Test Gate Active:</strong> Real ₹1 live payment with ₹0 service fee. Scan QR with GPay/PhonePe to pay ₹1 and verify instant ticket generation.</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FlaskConical size={14} /> <strong>₹1 Test Gate Active:</strong> Real ₹1 live payment with ₹0 service fee. Scan QR with GPay/PhonePe to pay ₹1 and verify instant ticket generation.</span>
                     <button
                       type="button"
                       onClick={() => setIsOneRupeeTest(false)}
@@ -5172,7 +5028,7 @@ export default function TicketWalaPage() {
                           </svg>
                           <div>
                             <span style={{ fontSize: "14px", fontWeight: 800, color: "#1b7440", display: "block" }}>
-                              Booking Confirmed &amp; Verified! 🎉
+                              Booking Confirmed &amp; Verified!
                             </span>
                             <span style={{ fontSize: "11px", color: "#27ae60" }}>
                               E-Ticket pass dispatched to <b>{confirmedTicket?.recipientEmail || bookingPassengerEmail || user?.email || "your email"}</b>
@@ -5206,7 +5062,11 @@ export default function TicketWalaPage() {
                                   className="upi-copy-btn"
                                   title="Copy PNR"
                                 >
-                                  {copiedPnr ? "✓ Copied" : "Copy"}
+                                  {copiedPnr ? (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Check size={12} /> Copied</span>
+                                  ) : (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Copy size={12} /> Copy</span>
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -5288,7 +5148,8 @@ export default function TicketWalaPage() {
                               });
                             }}
                           >
-                            ✨ View Ticket Pass
+                            <Ticket size={16} />
+                            <span>View Ticket Pass</span>
                           </button>
 
                           <button
@@ -5329,7 +5190,9 @@ export default function TicketWalaPage() {
                               }
                             }}
                           >
-                            Download &amp; Print E-Ticket Pass 🖨️
+                            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                              <Printer size={15} /> Download &amp; Print E-Ticket Pass
+                            </span>
                           </button>
 
                           <button
@@ -5444,7 +5307,11 @@ export default function TicketWalaPage() {
                             onClick={handleCopyUpi}
                             className="upi-copy-btn"
                           >
-                            {copiedUpi ? "✓ Copied" : "Copy"}
+                            {copiedUpi ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Check size={12} /> Copied</span>
+                            ) : (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Copy size={12} /> Copy</span>
+                            )}
                           </button>
                         </div>
 
@@ -5478,8 +5345,8 @@ export default function TicketWalaPage() {
                           onChange={(e) => setBookingPassengerEmail(e.target.value)}
                           placeholder="your.email@example.com"
                         />
-                        <span style={{ fontSize: "10px", color: "#77736c", marginTop: "3px", display: "block" }}>
-                          📧 Your official boarding pass with QR barcode will be dispatched here.
+                        <span style={{ fontSize: "10px", color: "#77736c", marginTop: "3px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <Mail size={12} /> Your official boarding pass with QR barcode will be dispatched here.
                         </span>
                       </div>
 
@@ -5513,7 +5380,7 @@ export default function TicketWalaPage() {
                               padding: "2px 6px"
                             }}
                           >
-                            ⚡ Fast Demo UTR
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Zap size={11} /> Fast Demo UTR</span>
                           </button>
                         </div>
                         <input
@@ -5529,8 +5396,8 @@ export default function TicketWalaPage() {
                         />
 
                         {paymentError && (
-                          <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "6px", fontWeight: 600 }}>
-                            ⚠️ {paymentError}
+                          <div style={{ fontSize: "11px", color: "#dc2626", marginTop: "6px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <AlertTriangle size={13} /> {paymentError}
                           </div>
                         )}
                       </div>
@@ -6020,21 +5887,21 @@ export default function TicketWalaPage() {
                       className={`hotel-filter-btn ${hotelStarFilter === 5 ? "active" : ""}`}
                       onClick={() => setHotelStarFilter(5)}
                     >
-                      5★ Luxury
+                      5-Star Luxury
                     </button>
                     <button
                       type="button"
                       className={`hotel-filter-btn ${hotelStarFilter === 4 ? "active" : ""}`}
                       onClick={() => setHotelStarFilter(4)}
                     >
-                      4★ Premier
+                      4-Star Premier
                     </button>
                     <button
                       type="button"
                       className={`hotel-filter-btn ${hotelStarFilter === 3 ? "active" : ""}`}
                       onClick={() => setHotelStarFilter(3)}
                     >
-                      3★ Smart
+                      3-Star Smart
                     </button>
                   </div>
 
@@ -6096,8 +5963,11 @@ export default function TicketWalaPage() {
                         <div className="hotel-card-body">
                           <div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)", textTransform: "uppercase" }}>
-                                {hotel.city} · {"★".repeat(hotel.stars)}
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                <span>{hotel.city} ·</span>
+                                {Array.from({ length: hotel.stars }).map((_, i) => (
+                                  <Star key={i} size={11} fill="var(--o)" stroke="none" />
+                                ))}
                               </span>
                             </div>
                             <h3 style={{ fontSize: "17px", fontWeight: 800, color: "var(--k)", margin: "4px 0 2px" }}>
@@ -6448,7 +6318,7 @@ export default function TicketWalaPage() {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
-                    <span>⚡ 1-Click Instant Access (Demo Fan)</span>
+                    <span>1-Click Instant Access (Demo Fan)</span>
                   </button>
 
                   <button
@@ -6757,7 +6627,7 @@ export default function TicketWalaPage() {
                               {/* Card Bottom: Passenger & Actions */}
                               <div className="bms-ticket-bottom">
                                 <span className="bms-pnr-pill" title={`Passenger: ${item.passenger}`}>
-                                  👤 {item.passenger}
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><User size={11} /> {item.passenger}</span>
                                 </span>
                                 <div className="bms-ticket-actions">
                                   <button
@@ -7554,16 +7424,7 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
 
-                <div className="auth-status-card">
-                  <div className="status-indicator">
-                    <span className="live-dot"></span>
-                    <span>Welcome to TicketWala</span>
-                  </div>
-                  <div className="status-stat">
-                    <b>Your next outing starts here</b>
-                    <div style={{ opacity: 0.7 }}>Explore events and book a seat</div>
-                  </div>
-                </div>
+                
               </div>
 
               {/* Right Side: Form */}
@@ -7790,9 +7651,7 @@ export default function TicketWalaPage() {
                   <h2>
                     Join the <em>exclusive drop lane</em>.
                   </h2>
-                  <p>
-                    One account unlocks every high-velocity ticket drop: atomic seat locks, 60-second hold rings, and zero double-booking assurance.
-                  </p>
+                 
 
 
                   {/* Visual Drop Banner Image */}
@@ -7846,17 +7705,6 @@ export default function TicketWalaPage() {
                         <span>Boarding pass styled passes delivered directly to your profile.</span>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="auth-status-card">
-                  <div className="status-indicator">
-                    <span className="live-dot"></span>
-                    <span>Welcome to TicketWala</span>
-                  </div>
-                  <div className="status-stat">
-                    <b>No Hidden Fees</b>
-                    <div style={{ opacity: 0.7 }}>Instant cancellation support</div>
                   </div>
                 </div>
               </div>
@@ -8462,8 +8310,8 @@ export default function TicketWalaPage() {
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
                         <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#FF5126" }} />
-                        <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                          ⚡ FlashLock 60s Atomic Hold Active
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          <Zap size={11} /> FlashLock 60s Atomic Hold Active
                         </span>
                       </div>
                       <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--k)" }}>
@@ -8501,7 +8349,9 @@ export default function TicketWalaPage() {
                   }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                     <div>
-                      <b style={{ color: "#dc2626", fontSize: "13px" }}>⚠️ 60-Second Lease Elapsed</b>
+                      <b style={{ color: "#dc2626", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <AlertTriangle size={15} /> 60-Second Lease Elapsed
+                      </b>
                       <p style={{ color: "#b91c1c", fontSize: "11px", margin: "2px 0 0" }}>
                         Your atomic Redis hold has timed out and returned to inventory. Close and re-select to claim a new lock.
                       </p>
@@ -8587,8 +8437,8 @@ export default function TicketWalaPage() {
                     <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--k)" }}>
                       Dynamic NPCI UPI Gateway
                     </span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", background: "rgba(39, 174, 96, 0.12)", color: "#27ae60", borderRadius: "99px" }}>
-                      🧪 Real ₹1 / Test Gateway Active
+                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", background: "rgba(39, 174, 96, 0.12)", color: "#27ae60", borderRadius: "99px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                      <FlaskConical size={11} /> Real ₹1 / Test Gateway Active
                     </span>
                   </div>
 
@@ -8613,7 +8463,11 @@ export default function TicketWalaPage() {
                           onClick={handleCopyTravelUpi}
                           style={{ fontSize: "11px", color: "var(--o)", background: "transparent", border: "none", cursor: "pointer", fontWeight: 700 }}
                         >
-                          {copiedTravelUpi ? "✓ Copied" : "Copy"}
+                          {copiedTravelUpi ? (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Check size={11} /> Copied</span>
+                          ) : (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Copy size={11} /> Copy</span>
+                          )}
                         </button>
                       </div>
                       <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)" }}>
@@ -8633,7 +8487,7 @@ export default function TicketWalaPage() {
                         onClick={handleQuickFillTravelUtr}
                         style={{ fontSize: "10px", fontWeight: 700, color: "var(--o)", background: "transparent", border: "none", cursor: "pointer" }}
                       >
-                        ⚡ Quick-Fill Test UTR
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "3px" }}><Zap size={10} /> Quick-Fill Test UTR</span>
                       </button>
                     </div>
                     <input
@@ -8917,7 +8771,7 @@ export default function TicketWalaPage() {
                   </div>
                   <div className="ticket-3d-meta-item">
                     <small>STATUS</small>
-                    <b style={{ color: "#ffffff" }}>✓ {active3DTicket.status}</b>
+                    <b style={{ color: "#ffffff", display: "inline-flex", alignItems: "center", gap: "4px" }}><Check size={12} strokeWidth={3} /> {active3DTicket.status}</b>
                   </div>
                 </div>
 
@@ -9053,7 +8907,7 @@ export default function TicketWalaPage() {
           </div>
 
           <div className="ticket-tilt-hint">
-            <span>💡 Tilt your mouse over the pass for 3D holographic parallax view</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Lightbulb size={13} /> Tilt your mouse over the pass for 3D holographic parallax view</span>
           </div>
         </div>
       </div>
@@ -9065,7 +8919,7 @@ export default function TicketWalaPage() {
           <div className="travel-modal-box" style={{ maxWidth: "480px", textAlign: "left", padding: "0", overflow: "hidden", borderRadius: "20px" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ background: "#2B2A28", color: "#fff", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ color: "var(--o)", fontSize: "16px" }}>🎟️</span>
+                <Ticket size={16} style={{ color: "var(--o)" }} />
                 <b style={{ fontSize: "13px", letterSpacing: "1px", textTransform: "uppercase" }}>TICKETWALA BOARDING PASS</b>
               </div>
               <button
@@ -9124,7 +8978,8 @@ export default function TicketWalaPage() {
                     window.open(`/verify?pnr=${ticketModalBooking.pnr}`, "_blank");
                   }}
                 >
-                  🔍 Test Gate Verify (New Tab)
+                  <ExternalLink size={12} />
+                  <span>Test Gate Verify (New Tab)</span>
                 </button>
               </div>
 
@@ -9176,7 +9031,9 @@ export default function TicketWalaPage() {
                     }
                   }}
                 >
-                  Print E-Ticket 🖨️
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                    <Printer size={15} /> Print E-Ticket
+                  </span>
                 </button>
                 <button
                   type="button"

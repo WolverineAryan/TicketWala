@@ -14,6 +14,7 @@ import {
   User,
   ShieldCheck,
   ChevronRight,
+  Check,
 } from "lucide-react";
 import ConfirmedTicketPass from "@/components/ConfirmedTicketPass";
 import { ConfirmResponse } from "@/types/api";
@@ -195,8 +196,8 @@ export default function ProfilePage() {
                     <span className="font-mono text-xs font-black text-indigo-400 tracking-wider bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
                       PNR: {booking.pnr}
                     </span>
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      ✓ CONFIRMED
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                      <Check className="w-3 h-3" /> CONFIRMED
                     </span>
                   </div>
 

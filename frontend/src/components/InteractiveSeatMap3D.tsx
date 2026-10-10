@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { InventoryUnitState, ReservationStatus, SeatTier } from "@/types/api";
-import { Check, Lock, Eye, Layers, Sparkles } from "lucide-react";
+import { Check, Lock, Eye, Layers, Sparkles, Plane, Mic, Trophy, Film, TrainFront } from "lucide-react";
 
 interface InteractiveSeatMap3DProps {
   units: InventoryUnitState[];
