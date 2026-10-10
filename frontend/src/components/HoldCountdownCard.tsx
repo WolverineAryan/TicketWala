@@ -29,7 +29,7 @@ interface HoldCountdownCardProps {
 export const HoldCountdownCard: React.FC<HoldCountdownCardProps> = ({
   hold,
   secondsRemaining,
-  totalTTL = 45,
+  totalTTL = 60,
   onConfirm,
   onRelease,
   isLoading,

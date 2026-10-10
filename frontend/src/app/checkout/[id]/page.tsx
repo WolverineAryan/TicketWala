@@ -34,7 +34,7 @@ export default function CheckoutPage() {
 
   const [holdData, setHoldData] = useState<HoldResponse | null>(null);
   const [upiDetails, setUpiDetails] = useState<DynamicUpiDetails | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(45);
+  const [timeLeft, setTimeLeft] = useState<number>(60);
   const [holdLoaded, setHoldLoaded] = useState(false);
   const [upiError, setUpiError] = useState<string | null>(null);
 
@@ -109,7 +109,7 @@ export default function CheckoutPage() {
     };
   }, [reservationId, holdData]);
 
-  // 45-second active hold countdown timer against server-issued hold expiry
+  // 60-second active hold countdown timer against server-issued hold expiry
   useEffect(() => {
     if (!holdData || confirmedTicket) return;
 
@@ -225,7 +225,7 @@ export default function CheckoutPage() {
           </h2>
           <p className="text-xs text-slate-400 mt-2">
             {holdData
-              ? "The 45-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding."
+              ? "The 60-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding."
               : "We couldn’t find this seat hold in your session. Please choose a seat again to continue."}
           </p>
           <button

@@ -114,13 +114,13 @@ export default function HomePage() {
           <div className="relative z-10 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold tracking-wide uppercase mb-3">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Trending Drops in Mumbai • 45s Flash Hold Active</span>
+              <span>Trending Drops in Mumbai • 60s Flash Hold Active</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
               Find something worth going out for.
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl leading-relaxed">
-              Explore events, choose your seats, and we’ll hold them for 45 seconds while you finish checkout.
+              Explore events, choose your seats, and we’ll hold them for 60 seconds while you finish checkout.
             </p>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-300">
               <span><strong className="text-indigo-300">1.</strong> Choose an event</span>

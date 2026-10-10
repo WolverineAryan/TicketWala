@@ -528,7 +528,7 @@ export default function SimulationPage() {
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Active Holds</span>
                     <span className="text-2xl font-black text-amber-400 mt-1 block">{auditReport.summary.held}</span>
-                    <span className="text-[10px] text-slate-500">45s TTL leases</span>
+                    <span className="text-[10px] text-slate-500">60s TTL leases</span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">

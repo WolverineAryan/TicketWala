@@ -2581,6 +2581,8 @@ footer {
   border: 1px solid rgba(43, 42, 40, 0.1);
   padding: 32px;
   animation: slideUp 0.25s ease;
+  scrollbar-width: thin;
+  scrollbar-color: #FF5126 rgba(255, 107, 53, 0.08);
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -4717,23 +4719,29 @@ footer {
 
 .travel-modal-box {
   background: #ffffff;
-  border-radius: 24px;
+  border-radius: 28px;
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-height: min(90vh, 760px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 4px 16px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(43, 42, 40, 0.1);
+  scrollbar-width: thin;
+  scrollbar-color: #FF5126 rgba(255, 107, 53, 0.08);
 }
 
 .travel-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
+  padding: 22px 28px 16px 28px;
+  margin: 0;
   border-bottom: 1px solid #f2f0ec;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 
 .travel-modal-header h3 {
@@ -4748,14 +4756,55 @@ footer {
   border: none;
   cursor: pointer;
   color: #8c8880;
-  padding: 4px;
+  padding: 6px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .travel-modal-close:hover {
   color: var(--k);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.travel-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 28px 24px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: #FF5126 rgba(255, 107, 53, 0.08);
+}
+
+/* Custom Sleek Orange Slidebar / Scrollbar */
+.travel-modal-box::-webkit-scrollbar,
+.travel-modal-body::-webkit-scrollbar,
+.city-modal-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.travel-modal-box::-webkit-scrollbar-track,
+.travel-modal-body::-webkit-scrollbar-track,
+.city-modal-box::-webkit-scrollbar-track {
+  background: rgba(255, 107, 53, 0.06);
+  border-radius: 999px;
+  margin: 12px 4px;
+}
+
+.travel-modal-box::-webkit-scrollbar-thumb,
+.travel-modal-body::-webkit-scrollbar-thumb,
+.city-modal-box::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF6B35 0%, #FF5126 100%);
+  border-radius: 999px;
+  box-shadow: 0 1px 4px rgba(255, 81, 38, 0.35);
+}
+
+.travel-modal-box::-webkit-scrollbar-thumb:hover,
+.travel-modal-body::-webkit-scrollbar-thumb:hover,
+.city-modal-box::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF5126 0%, #E63E00 100%);
 }
 
 /* TRAVEL BOOKINGS & PASSES CARDS */

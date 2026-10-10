@@ -135,9 +135,9 @@ export default function ExplorePage() {
           <div className="relative z-10 max-w-xl">
             <h1 className="text-2xl sm:text-3xl font-black text-white">Find your next great experience</h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2">
-              Instant 45s seat reservation with zero booking fee via direct UPI payment. Select your exact seats in real-time.
+              Instant 60s seat reservation with zero booking fee via direct UPI payment. Select your exact seats in real-time.
             </p>
-            <p className="text-xs text-slate-400 mt-3">Your seat is held for 45 seconds when you continue to checkout.</p>
+            <p className="text-xs text-slate-400 mt-3">Your seat is held for 60 seconds when you continue to checkout.</p>
           </div>
         </div>
 

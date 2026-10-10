@@ -124,7 +124,7 @@ export default function ContactPage() {
             How can our team help you?
           </h1>
           <p className="text-slate-400 text-sm">
-            Whether you have an active 45s reservation inquiry, need UPI payment verification, or want to host a high-demand drop, we are here to support you.
+            Whether you have an active 60s reservation inquiry, need UPI payment verification, or want to host a high-demand drop, we are here to support you.
           </p>
         </div>
 

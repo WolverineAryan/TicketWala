@@ -59,7 +59,7 @@ const DATABASE_URL =
   process.env.DATABASE_DIRECT_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "45", 10);
+const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "60", 10);
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
   : ["*"];
@@ -2032,7 +2032,7 @@ export async function createServer(): Promise<{
         outcomes: results.map((r) => ({
           contender: r.name,
           httpStatus: r.statusCode,
-          outcome: r.statusCode === 201 ? "GRANTED_45S_HOLD" : "REJECTED_ALREADY_RESERVED",
+          outcome: r.statusCode === 201 ? "GRANTED_60S_HOLD" : "REJECTED_ALREADY_RESERVED",
         })),
         durationMs: +(performance.now() - startTime).toFixed(2),
         timestamp: new Date().toISOString(),

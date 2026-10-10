@@ -31,7 +31,7 @@ export default function Footer() {
             </p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>FlashLock 45s Invariant Verified</span>
+              <span>FlashLock 60s Invariant Verified</span>
             </div>
           </div>
 
@@ -73,7 +73,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-slate-500 text-[11px] block mt-1">
-                  Holds expire strictly after 45s if unpaid. Recycled to pool automatically.
+                  Holds expire strictly after 60s if unpaid. Recycled to pool automatically.
                 </span>
               </li>
             </ul>

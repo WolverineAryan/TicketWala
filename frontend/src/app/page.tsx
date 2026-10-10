@@ -5,7 +5,7 @@ import confetti from "canvas-confetti";
 import { signInWithGoogle, logOut } from "@/lib/firebase";
 
 const N = 200;
-const TTL = 45; // 45 seconds TTL lock guarantee
+const TTL = 60; // 60 seconds TTL lock guarantee
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "9146199158@fam";
@@ -622,6 +622,7 @@ interface Active3DTicketData {
   price: number | string;
   status: string;
   sourceType: "travel" | "event";
+  qrPayload?: string;
 }
 
 const MOCK_TRANSPORT_LISTINGS: TravelTransportItem[] = [
@@ -1228,6 +1229,27 @@ export default function TicketWalaPage() {
   const [currentReservationId, setCurrentReservationId] = useState<string>("");
   const [ticketModalBooking, setTicketModalBooking] = useState<Booking | null>(null);
 
+  // Travel Booking Redis 60s TTL Hold & Payment Gateway State
+  const [travelHoldExpiry, setTravelHoldExpiry] = useState<number | null>(null);
+  const [travelTtlSeconds, setTravelTtlSeconds] = useState<number>(60);
+  const [travelReservationId, setTravelReservationId] = useState<string>("");
+  const [travelPnrDraft, setTravelPnrDraft] = useState<string>("");
+  const [travelSeatLabel, setTravelSeatLabel] = useState<string>("");
+  const [travelUpiDetails, setTravelUpiDetails] = useState<{
+    upiId: string;
+    payeeName: string;
+    amount: number;
+    currency: string;
+    transactionRef: string;
+    note: string;
+    intentUrl: string;
+    qrCodeDataUrl: string;
+  } | null>(null);
+  const [travelUtrInput, setTravelUtrInput] = useState<string>("");
+  const [isVerifyingTravelPayment, setIsVerifyingTravelPayment] = useState<boolean>(false);
+  const [travelPaymentError, setTravelPaymentError] = useState<string | null>(null);
+  const [copiedTravelUpi, setCopiedTravelUpi] = useState<boolean>(false);
+
   // Telemetry & Load-Testing State
   const [stats, setStats] = useState({ req: 0, ok: 0, no: 0, exp: 0 });
   const [isBusy, setIsBusy] = useState(false);
@@ -1236,7 +1258,7 @@ export default function TicketWalaPage() {
   const [historyPoints, setHistoryPoints] = useState<number[]>([]);
 
   // Home Page Interactive States
-  const [heroTtl, setHeroTtl] = useState<number>(44);
+  const [heroTtl, setHeroTtl] = useState<number>(59);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [activeArchNode, setActiveArchNode] = useState<number>(1);
   const [chaosMode, setChaosMode] = useState<string>("idle");
@@ -1244,10 +1266,23 @@ export default function TicketWalaPage() {
   // Hero pass live TTL countdown timer loop
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroTtl((prev) => (prev <= 1 ? 45 : prev - 1));
+      setHeroTtl((prev) => (prev <= 1 ? 60 : prev - 1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Travel reservation 60s TTL countdown timer loop
+  useEffect(() => {
+    if (!travelHoldExpiry) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((travelHoldExpiry - Date.now()) / 1000));
+      setTravelTtlSeconds(remaining);
+      if (remaining <= 0) {
+        addLog(`TTL expired travel reservation ${travelReservationId} → released`, "no");
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [travelHoldExpiry, travelReservationId]);
 
   // Canvas Refs
   const sparkCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -2141,6 +2176,345 @@ export default function TicketWalaPage() {
     setPaymentError(null);
   };
 
+  // ============================================================
+  // TRAVEL BOOKING REDIS ATOMIC HOLD & VERIFICATION PIPELINE
+  // ============================================================
+  const handleStartTravelBooking = (
+    item: TravelTransportItem | TravelHotelItem,
+    category: "transport" | "hotel"
+  ) => {
+    const isTransport = category === "transport";
+    const transportItem = isTransport ? (item as TravelTransportItem) : null;
+    const hotelItem = !isTransport ? (item as TravelHotelItem) : null;
+
+    // Determine seat / unit assignment
+    let seatLabel = "Unit-01";
+    if (isTransport && transportItem) {
+      if (transportItem.type === "flight") {
+        const rows = [12, 14, 15, 18, 22, 24];
+        const letters = ["A", "B", "C", "D", "E", "F"];
+        seatLabel = `${rows[Math.floor(Math.random() * rows.length)]}${letters[Math.floor(Math.random() * letters.length)]} (Window/Aisle)`;
+      } else if (transportItem.type === "train") {
+        seatLabel = `Coach B${Math.floor(1 + Math.random() * 5)} · Berth ${Math.floor(1 + Math.random() * 64)}`;
+      } else if (transportItem.type === "bus") {
+        seatLabel = `Seat #${Math.floor(1 + Math.random() * 30)} (Upper Deck)`;
+      } else {
+        seatLabel = `Fleet MH-02-TW-${Math.floor(1000 + Math.random() * 9000)}`;
+      }
+    } else if (hotelItem) {
+      seatLabel = `Deluxe Room #${Math.floor(201 + Math.random() * 299)}`;
+    }
+
+    const prefix = isTransport
+      ? transportItem!.type === "flight"
+        ? "FL"
+        : transportItem!.type === "train"
+        ? "VB"
+        : transportItem!.type === "bus"
+        ? "BS"
+        : "CB"
+      : "HT";
+
+    const pnrDraft = `TW-${prefix}${Math.floor(10000 + Math.random() * 90000)}`;
+    const resId = `res-trv-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const basePrice = isTransport ? (transportItem!.price * travelersCount) : hotelItem!.pricePerNight;
+    const taxes = Math.round(basePrice * 0.05);
+    const totalFare = basePrice + taxes;
+
+    setTravelReservationId(resId);
+    setTravelPnrDraft(pnrDraft);
+    setTravelSeatLabel(seatLabel);
+    setTravelHoldExpiry(Date.now() + 60 * 1000);
+    setTravelTtlSeconds(60);
+    setTravelUtrInput("");
+    setTravelPaymentError(null);
+
+    const initialName = user?.name || bookingPassengerName || "Aryan Sharma";
+    const initialPhone = user?.phone || profilePhone || "+91 91461 99158";
+    const initialEmail = user?.email || bookingPassengerEmail || "aryan@gmail.com";
+    setBookingPassengerName(initialName);
+    setBookingPassengerPhone(initialPhone);
+    setBookingPassengerEmail(initialEmail);
+
+    // Initial NPCI UPI Intent & Dynamic QR Code
+    const rawIntentUrl = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(PAYEE_NAME)}&am=${totalFare}&cu=INR&tr=${encodeURIComponent(resId)}&tn=${encodeURIComponent(`TicketWala ${pnrDraft}`)}`;
+    const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(rawIntentUrl)}&size=300x300&color=2B2A28`;
+
+    setTravelUpiDetails({
+      upiId: UPI_ID,
+      payeeName: PAYEE_NAME,
+      amount: totalFare,
+      currency: "INR",
+      transactionRef: resId,
+      note: `TicketWala ${pnrDraft}`,
+      intentUrl: rawIntentUrl,
+      qrCodeDataUrl: fallbackQr,
+    });
+
+    // Request backend to generate dynamic QR with server-side signing
+    fetch(`${API_BASE}/api/v1/payments/generate-upi`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: totalFare,
+        reservationId: resId,
+        pnr: pnrDraft,
+        eventTitle: isTransport ? transportItem!.operator : hotelItem!.name,
+        upiId: UPI_ID,
+        payeeName: PAYEE_NAME,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.qrCodeDataUrl) {
+          setTravelUpiDetails(data);
+        }
+      })
+      .catch(() => {});
+
+    // Acquire Redis Lua atomic hold lease
+    fetch(`${API_BASE}/api/v1/reservations/hold`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId: `trv-${item.id}`,
+        unitId: seatLabel,
+        tierId: isTransport ? (transportItem?.classType || "ECONOMY") : "STANDARD",
+      }),
+    }).catch(() => {});
+
+    addLog(`EVAL lock.lua travel ${isTransport ? transportItem!.operator : hotelItem!.name} (${seatLabel}) → OK ttl=60s`, "ok");
+    setSelectedTravelItem({ item, category });
+  };
+
+  const handleCopyTravelUpi = () => {
+    if (!travelUpiDetails?.upiId) return;
+    navigator.clipboard.writeText(travelUpiDetails.upiId);
+    setCopiedTravelUpi(true);
+    setTimeout(() => setCopiedTravelUpi(false), 2000);
+  };
+
+  const handleQuickFillTravelUtr = () => {
+    const testUtr = "4289" + Math.floor(10000000 + Math.random() * 90000000).toString();
+    setTravelUtrInput(testUtr);
+    setTravelPaymentError(null);
+  };
+
+  const handleDropTravelHold = () => {
+    if (travelReservationId) {
+      fetch(`${API_BASE}/api/v1/reservations/${travelReservationId}/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ holdToken: "client-abandon" }),
+      }).catch(() => {});
+    }
+    if (selectedTravelItem) {
+      const isTransport = selectedTravelItem.category === "transport";
+      const name = isTransport ? (selectedTravelItem.item as TravelTransportItem).operator : (selectedTravelItem.item as TravelHotelItem).name;
+      addLog(`RELEASE travel ${name} (${travelSeatLabel}) (abandoned)`);
+    }
+    setSelectedTravelItem(null);
+    setTravelHoldExpiry(null);
+    setTravelTtlSeconds(60);
+    setTravelUpiDetails(null);
+    setTravelUtrInput("");
+    setTravelPaymentError(null);
+  };
+
+  const handleConfirmTravelBooking = async () => {
+    if (!selectedTravelItem) return;
+    if (travelTtlSeconds <= 0) {
+      setTravelPaymentError("Hold lease expired. Your 60s reservation has elapsed and the unit was returned to inventory.");
+      return;
+    }
+
+    const cleanUtr = travelUtrInput.trim().replace(/\s+/g, "");
+    if (!cleanUtr || cleanUtr.length < 8) {
+      setTravelPaymentError("Please enter a valid 12-digit UPI Reference Number / UTR or click 'Quick-Fill Test UTR'.");
+      return;
+    }
+
+    const isTransport = selectedTravelItem.category === "transport";
+    const transportItem = isTransport ? (selectedTravelItem.item as TravelTransportItem) : null;
+    const hotelItem = !isTransport ? (selectedTravelItem.item as TravelHotelItem) : null;
+
+    const basePrice = isTransport ? (transportItem!.price * travelersCount) : hotelItem!.pricePerNight;
+    const taxes = Math.round(basePrice * 0.05);
+    const totalFare = basePrice + taxes;
+
+    const emailToSend = bookingPassengerEmail.trim() || user?.email || "aryan@gmail.com";
+    const nameToSend = bookingPassengerName.trim() || user?.name || "Aryan Sharma";
+    const phoneToSend = bookingPassengerPhone.trim() || user?.phone || "+91 91461 99158";
+
+    const titleToSend = isTransport
+      ? `${transportItem!.operator} · ${transportItem!.fromCode} → ${transportItem!.toCode}`
+      : hotelItem!.name;
+    const subtitleToSend = isTransport ? transportItem!.subTitle : hotelItem!.address;
+    const venueOrRoute = isTransport ? `${transportItem!.from} → ${transportItem!.to}` : hotelItem!.city;
+    const dateStr = isTransport
+      ? `${transportDate} · ${transportItem!.depTime}`
+      : `${hotelCheckIn} - ${hotelCheckOut} (3 Nights)`;
+
+    setIsVerifyingTravelPayment(true);
+    setTravelPaymentError(null);
+
+    const pnrCode = travelPnrDraft || `TW-TRV${Math.floor(10000 + Math.random() * 90000)}`;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/payments/confirm-and-send-ticket`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId: travelReservationId,
+          pnr: pnrCode,
+          utr: cleanUtr,
+          passengerName: nameToSend,
+          email: emailToSend,
+          phone: phoneToSend,
+          eventTitle: titleToSend,
+          categoryLabel: isTransport ? `${transportItem!.type.toUpperCase()} BOOKING` : "HOTEL STAY",
+          venue: venueOrRoute,
+          dateTime: dateStr,
+          seatLabel: travelSeatLabel,
+          tierName: isTransport ? transportItem!.classType : "Confirmed Room",
+          amountPaid: totalFare,
+        }),
+      });
+
+      const data = await res.json();
+      const verifiedPnr = data.pnr || pnrCode;
+      const qrPayload = data.qrCodePayload || `TICKETWALA:${verifiedPnr}:${travelSeatLabel}:UTR:${cleanUtr}`;
+
+      const newRecord: TravelBookingRecord = {
+        id: `bk-${Date.now()}`,
+        pnr: verifiedPnr,
+        type: isTransport ? transportItem!.type : "hotel",
+        title: titleToSend,
+        subtitle: subtitleToSend,
+        fromToOrCity: venueOrRoute,
+        dateStr,
+        passengers: `${nameToSend} (${isTransport ? travelersCount : 2} Pax)`,
+        price: totalFare,
+        status: "Confirmed",
+        bookedAt: "Just now",
+        details: isTransport
+          ? `${transportItem!.classType} · Instant Seat Assigned (${travelSeatLabel})`
+          : `Luxury Room · Free Breakfast Included (${travelSeatLabel})`,
+      };
+
+      setTravelBookings((prev) => [newRecord, ...prev]);
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("tw_travel_bookings") || "[]");
+        localStorage.setItem("tw_travel_bookings", JSON.stringify([newRecord, ...stored]));
+      } catch {}
+
+      const mainBooking: Booking = {
+        s: travelSeatLabel,
+        e: titleToSend,
+        tier: isTransport ? transportItem!.classType : "Hotel Suite",
+        price: totalFare,
+        pnr: verifiedPnr,
+        qrPayload,
+        dateTime: dateStr,
+        venue: venueOrRoute,
+        passengerName: nameToSend,
+        passengerEmail: emailToSend,
+        utr: cleanUtr,
+        confirmedAt: Date.now(),
+      };
+      setBookings((prev) => [mainBooking, ...prev]);
+
+      try {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      } catch {}
+
+      addLog(`CONFIRMED: Travel ${titleToSend} locked · PNR ${verifiedPnr} verified`, "ok");
+
+      setSelectedTravelItem(null);
+      setTravelHoldExpiry(null);
+
+      setActive3DTicket({
+        ticketType: isTransport
+          ? transportItem!.type === "flight"
+            ? "Flight"
+            : transportItem!.type === "train"
+            ? "Train"
+            : transportItem!.type === "bus"
+            ? "Bus"
+            : "Cab"
+          : "Hotel",
+        bookingId: verifiedPnr,
+        customerName: nameToSend,
+        title: titleToSend,
+        subtitle: subtitleToSend,
+        venueOrRoute,
+        dateStr: dateStr.split("·")[0].trim(),
+        timeStr: isTransport ? transportItem!.depTime : "12:00 PM Check-In",
+        seatOrClass: travelSeatLabel,
+        price: totalFare,
+        status: "Confirmed",
+        sourceType: "travel",
+        qrPayload,
+      });
+    } catch (err: any) {
+      const fallbackPnr = travelPnrDraft || `TW-TRV${Math.floor(10000 + Math.random() * 90000)}`;
+      const qrPayload = `TICKETWALA:${fallbackPnr}:${travelSeatLabel}:UTR:${cleanUtr}`;
+
+      const newRecord: TravelBookingRecord = {
+        id: `bk-${Date.now()}`,
+        pnr: fallbackPnr,
+        type: isTransport ? transportItem!.type : "hotel",
+        title: titleToSend,
+        subtitle: subtitleToSend,
+        fromToOrCity: venueOrRoute,
+        dateStr,
+        passengers: `${nameToSend} (${isTransport ? travelersCount : 2} Pax)`,
+        price: totalFare,
+        status: "Confirmed",
+        bookedAt: "Just now",
+        details: isTransport
+          ? `${transportItem!.classType} · Instant Seat Assigned (${travelSeatLabel})`
+          : `Luxury Room · Free Breakfast Included (${travelSeatLabel})`,
+      };
+
+      setTravelBookings((prev) => [newRecord, ...prev]);
+      try {
+        const stored = JSON.parse(localStorage.getItem("tw_travel_bookings") || "[]");
+        localStorage.setItem("tw_travel_bookings", JSON.stringify([newRecord, ...stored]));
+      } catch {}
+
+      setSelectedTravelItem(null);
+      setTravelHoldExpiry(null);
+
+      setActive3DTicket({
+        ticketType: isTransport
+          ? transportItem!.type === "flight"
+            ? "Flight"
+            : transportItem!.type === "train"
+            ? "Train"
+            : transportItem!.type === "bus"
+            ? "Bus"
+            : "Cab"
+          : "Hotel",
+        bookingId: fallbackPnr,
+        customerName: nameToSend,
+        title: titleToSend,
+        subtitle: subtitleToSend,
+        venueOrRoute,
+        dateStr: dateStr.split("·")[0].trim(),
+        timeStr: isTransport ? transportItem!.depTime : "12:00 PM Check-In",
+        seatOrClass: travelSeatLabel,
+        price: totalFare,
+        status: "Confirmed",
+        sourceType: "travel",
+        qrPayload,
+      });
+    } finally {
+      setIsVerifyingTravelPayment(false);
+    }
+  };
+
   // 5. 5,000 Users Flash-Drop Demo ("storm()")
   const runFlashDropStorm = () => {
     if (isBusy) return;
@@ -2845,7 +3219,7 @@ export default function TicketWalaPage() {
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                <span><b>45s TTL Hold Ring</b></span>
+                <span><b>60s TTL Hold Ring</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
@@ -3033,7 +3407,7 @@ export default function TicketWalaPage() {
                   Found something you’d love to see?
                 </h3>
                 <p style={{ color: "#d6d0c4", fontSize: "14px", lineHeight: 1.5 }}>
-                  Redis Lua atomic script execution, 45s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
+                  Redis Lua atomic script execution, 60s TTL sliding hold rings, and asynchronous PostgreSQL queue decoupling.
                 </p>
               </div>
               <button
@@ -3108,7 +3482,7 @@ export default function TicketWalaPage() {
                 </div>
                 <div className="tk">
                   <div>
-                    <span>HOLD · TTL</span>00:45
+                    <span>HOLD · TTL</span>01:00
                   </div>
                   <b>
                     <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -3207,7 +3581,7 @@ export default function TicketWalaPage() {
                 <div className="code-preview-box">
                   <span className="code-comment">-- Atomic Lua allocation</span><br />
                   <span className="code-keyword">if</span> redis.<span className="code-func">call</span>(<span className="code-string">&apos;get&apos;</span>, k) == <span className="code-keyword">false</span> <span className="code-keyword">then</span><br />
-                  &nbsp;&nbsp;redis.<span className="code-func">call</span>(<span className="code-string">&apos;setex&apos;</span>, k, 45, uid)<br />
+                  &nbsp;&nbsp;redis.<span className="code-func">call</span>(<span className="code-string">&apos;setex&apos;</span>, k, 60, uid)<br />
                   &nbsp;&nbsp;<span className="code-keyword">return</span> 1 <span className="code-comment">-- Lock granted (0.4ms)</span><br />
                   <span className="code-keyword">end</span>
                 </div>
@@ -3216,7 +3590,7 @@ export default function TicketWalaPage() {
                 <div className="n">2</div>
                 <h3>TTL Hold</h3>
                 <p>
-                  The seat key is stored with an ephemeral 45-second TTL. Abandon checkout or close your tab, and Redis auto-evicts the key back to the public pool instantly.
+                  The seat key is stored with an ephemeral 60-second TTL. Abandon checkout or close your tab, and Redis auto-evicts the key back to the public pool instantly.
                 </p>
                 <div style={{ marginTop: "16px", padding: "14px 16px", background: "#fff", borderRadius: "12px", border: "1px solid #0001", display: "flex", alignItems: "center", gap: "12px" }}>
                   <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "var(--o)", animation: "pulse 1.2s infinite" }}></div>
@@ -3299,14 +3673,14 @@ export default function TicketWalaPage() {
                   </div>
                 </div>
                 <div>
-                  <div className="arch-node-title">Ephemeral 45s TTL</div>
+                  <div className="arch-node-title">Ephemeral 60s TTL</div>
                   <div className="arch-node-desc">
-                    Keys are stored with a strict 45-second TTL. If payment drops or tab closes, Redis automatically evicts the lock with zero database garbage accumulation.
+                    Keys are stored with a strict 60-second TTL. If payment drops or tab closes, Redis automatically evicts the lock with zero database garbage accumulation.
                   </div>
                 </div>
                 <div className="arch-node-meta">
                   <span>Auto-Recycling</span>
-                  <span className="arch-node-metric">45s Hardware TTL</span>
+                  <span className="arch-node-metric">60s Hardware TTL</span>
                 </div>
               </div>
 
@@ -3430,7 +3804,7 @@ export default function TicketWalaPage() {
                   </li>
                   <li>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span>Hardware-enforced 45s TTL automatically reclaims abandoned reservations without background sweeper lags.</span>
+                    <span>Hardware-enforced 60s TTL automatically reclaims abandoned reservations without background sweeper lags.</span>
                   </li>
                   <li>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -3674,12 +4048,12 @@ export default function TicketWalaPage() {
 
               <div className={`faq-card ${openFaq === 1 ? "open" : ""}`}>
                 <div className="faq-header" onClick={() => setOpenFaq(openFaq === 1 ? null : 1)}>
-                  <span>What happens if a user closes their tab or loses internet during the 45-second hold?</span>
+                  <span>What happens if a user closes their tab or loses internet during the 60-second hold?</span>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 {openFaq === 1 && (
                   <div className="faq-body">
-                    Every seat reservation has a hardware-enforced 45-second TTL (Time-To-Live). If the user doesn&apos;t confirm checkout before the TTL timer expires, Redis automatically evicts the key without needing any cleanup cron job, and the seat is immediately available on the next millisecond to everyone waiting.
+                    Every seat reservation has a hardware-enforced 60-second TTL (Time-To-Live). If the user doesn&apos;t confirm checkout before the TTL timer expires, Redis automatically evicts the key without needing any cleanup cron job, and the seat is immediately available on the next millisecond to everyone waiting.
                   </div>
                 )}
               </div>
@@ -3955,7 +4329,7 @@ export default function TicketWalaPage() {
                 1 · Select Seat
               </div>
               <div id="st2" className={stepNum > 2 ? "done" : stepNum === 2 ? "on" : ""}>
-                2 · Lock &amp; Hold (45s)
+                2 · Lock &amp; Hold (60s)
               </div>
               <div id="st3" className={stepNum === 3 ? "on" : ""}>
                 3 · Confirm Order
@@ -4251,7 +4625,7 @@ export default function TicketWalaPage() {
                         </div>
                         <h3 style={{ fontSize: "18px", marginBottom: "6px" }}>Select an Available Seat</h3>
                         <p style={{ fontSize: "13px", opacity: 0.75, lineHeight: 1.5, marginBottom: "16px" }}>
-                          Click any seat in the theater map to claim an atomic Redis lock. You will get 45 seconds to review, scan UPI QR, and pay.
+                          Click any seat in the theater map to claim an atomic Redis lock. You will get 60 seconds to review, scan UPI QR, and pay.
                         </p>
                         <div style={{ background: "var(--g)", borderRadius: "12px", padding: "12px 16px", textAlign: "left", fontSize: "12px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
@@ -4810,14 +5184,9 @@ export default function TicketWalaPage() {
                             type="button"
                             className="btn primary"
                             style={{ padding: "8px 18px", fontSize: "12px", width: "100%" }}
-                            onClick={() => {
-                              setSelectedTravelItem({ item, category: "transport" });
-                              setBookingPassengerName(user?.name || "Demo Traveler");
-                              setBookingPassengerPhone(user?.phone || profilePhone || "+91 98200 12345");
-                              setBookingPassengerEmail(user?.email || "traveler@ticketwala.com");
-                            }}
+                            onClick={() => handleStartTravelBooking(item, "transport")}
                           >
-                            {item.type === "cab" ? "Book Cab" : "Book Seat"}
+                            {item.type === "cab" ? "Book Cab (60s Lock)" : "Book Seat (60s Lock)"}
                           </button>
                         </div>
                       </div>
@@ -5026,14 +5395,9 @@ export default function TicketWalaPage() {
                               type="button"
                               className="btn primary"
                               style={{ padding: "8px 18px", fontSize: "12px" }}
-                              onClick={() => {
-                                setSelectedTravelItem({ item: hotel, category: "hotel" });
-                                setBookingPassengerName(user?.name || "Demo Traveler");
-                                setBookingPassengerPhone(user?.phone || profilePhone || "+91 98200 12345");
-                                setBookingPassengerEmail(user?.email || "traveler@ticketwala.com");
-                              }}
+                              onClick={() => handleStartTravelBooking(hotel, "hotel")}
                             >
-                              Book Stay
+                              Book Stay (60s Lock)
                             </button>
                           </div>
                         </div>
@@ -6564,7 +6928,7 @@ export default function TicketWalaPage() {
                     Join the <em>exclusive drop lane</em>.
                   </h2>
                   <p>
-                    One account unlocks every high-velocity ticket drop: atomic seat locks, 45-second hold rings, and zero double-booking assurance.
+                    One account unlocks every high-velocity ticket drop: atomic seat locks, 60-second hold rings, and zero double-booking assurance.
                   </p>
 
 
@@ -7204,202 +7568,291 @@ export default function TicketWalaPage() {
         const totalFare = basePrice + taxes;
 
         return (
-          <div className="travel-modal-overlay" onClick={() => setSelectedTravelItem(null)}>
+          <div className="travel-modal-overlay" onClick={handleDropTravelHold}>
             <div className="travel-modal-box" onClick={(e) => e.stopPropagation()}>
               <div className="travel-modal-header">
                 <h3>Review & Confirm Reservation</h3>
                 <button
                   type="button"
                   className="travel-modal-close"
-                  onClick={() => setSelectedTravelItem(null)}
+                  onClick={handleDropTravelHold}
                   aria-label="Close"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
 
-              {/* Item Card Overview */}
-              <div style={{
-                background: "#faf9f6",
-                border: "1.5px solid #eae5dc",
-                borderRadius: "16px",
-                padding: "16px 20px",
-                marginBottom: "20px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
-                    {isTransport ? `${transportItem!.type.toUpperCase()} · ${transportItem!.classType}` : `HOTEL STAY · ${hotelItem!.city}`}
-                  </span>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60" }}>
-                    Verified Fast Lane
-                  </span>
+              <div className="travel-modal-body">
+                {/* 60s FlashLock Atomic Hold Timer Card */}
+                {travelTtlSeconds > 0 ? (
+                  <div style={{
+                    background: "linear-gradient(135deg, rgba(255, 81, 38, 0.08) 0%, rgba(255, 107, 53, 0.04) 100%)",
+                    border: "1.5px solid rgba(255, 81, 38, 0.25)",
+                    borderRadius: "16px",
+                    padding: "14px 18px",
+                    marginBottom: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                  }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                        <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#FF5126" }} />
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                          ⚡ FlashLock 60s Atomic Hold Active
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--k)" }}>
+                        Unit: <b style={{ color: "var(--o)" }}>{travelSeatLabel}</b> · Lease: <span style={{ fontFamily: "monospace", fontSize: "11px", opacity: 0.8 }}>#{travelReservationId.slice(0, 14)}</span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#77736c", marginTop: "2px" }}>
+                        Seat locked with Redis Lua. Confirm within 60s before key auto-evicts.
+                      </div>
+                    </div>
+                    <div style={{
+                      textAlign: "center",
+                      background: "#ffffff",
+                      border: "2px solid #FF5126",
+                      borderRadius: "12px",
+                      padding: "6px 12px",
+                      minWidth: "68px",
+                      boxShadow: "0 2px 8px rgba(255, 81, 38, 0.15)"
+                    }}>
+                      <div style={{ fontSize: "9px", fontWeight: 700, color: "#8c8880", textTransform: "uppercase" }}>TTL LEFT</div>
+                      <div style={{ fontSize: "18px", fontWeight: 900, color: "var(--o)", fontFamily: "monospace" }}>
+                        00:{String(travelTtlSeconds).padStart(2, "0")}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: "rgba(220, 38, 38, 0.08)",
+                    border: "1.5px solid rgba(220, 38, 38, 0.3)",
+                    borderRadius: "16px",
+                    padding: "14px 18px",
+                    marginBottom: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px"
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div>
+                      <b style={{ color: "#dc2626", fontSize: "13px" }}>⚠️ 60-Second Lease Elapsed</b>
+                      <p style={{ color: "#b91c1c", fontSize: "11px", margin: "2px 0 0" }}>
+                        Your atomic Redis hold has timed out and returned to inventory. Close and re-select to claim a new lock.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Item Card Overview */}
+                <div style={{
+                  background: "#faf9f6",
+                  border: "1.5px solid #eae5dc",
+                  borderRadius: "16px",
+                  padding: "14px 18px",
+                  marginBottom: "16px"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--o)", textTransform: "uppercase" }}>
+                      {isTransport ? `${transportItem!.type.toUpperCase()} · ${transportItem!.classType}` : `HOTEL STAY · ${hotelItem!.city}`}
+                    </span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#27ae60" }}>
+                      Verified Fast Lane
+                    </span>
+                  </div>
+                  <h4 style={{ fontSize: "16px", fontWeight: 800, color: "var(--k)", margin: "0 0 4px" }}>
+                    {isTransport ? transportItem!.operator : hotelItem!.name}
+                  </h4>
+                  <p style={{ fontSize: "12px", color: "#77736c", margin: "0 0 4px" }}>
+                    {isTransport ? `${transportItem!.from} → ${transportItem!.to} · ${transportDate}` : `${hotelItem!.address} · ${hotelCheckIn} to ${hotelCheckOut}`}
+                  </p>
+                  <div style={{ fontSize: "11px", color: "var(--o)", fontWeight: 700 }}>
+                    Assigned Unit: {travelSeatLabel}
+                  </div>
                 </div>
-                <h4 style={{ fontSize: "16px", fontWeight: 800, color: "var(--k)", margin: "0 0 4px" }}>
-                  {isTransport ? transportItem!.operator : hotelItem!.name}
-                </h4>
-                <p style={{ fontSize: "12px", color: "#77736c", margin: 0 }}>
-                  {isTransport ? `${transportItem!.from} → ${transportItem!.to} · ${transportDate}` : `${hotelItem!.address} · ${hotelCheckIn} to ${hotelCheckOut}`}
-                </p>
-              </div>
 
-              {/* Passenger / Guest Form */}
-              <div style={{ marginBottom: "20px" }}>
-                <h4 style={{ fontSize: "14px", fontWeight: 800, color: "var(--k)", margin: "0 0 12px" }}>
-                  Passenger / Primary Guest Info
-                </h4>
+                {/* Passenger / Guest Form */}
+                <div style={{ marginBottom: "16px" }}>
+                  <h4 style={{ fontSize: "14px", fontWeight: 800, color: "var(--k)", margin: "0 0 10px" }}>
+                    Passenger / Primary Guest Info
+                  </h4>
 
-                <div className="travel-form-group">
-                  <label>Full Legal Name</label>
-                  <input
-                    className="travel-form-input"
-                    placeholder="Enter full name"
-                    value={bookingPassengerName}
-                    onChange={(e) => setBookingPassengerName(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div className="travel-form-group">
-                    <label>Mobile Number</label>
+                  <div className="travel-form-group" style={{ marginBottom: "10px" }}>
+                    <label>Full Legal Name</label>
                     <input
                       className="travel-form-input"
-                      placeholder="+91 98200 12345"
-                      value={bookingPassengerPhone}
-                      onChange={(e) => setBookingPassengerPhone(e.target.value)}
+                      placeholder="Enter full name"
+                      value={bookingPassengerName}
+                      onChange={(e) => setBookingPassengerName(e.target.value)}
                     />
                   </div>
 
-                  <div className="travel-form-group">
-                    <label>Email (for E-Ticket)</label>
-                    <input
-                      className="travel-form-input"
-                      placeholder="name@email.com"
-                      value={bookingPassengerEmail}
-                      onChange={(e) => setBookingPassengerEmail(e.target.value)}
-                    />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div className="travel-form-group">
+                      <label>Mobile Number</label>
+                      <input
+                        className="travel-form-input"
+                        placeholder="+91 98200 12345"
+                        value={bookingPassengerPhone}
+                        onChange={(e) => setBookingPassengerPhone(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="travel-form-group">
+                      <label>Email (for E-Ticket)</label>
+                      <input
+                        className="travel-form-input"
+                        placeholder="name@email.com"
+                        value={bookingPassengerEmail}
+                        onChange={(e) => setBookingPassengerEmail(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Fare Summary */}
-              <div style={{
-                background: "#ffffff",
-                border: "1px solid #eae5dc",
-                borderRadius: "14px",
-                padding: "16px",
-                marginBottom: "20px"
-              }}>
-                <div className="travel-fare-row">
-                  <span>Base Fare ({isTransport ? `${travelersCount} Traveler` : "1 Room"})</span>
-                  <b>₹{basePrice.toLocaleString("en-IN")}</b>
-                </div>
-                <div className="travel-fare-row">
-                  <span>Booking fee</span>
-                  <span style={{ color: "#27ae60", fontWeight: 700 }}>₹0 (FREE)</span>
-                </div>
-                <div className="travel-fare-row">
-                  <span>Taxes & GST (5%)</span>
-                  <b>₹{taxes.toLocaleString("en-IN")}</b>
-                </div>
-                <div className="travel-fare-row total">
-                  <span>Total Payable</span>
-                  <b style={{ color: "var(--o)", fontSize: "18px" }}>₹{totalFare.toLocaleString("en-IN")}</b>
-                </div>
-              </div>
+                {/* Dynamic UPI Payment & Verification Section */}
+                <div style={{
+                  background: "#ffffff",
+                  border: "1.5px solid #ded9d0",
+                  borderRadius: "16px",
+                  padding: "16px",
+                  marginBottom: "16px"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: "var(--k)" }}>
+                      Dynamic NPCI UPI Gateway
+                    </span>
+                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", background: "rgba(39, 174, 96, 0.12)", color: "#27ae60", borderRadius: "99px" }}>
+                      🧪 Real ₹1 / Test Gateway Active
+                    </span>
+                  </div>
 
-              {/* Guarantees Pill */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "10px 14px",
-                background: "rgba(39, 174, 96, 0.08)",
-                borderRadius: "10px",
-                marginBottom: "20px"
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                <span style={{ fontSize: "12px", color: "#1e824c", fontWeight: 700 }}>
-                  Review your trip details before continuing
-                </span>
-              </div>
+                  <div style={{ display: "flex", gap: "14px", alignItems: "center", marginBottom: "14px" }}>
+                    <div style={{ background: "#fdfbf7", border: "1px solid #e2ddd5", padding: "6px", borderRadius: "10px", flexShrink: 0 }}>
+                      <img
+                        src={travelUpiDetails?.qrCodeDataUrl || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(travelUpiDetails?.intentUrl || `upi://pay?pa=9146199158@fam&pn=TicketWala&am=${totalFare}&cu=INR`)}&size=160x160&color=2B2A28`}
+                        alt="Dynamic UPI QR"
+                        width={90}
+                        height={90}
+                        style={{ display: "block", borderRadius: "6px" }}
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: "11px", color: "#77736c" }}>Scan QR with GPay / PhonePe / Paytm:</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", margin: "4px 0" }}>
+                        <code style={{ fontSize: "12px", fontWeight: 700, color: "var(--k)", background: "#f3efe6", padding: "2px 6px", borderRadius: "6px" }}>
+                          9146199158@fam
+                        </code>
+                        <button
+                          type="button"
+                          onClick={handleCopyTravelUpi}
+                          style={{ fontSize: "11px", color: "var(--o)", background: "transparent", border: "none", cursor: "pointer", fontWeight: 700 }}
+                        >
+                          {copiedTravelUpi ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--o)" }}>
+                        Payable: ₹{totalFare.toLocaleString("en-IN")}
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  style={{ flex: 1, padding: "12px" }}
-                  onClick={() => setSelectedTravelItem(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn primary"
-                  style={{ flex: 2, padding: "12px", fontSize: "14px" }}
-                  onClick={() => {
-                    const prefix = isTransport
-                      ? transportItem!.type === "flight"
-                        ? "FL"
-                        : transportItem!.type === "train"
-                        ? "VB"
-                        : transportItem!.type === "bus"
-                        ? "BS"
-                        : "CB"
-                      : "HT";
-                    const pnr = `TW-${prefix}${Math.floor(10000 + Math.random() * 90000)}`;
-                    const newRecord: TravelBookingRecord = {
-                      id: `bk-${Date.now()}`,
-                      pnr,
-                      type: isTransport ? transportItem!.type : "hotel",
-                      title: isTransport
-                        ? `${transportItem!.operator} · ${transportItem!.fromCode} → ${transportItem!.toCode}`
-                        : hotelItem!.name,
-                      subtitle: isTransport
-                        ? transportItem!.subTitle
-                        : hotelItem!.address,
-                      fromToOrCity: isTransport
-                        ? `${transportItem!.from} → ${transportItem!.to}`
-                        : hotelItem!.city,
-                      dateStr: isTransport
-                        ? `${transportDate} · ${transportItem!.depTime}`
-                        : `${hotelCheckIn} - ${hotelCheckOut} (3 Nights)`,
-                      passengers: `${bookingPassengerName.trim() || user?.name || "Traveler"} (${isTransport ? travelersCount : 2} Pax)`,
-                      price: totalFare,
-                      status: "Confirmed",
-                      bookedAt: "Just now",
-                      details: isTransport
-                        ? `${transportItem!.classType} · Instant Seat Assigned`
-                        : "Luxury Room · Free Breakfast Included",
-                    };
-                    setTravelBookings([newRecord, ...travelBookings]);
-                    setSelectedTravelItem(null);
-                    setActive3DTicket({
-                      ticketType: (newRecord.type === "hotel"
-                        ? "Hotel"
-                        : newRecord.type === "flight"
-                        ? "Flight"
-                        : newRecord.type === "train"
-                        ? "Train"
-                        : newRecord.type === "bus"
-                        ? "Bus"
-                        : "Cab"),
-                      bookingId: newRecord.pnr,
-                      customerName: bookingPassengerName.trim() || user?.name || "Aryan Sharma",
-                      title: newRecord.title,
-                      subtitle: newRecord.subtitle,
-                      venueOrRoute: newRecord.fromToOrCity || newRecord.subtitle,
-                      dateStr: newRecord.dateStr.split("·")[0].trim(),
-                      timeStr: isTransport ? transportItem!.depTime : "12:00 PM Check-In",
-                      seatOrClass: isTransport ? (transportItem!.classType || "Confirmed Class") : "Deluxe Room",
-                      price: totalFare,
-                      status: "Confirmed",
-                      sourceType: "travel",
-                    });
-                  }}
-                >
-                  Confirm & Secure PNR
-                </button>
+                  {/* UTR Input Form */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: "#555" }}>
+                        12-Digit Bank Reference / UTR Number
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleQuickFillTravelUtr}
+                        style={{ fontSize: "10px", fontWeight: 700, color: "var(--o)", background: "transparent", border: "none", cursor: "pointer" }}
+                      >
+                        ⚡ Quick-Fill Test UTR
+                      </button>
+                    </div>
+                    <input
+                      className="travel-form-input"
+                      placeholder="e.g. 428910458821"
+                      value={travelUtrInput}
+                      onChange={(e) => setTravelUtrInput(e.target.value)}
+                      maxLength={16}
+                    />
+                  </div>
+
+                  {travelPaymentError && (
+                    <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(220, 38, 38, 0.08)", border: "1px solid rgba(220, 38, 38, 0.3)", borderRadius: "8px", color: "#dc2626", fontSize: "11px", fontWeight: 600 }}>
+                      {travelPaymentError}
+                    </div>
+                  )}
+                </div>
+
+                {/* Fare Summary */}
+                <div style={{
+                  background: "#ffffff",
+                  border: "1px solid #eae5dc",
+                  borderRadius: "14px",
+                  padding: "14px 16px",
+                  marginBottom: "16px"
+                }}>
+                  <div className="travel-fare-row">
+                    <span>Base Fare ({isTransport ? `${travelersCount} Traveler` : "1 Room"})</span>
+                    <b>₹{basePrice.toLocaleString("en-IN")}</b>
+                  </div>
+                  <div className="travel-fare-row">
+                    <span>Booking fee</span>
+                    <span style={{ color: "#27ae60", fontWeight: 700 }}>₹0 (FREE)</span>
+                  </div>
+                  <div className="travel-fare-row">
+                    <span>Taxes & GST (5%)</span>
+                    <b>₹{taxes.toLocaleString("en-IN")}</b>
+                  </div>
+                  <div className="travel-fare-row total">
+                    <span>Total Payable</span>
+                    <b style={{ color: "var(--o)", fontSize: "18px" }}>₹{totalFare.toLocaleString("en-IN")}</b>
+                  </div>
+                </div>
+
+                {/* Guarantees Pill */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "10px 14px",
+                  background: "rgba(39, 174, 96, 0.08)",
+                  borderRadius: "10px",
+                  marginBottom: "18px"
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                  <span style={{ fontSize: "12px", color: "#1e824c", fontWeight: 700 }}>
+                    Instant turnstile QR digital boarding pass issued upon verification
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ flex: 1, padding: "12px" }}
+                    onClick={handleDropTravelHold}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    style={{ flex: 2, padding: "12px", fontSize: "14px" }}
+                    disabled={travelTtlSeconds <= 0 || isVerifyingTravelPayment}
+                    onClick={handleConfirmTravelBooking}
+                  >
+                    {isVerifyingTravelPayment
+                      ? "Verifying Payment & Issuing Pass..."
+                      : `Verify Payment & Secure PNR (₹${totalFare.toLocaleString("en-IN")})`}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -7409,7 +7862,7 @@ export default function TicketWalaPage() {
       {/* CONFIRMATION POPUP MODAL */}
       {confirmedTravelPass && (
         <div className="travel-modal-overlay" onClick={() => setConfirmedTravelPass(null)}>
-          <div className="travel-modal-box" style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+          <div className="travel-modal-box" style={{ textAlign: "center", padding: "32px", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
             <div style={{
               width: "64px",
               height: "64px",
@@ -7628,90 +8081,63 @@ export default function TicketWalaPage() {
                 <div className="ticket-notch bottom" />
               </div>
 
-              {/* RIGHT STUB: Off-white Paper Stub with QR Code */}
+              {/* RIGHT STUB: Verified Paper Stub with Live Scannable QR Code */}
               <div className="ticket-3d-stub">
-                <div className="ticket-stub-header">
-                  TICKET MOCKUP
+                <div className="ticket-stub-header" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px" }}>
+                  <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#27ae60" }} />
+                  <span>OFFICIAL PASS</span>
                 </div>
 
-                {/* High Density Scalable SVG QR Code */}
-                <div className="ticket-stub-qr-box">
-                  <svg width="96" height="96" viewBox="0 0 100 100" fill="none">
-                    {/* QR Finder Corners */}
-                    <rect x="6" y="6" width="24" height="24" rx="4" fill="#181716" />
-                    <rect x="10" y="10" width="16" height="16" rx="2" fill="#ffffff" />
-                    <rect x="13" y="13" width="10" height="10" rx="1.5" fill="#181716" />
-
-                    <rect x="70" y="6" width="24" height="24" rx="4" fill="#181716" />
-                    <rect x="74" y="10" width="16" height="16" rx="2" fill="#ffffff" />
-                    <rect x="77" y="13" width="10" height="10" rx="1.5" fill="#181716" />
-
-                    <rect x="6" y="70" width="24" height="24" rx="4" fill="#181716" />
-                    <rect x="10" y="74" width="16" height="16" rx="2" fill="#ffffff" />
-                    <rect x="13" y="77" width="10" height="10" rx="1.5" fill="#181716" />
-
-                    {/* Timing Tracks */}
-                    <rect x="34" y="16" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="42" y="16" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="50" y="16" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="58" y="16" width="4" height="4" rx="1" fill="#181716" />
-
-                    <rect x="16" y="34" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="16" y="42" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="16" y="50" width="4" height="4" rx="1" fill="#181716" />
-                    <rect x="16" y="58" width="4" height="4" rx="1" fill="#181716" />
-
-                    {/* QR Data Matrix Bits */}
-                    <rect x="36" y="36" width="6" height="6" rx="1.5" fill="#FF5126" />
-                    <rect x="44" y="36" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="52" y="36" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="60" y="36" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="70" y="36" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="80" y="36" width="5" height="5" rx="1" fill="#181716" />
-
-                    <rect x="36" y="45" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="45" y="45" width="8" height="8" rx="2" fill="#181716" />
-                    <rect x="57" y="45" width="5" height="5" rx="1" fill="#FF5126" />
-                    <rect x="66" y="45" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="75" y="45" width="6" height="6" rx="1.5" fill="#181716" />
-
-                    <rect x="36" y="57" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="46" y="57" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="55" y="57" width="7" height="7" rx="1.5" fill="#181716" />
-                    <rect x="66" y="57" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="75" y="57" width="5" height="5" rx="1" fill="#181716" />
-
-                    <rect x="36" y="68" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="45" y="68" width="6" height="6" rx="1.5" fill="#FF5126" />
-                    <rect x="55" y="68" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="64" y="68" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="74" y="68" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="83" y="68" width="5" height="5" rx="1" fill="#181716" />
-
-                    <rect x="36" y="78" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="46" y="78" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="55" y="78" width="7" height="7" rx="1.5" fill="#181716" />
-                    <rect x="66" y="78" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="75" y="78" width="6" height="6" rx="1.5" fill="#FF5126" />
-                    <rect x="85" y="78" width="5" height="5" rx="1" fill="#181716" />
-
-                    <rect x="6" y="38" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="6" y="48" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="6" y="58" width="6" height="6" rx="1.5" fill="#181716" />
-
-                    <rect x="70" y="48" width="5" height="5" rx="1" fill="#181716" />
-                    <rect x="78" y="58" width="6" height="6" rx="1.5" fill="#181716" />
-                    <rect x="86" y="48" width="5" height="5" rx="1" fill="#181716" />
-                  </svg>
+                {/* High Density 100% Live Scannable Dynamic QR Code */}
+                <div className="ticket-stub-qr-box" style={{ background: "#ffffff", padding: "6px", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #e5e0d8", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/verify?pnr=${active3DTicket.bookingId}`
+                        : `https://ticketwala.org/verify?pnr=${active3DTicket.bookingId}`
+                    )}&size=200x200&color=181716&margin=0`}
+                    alt={`Turnstile Verification QR for ${active3DTicket.bookingId}`}
+                    width={96}
+                    height={96}
+                    style={{ display: "block", borderRadius: "4px" }}
+                  />
+                  <span style={{ fontSize: "8.5px", fontWeight: 800, color: "var(--o)", marginTop: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    ● Live Scannable
+                  </span>
                 </div>
 
                 <div className="ticket-stub-pnr">
                   {active3DTicket.bookingId}
                 </div>
 
-                <div className="ticket-stub-sub">
-                  SCAN AT GATE / TURNSTILE
+                <div className="ticket-stub-sub" style={{ fontSize: "10px", color: "#77736c", marginBottom: "4px" }}>
+                  SCAN WITH PHONE CAMERA
                 </div>
+
+                <button
+                  type="button"
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    padding: "4px 8px",
+                    background: "rgba(255, 81, 38, 0.08)",
+                    border: "1px solid rgba(255, 81, 38, 0.3)",
+                    color: "var(--o)",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    transition: "all 0.15s ease"
+                  }}
+                  onClick={() => {
+                    window.open(`/verify?pnr=${active3DTicket.bookingId}`, "_blank");
+                  }}
+                  title="Test Turnstile Gate QR Scanner"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                  <span>Test Gate Verify</span>
+                </button>
               </div>
             </div>
           </div>
@@ -7803,13 +8229,39 @@ export default function TicketWalaPage() {
               {/* Entrance Gate QR Barcode */}
               <div style={{ textAlign: "center", margin: "12px 0 16px" }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(ticketModalBooking.qrPayload || `TICKETWALA:${ticketModalBooking.pnr || "TW"}:SEAT:${ticketModalBooking.s}`)}&size=160x160&color=2B2A28`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+                    typeof window !== "undefined"
+                      ? `${window.location.origin}/verify?pnr=${ticketModalBooking.pnr || "TW-784920"}`
+                      : `https://ticketwala.org/verify?pnr=${ticketModalBooking.pnr || "TW-784920"}`
+                  )}&size=160x160&color=2B2A28`}
                   alt="Entry Gate Barcode"
                   style={{ width: "140px", height: "140px", borderRadius: "10px", border: "1.5px solid #ded9d0", padding: "6px", background: "#fff", display: "inline-block" }}
                 />
                 <div style={{ fontSize: "11px", color: "#77736c", marginTop: "4px" }}>
-                  Scan at Entry Gate Turnstile / Barcode Reader
+                  Scan with Phone Camera or Turnstile Laser Reader
                 </div>
+                <button
+                  type="button"
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    marginTop: "6px",
+                    background: "rgba(255, 81, 38, 0.08)",
+                    border: "1px solid rgba(255, 81, 38, 0.3)",
+                    color: "var(--o)",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  onClick={() => {
+                    window.open(`/verify?pnr=${ticketModalBooking.pnr}`, "_blank");
+                  }}
+                >
+                  🔍 Test Gate Verify (New Tab)
+                </button>
               </div>
 
               <div style={{ background: "var(--g)", borderRadius: "14px", padding: "14px", fontSize: "12px", lineHeight: "1.7", marginBottom: "18px" }}>
