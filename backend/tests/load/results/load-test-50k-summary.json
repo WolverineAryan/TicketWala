@@ -1,0 +1,43 @@
+{
+  "suite": "TicketWala 50K Mega-Contention Benchmark",
+  "targetEvent": "evt-mega-stadium-5000",
+  "totalSeats": 5000,
+  "totalUsers": 50000,
+  "concurrency": 500,
+  "startTime": "2026-10-10T15:48:14.026Z",
+  "endTime": "2026-10-10T15:48:18.643Z",
+  "totalDurationMs": 4617.11,
+  "totalDurationSec": 4.62,
+  "throughputRps": 10829.3,
+  "statusCodeDistribution": {
+    "201": 5000,
+    "409": 45000,
+    "429": 0,
+    "500": 0
+  },
+  "latencies": {
+    "minMs": 5.8,
+    "p50Ms": 27.82,
+    "p90Ms": 54.09,
+    "p95Ms": 59.64,
+    "p99Ms": 68.81,
+    "p999Ms": 93.3,
+    "maxMs": 97.92,
+    "meanMs": 31.28,
+    "stdDevMs": 15.71
+  },
+  "invariants": {
+    "doubleBookingsDetected": 0,
+    "heldSeatsCount": 5000,
+    "expectedHeldSeats": 5000,
+    "soldOutRejectionsCount": 45000,
+    "expectedSoldOutRejections": 45000,
+    "conservationVerified": true,
+    "zeroOversellingGuaranteed": true
+  },
+  "memoryUsage": {
+    "rssMb": 466.7,
+    "heapUsedMb": 118.8,
+    "heapTotalMb": 256.3
+  }
+}

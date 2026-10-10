@@ -17,7 +17,9 @@
     "test:integration": "tsx scripts/integration-and-load-test.ts",
     "bench:smoke": "k6 run tests/load/smoke.js",
     "bench:burst": "k6 run -e BASE_URL=http://localhost:8000 tests/load/burst-contention.js",
-    "bench:demo": "k6 run tests/load/demo-burst.js"
+    "bench:demo": "k6 run tests/load/demo-burst.js",
+    "bench:50k": "tsx scripts/load-test-50000-users.ts",
+    "bench:k6-50k": "k6 run -e BASE_URL=http://localhost:8000 tests/load/k6-50k-users.js"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",

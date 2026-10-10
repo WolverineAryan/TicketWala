@@ -25,7 +25,8 @@
     "test:concurrency": "npm run test:concurrency --workspace=ticketwala-backend",
     "test:integration": "npm run test:integration --workspace=ticketwala-backend",
     "bench:smoke": "npm run bench:smoke --workspace=ticketwala-backend",
-    "bench:burst": "npm run bench:burst --workspace=ticketwala-backend"
+    "bench:burst": "npm run bench:burst --workspace=ticketwala-backend",
+    "bench:50k": "npm run bench:50k --workspace=ticketwala-backend"
   },
   "keywords": [
     "redis",

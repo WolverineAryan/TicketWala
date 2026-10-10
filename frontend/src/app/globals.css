@@ -1987,11 +1987,12 @@ canvas#spark {
 ============================================================ */
 
 .auth-wrap {
-  padding: 40px 5vw;
+  padding: 24px 5vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 180px);
+  min-height: calc(100vh - 72px);
+  box-sizing: border-box;
 }
 
 .auth {
@@ -2006,10 +2007,23 @@ canvas#spark {
   border: 1px solid rgba(43, 42, 40, 0.08);
 }
 
+.auth-inputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .auth-inputs-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 .auth-side {
   background: linear-gradient(155deg, #1c1b19 0%, #2B2A28 55%, #181716 100%);
   color: #fff;
-  padding: 50px 44px;
+  padding: 40px 38px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2206,7 +2220,7 @@ canvas#spark {
 }
 
 .auth-box {
-  padding: 48px 50px;
+  padding: 38px 42px;
   display: flex;
   flex-direction: column;
   justify-content: center;

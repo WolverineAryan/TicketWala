@@ -199,6 +199,26 @@ export const MULTIPURPOSE_EVENTS: EventDetails[] = [
       { id: "GEN", name: "General Contender Tier", price: 5000, color: "#10B981", description: "General seating allocation" },
     ],
   },
+  {
+    id: "evt-mega-stadium-5000",
+    title: "IPL Grand Finale: Mega Stadium 5,000 Seats Flash Drop",
+    category: "SPORTS",
+    categoryLabel: "Championship Contention",
+    venue: "Narendra Modi Stadium • 5,000 Capacity Tier A",
+    location: "Ahmedabad, India",
+    dateTime: "Live Flash Drop Benchmark",
+    totalSeats: 5000,
+    availableSeats: 5000,
+    basePrice: 2500,
+    currency: "INR",
+    badge: "50K LOAD BENCHMARK",
+    description: "Mega-scale stadium contention test event featuring 5,000 atomic inventory units subjected to 50,000 concurrent contenders under strict FIFO FlashLock governance.",
+    tiers: [
+      { id: "VIP_PAVILION", name: "Presidential Pavilion VIP", price: 18000, color: "#F59E0B", description: "Top-tier glass enclosure (Units 1-750)" },
+      { id: "PLATINUM_CLUB", name: "Platinum Club Grandstand", price: 7500, color: "#6366F1", description: "Lower bowl mid-wicket premium reserve (Units 751-2250)" },
+      { id: "GOLD_GALLERY", name: "Gold Gallery Upper Deck", price: 2500, color: "#10B981", description: "Upper bowl full stadium panoramic sound view (Units 2251-5000)" },
+    ],
+  },
 ];
 
 function tierForUnit(event: EventDetails, unitId: string): EventDetails["tiers"][number] {
@@ -249,8 +269,9 @@ const memoryUnitKey = (eventId: string, unitId: string) => `${eventId}:${unitId}
 // Initialize In-Memory Queues
 for (const event of MULTIPURPOSE_EVENTS) {
   const queue: string[] = [];
+  const padLen = Math.max(3, String(event.totalSeats).length);
   for (let i = 1; i <= event.totalSeats; i++) {
-    const unitId = `unit-${String(i).padStart(3, "0")}`;
+    const unitId = `unit-${String(i).padStart(padLen, "0")}`;
     queue.push(unitId);
     inMemoryUnits.set(memoryUnitKey(event.id, unitId), { status: "AVAILABLE", version: 1 });
   }
@@ -526,8 +547,9 @@ export async function createServer(): Promise<{
     const totalSeats = event.totalSeats;
     const seats: InventoryUnitState[] = [];
 
+    const padLen = Math.max(3, String(totalSeats).length);
     for (let i = 1; i <= totalSeats; i++) {
-      const unitId = `unit-${String(i).padStart(3, "0")}`;
+      const unitId = `unit-${String(i).padStart(padLen, "0")}`;
       let status: "AVAILABLE" | "HELD" | "CONFIRMED" = "AVAILABLE";
       let reservationId: string | undefined;
       let expiresAt: number | undefined;
@@ -1962,8 +1984,18 @@ export async function createServer(): Promise<{
     }
     inMemoryQueues.set(demoEventId, queue);
 
+    const megaEventId = "evt-mega-stadium-5000";
+    const megaQueue: string[] = [];
+    for (let i = 1; i <= 5000; i++) {
+      const unitId = `unit-${String(i).padStart(4, "0")}`;
+      megaQueue.push(unitId);
+      const cleanState = { status: "AVAILABLE" as const, version: 1 };
+      inMemoryUnits.set(`${megaEventId}:${unitId}`, cleanState);
+    }
+    inMemoryQueues.set(megaEventId, megaQueue);
+
     for (const [resId, res] of inMemoryReservations.entries()) {
-      if (res.eventId === demoEventId) {
+      if (res.eventId === demoEventId || res.eventId === megaEventId) {
         inMemoryReservations.delete(resId);
       }
     }
@@ -1973,7 +2005,8 @@ export async function createServer(): Promise<{
       eventId: demoEventId,
       totalSeats: 200,
       availableSeats: 200,
-      message: "FlashLock demo collision event cleanly reset to 200 available seats.",
+      megaEventSeatsReset: 5000,
+      message: "FlashLock demo collision event and 5,000-seat mega stadium event cleanly reset.",
       timestamp: new Date().toISOString(),
     });
   });
@@ -1986,7 +2019,7 @@ export async function createServer(): Promise<{
     const parseResult = RunScenarioSchema.safeParse(req.body);
     if (!parseResult.success) {
       return reply.status(400).send({
-        error: { code: "INVALID_SCENARIO", message: "Scenario must be 1, 2, 3, 4, or 5" },
+        error: { code: "INVALID_SCENARIO", message: "Scenario must be 1, 2, 3, 4, 5, or 6" },
       });
     }
 
@@ -2232,15 +2265,118 @@ export async function createServer(): Promise<{
 
     const dedupPassed = hook1Data.duplicate === false && hook2Data.duplicate === true && hook2Data.status === "ALREADY_PROCESSED";
 
+    if (scenario === 5) {
+      return reply.status(200).send({
+        scenario: 5,
+        title: "Scenario 5: Stream Event Recovery & Webhook Deduplication",
+        passed: dedupPassed,
+        commitHash,
+        firstDelivery: hook1Data,
+        secondDelivery: hook2Data,
+        duplicatePrevented: dedupPassed,
+        message: "Duplicate message received after simulated crash was handled idempotently with zero side effects.",
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Scenario 6: Mega-Scale Stadium Burst: 50,000 Concurrent Contenders Racing for 5,000 Seats
+    const megaEventId = "evt-mega-stadium-5000";
+    const totalSeats = 5000;
+    const requestsToRun = totalRequests || 50000;
+    const batchSize = Math.min(concurrency || 250, 500);
+
+    // Cleanly reset the 5,000 units in queue
+    const resetQueue: string[] = [];
+    for (let i = 1; i <= totalSeats; i++) {
+      const uId = `unit-${String(i).padStart(4, "0")}`;
+      resetQueue.push(uId);
+      inMemoryUnits.set(memoryUnitKey(megaEventId, uId), { status: "AVAILABLE", version: 1 });
+    }
+    inMemoryQueues.set(megaEventId, resetQueue);
+
+    for (const [resId, res] of inMemoryReservations.entries()) {
+      if (res.eventId === megaEventId) {
+        inMemoryReservations.delete(resId);
+      }
+    }
+
+    const startTime = performance.now();
+    const latencies: number[] = [];
+    const statusMap: Record<number, number> = { 201: 0, 409: 0, 429: 0, 500: 0 };
+    const claimedUnits = new Set<string>();
+    let doubleBookings = 0;
+
+    for (let i = 0; i < requestsToRun; i += batchSize) {
+      const currentBatch = Math.min(batchSize, requestsToRun - i);
+      const batch = Array.from({ length: currentBatch }).map(async (_, bIdx) => {
+        const reqIndex = i + bIdx;
+        const reqStart = performance.now();
+        const idempKey = `vu-50k-${reqIndex}-${Date.now()}`;
+        const res = await app.inject({
+          method: "POST",
+          url: "/api/v1/reservations/hold",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempKey,
+            "X-Client-Id": `virtual-user-${reqIndex}`,
+          },
+          payload: { eventId: megaEventId },
+        });
+        const elapsed = performance.now() - reqStart;
+        latencies.push(elapsed);
+        statusMap[res.statusCode] = (statusMap[res.statusCode] || 0) + 1;
+
+        if (res.statusCode === 201) {
+          try {
+            const body = JSON.parse(res.body);
+            if (claimedUnits.has(body.unitId)) {
+              doubleBookings++;
+            } else {
+              claimedUnits.add(body.unitId);
+            }
+          } catch {}
+        }
+      });
+      await Promise.all(batch);
+    }
+
+    const totalDurationMs = performance.now() - startTime;
+    latencies.sort((a, b) => a - b);
+    const p50 = latencies[Math.floor(latencies.length * 0.5)] || 0;
+    const p90 = latencies[Math.floor(latencies.length * 0.9)] || 0;
+    const p95 = latencies[Math.floor(latencies.length * 0.95)] || 0;
+    const p99 = latencies[Math.floor(latencies.length * 0.99)] || 0;
+    const throughputRps = +(requestsToRun / (totalDurationMs / 1000)).toFixed(1);
+
     return reply.status(200).send({
-      scenario: 5,
-      title: "Scenario 5: Stream Event Recovery & Webhook Deduplication",
-      passed: dedupPassed,
+      scenario: 6,
+      title: "Scenario 6: Mega-Scale Stadium Burst (50,000 Contenders for 5,000 Seats)",
+      passed: claimedUnits.size === Math.min(totalSeats, requestsToRun) && doubleBookings === 0,
       commitHash,
-      firstDelivery: hook1Data,
-      secondDelivery: hook2Data,
-      duplicatePrevented: dedupPassed,
-      message: "Duplicate message received after simulated crash was handled idempotently with zero side effects.",
+      workload: {
+        totalRequests: requestsToRun,
+        configuredConcurrency: concurrency,
+        totalDurationMs: +totalDurationMs.toFixed(2),
+        totalDurationSec: +(totalDurationMs / 1000).toFixed(2),
+        throughputRps,
+      },
+      latencies: {
+        minMs: +(latencies[0] || 0).toFixed(2),
+        p50Ms: +p50.toFixed(2),
+        p90Ms: +p90.toFixed(2),
+        p95Ms: +p95.toFixed(2),
+        p99Ms: +p99.toFixed(2),
+        maxMs: +(latencies[latencies.length - 1] || 0).toFixed(2),
+      },
+      statusBreakdown: statusMap,
+      doubleBookingsCount: doubleBookings,
+      inventoryConservation: {
+        passed: claimedUnits.size + (inMemoryQueues.get(megaEventId)?.length || 0) === totalSeats,
+        totalUnits: totalSeats,
+        heldUnits: claimedUnits.size,
+        remainingAvailable: inMemoryQueues.get(megaEventId)?.length || 0,
+        accountedFor: claimedUnits.size + (inMemoryQueues.get(megaEventId)?.length || 0),
+      },
       timestamp: new Date().toISOString(),
     });
   });

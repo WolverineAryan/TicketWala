@@ -259,9 +259,9 @@ export type PaymentWebhookRequest = z.infer<typeof PaymentWebhookSchema>;
 // FlashLock Collision Lab Scenario Runner Contracts
 // -----------------------------------------------------------------------------
 export const RunScenarioSchema = z.object({
-  scenario: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
-  concurrency: z.number().int().min(1).max(200).optional().default(20),
-  totalRequests: z.number().int().min(1).max(1000).optional().default(100),
+  scenario: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+  concurrency: z.number().int().min(1).max(2000).optional().default(250),
+  totalRequests: z.number().int().min(1).max(50000).optional().default(100),
 });
 export type RunScenarioRequest = z.infer<typeof RunScenarioSchema>;
 

@@ -19,9 +19,6 @@ build/
 out/
 *.tsbuildinfo
 
-# PDF Documentation (Exclude from Git as requested)
-*.pdf
-docs/*.pdf
 
 # Logs & scratch
 logs/
