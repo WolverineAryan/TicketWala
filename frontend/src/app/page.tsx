@@ -255,25 +255,6 @@ const BMS_EVENTS: BMSEvent[] = [
     bannerUrl: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80",
   },
   {
-    id: "ipl-mum",
-    name: "Mumbai Indians vs CSK: El Clasico",
-    category: "sports",
-    categoryLabel: "Live Sports",
-    cityId: "mumbai",
-    cityName: "Mumbai",
-    venue: "Wankhede Stadium",
-    dateStr: "Sun, 23 Mar · 7:30 PM",
-    month: "MAR",
-    day: "23",
-    time: "7:30 PM",
-    price: 1500,
-    badge: "CRICKET FLASH",
-    contention: "ALMOST FULL",
-    sold: 188,
-    totalSeats: 200,
-    bannerUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1200&q=80",
-  },
-  {
     id: "mughal-mum",
     name: "Mughal-E-Azam: The Grand Musical",
     category: "theatre",
@@ -7651,22 +7632,9 @@ export default function TicketWalaPage() {
                   <h2>
                     Join the <em>exclusive drop lane</em>.
                   </h2>
-                 
-
-
-                  {/* Visual Drop Banner Image */}
-                  <div className="auth-image-box">
-                    <img
-                      src="/signup-banner.jpg"
-                      alt="Live Stadium & Concert Drops"
-                      className="auth-side-img"
-                    />
-                    <div className="auth-image-overlay">
-                      <span className="auth-image-tag">
-                        <span className="live-dot-sm"></span> LIVE EVENTS
-                      </span>
-                    </div>
-                  </div>
+                  <p>
+                    Create an account to book tickets, save events, and manage passes seamlessly.
+                  </p>
 
                   <div className="auth-features">
                     <div className="auth-feature-item">
@@ -7716,119 +7684,123 @@ export default function TicketWalaPage() {
                   <p>Create an account to keep your profile and booking details together.</p>
                 </div>
 
-                {/* Full Name */}
-                <div className="input-field-group">
-                  <label className="input-field-label">Full Name</label>
-                  <div className="input-field-box">
-                    <span className="input-field-icon">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    </span>
-                    <input
-                      className="input-field-input"
-                      placeholder="e.g. Alex Morgan"
-                      autoComplete="name"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Email Address */}
-                <div className="input-field-group">
-                  <label className="input-field-label">Email Address</label>
-                  <div className="input-field-box">
-                    <span className="input-field-icon">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                        <polyline points="22,6 12,13 2,6" />
-                      </svg>
-                    </span>
-                    <input
-                      type="email"
-                      className="input-field-input"
-                      placeholder="name@example.com"
-                      autoComplete="email"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Password Field */}
-                <div className="input-field-group">
-                  <label className="input-field-label">Password (min 6 characters)</label>
-                  <div className="input-field-box">
-                    <span className="input-field-icon">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                    <input
-                      type={showSignupPw ? "text" : "password"}
-                      className="input-field-input"
-                      placeholder="Create a strong password"
-                      autoComplete="new-password"
-                      value={signupPw}
-                      onChange={(e) => setSignupPw(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="input-toggle-btn"
-                      onClick={() => setShowSignupPw(!showSignupPw)}
-                      title={showSignupPw ? "Hide password" : "Show password"}
-                    >
-                      {showSignupPw ? (
+                <div className="auth-inputs-grid">
+                  {/* Full Name */}
+                  <div className="input-field-group">
+                    <label className="input-field-label">Full Name</label>
+                    <div className="input-field-box">
+                      <span className="input-field-icon">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
                         </svg>
-                      ) : (
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Password strength indicator */}
-                  {signupPw && (
-                    <div className="pw-strength-bar">
-                      <div className={`pw-strength-step ${getPwStrength(signupPw) >= 1 ? (getPwStrength(signupPw) === 1 ? "active-weak" : getPwStrength(signupPw) === 2 ? "active-medium" : "active-strong") : ""}`}></div>
-                      <div className={`pw-strength-step ${getPwStrength(signupPw) >= 2 ? (getPwStrength(signupPw) === 2 ? "active-medium" : "active-strong") : ""}`}></div>
-                      <div className={`pw-strength-step ${getPwStrength(signupPw) >= 3 ? "active-strong" : ""}`}></div>
-                      <div className={`pw-strength-step ${getPwStrength(signupPw) >= 4 ? "active-strong" : ""}`}></div>
+                      </span>
+                      <input
+                        className="input-field-input"
+                        placeholder="e.g. Alex Morgan"
+                        autoComplete="name"
+                        value={signupName}
+                        onChange={(e) => setSignupName(e.target.value)}
+                      />
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Confirm Password */}
-                <div className="input-field-group">
-                  <label className="input-field-label">Confirm Password</label>
-                  <div className="input-field-box">
-                    <span className="input-field-icon">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                    </span>
-                    <input
-                      type={showSignupPw ? "text" : "password"}
-                      className="input-field-input"
-                      placeholder="Re-enter your password"
-                      autoComplete="new-password"
-                      value={signupPw2}
-                      onChange={(e) => setSignupPw2(e.target.value)}
-                    />
+                  {/* Email Address */}
+                  <div className="input-field-group">
+                    <label className="input-field-label">Email Address</label>
+                    <div className="input-field-box">
+                      <span className="input-field-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                          <polyline points="22,6 12,13 2,6" />
+                        </svg>
+                      </span>
+                      <input
+                        type="email"
+                        className="input-field-input"
+                        placeholder="name@example.com"
+                        autoComplete="email"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
+
+                <div className="auth-inputs-grid">
+                  {/* Password Field */}
+                  <div className="input-field-group">
+                    <label className="input-field-label">Password (min 6 chars)</label>
+                    <div className="input-field-box">
+                      <span className="input-field-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </span>
+                      <input
+                        type={showSignupPw ? "text" : "password"}
+                        className="input-field-input"
+                        placeholder="Create a password"
+                        autoComplete="new-password"
+                        value={signupPw}
+                        onChange={(e) => setSignupPw(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="input-toggle-btn"
+                        onClick={() => setShowSignupPw(!showSignupPw)}
+                        title={showSignupPw ? "Hide password" : "Show password"}
+                      >
+                        {showSignupPw ? (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="input-field-group">
+                    <label className="input-field-label">Confirm Password</label>
+                    <div className="input-field-box">
+                      <span className="input-field-icon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                      </span>
+                      <input
+                        type={showSignupPw ? "text" : "password"}
+                        className="input-field-input"
+                        placeholder="Re-enter password"
+                        autoComplete="new-password"
+                        value={signupPw2}
+                        onChange={(e) => setSignupPw2(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password strength indicator */}
+                {signupPw && (
+                  <div className="pw-strength-bar" style={{ marginTop: "-4px", marginBottom: "8px" }}>
+                    <div className={`pw-strength-step ${getPwStrength(signupPw) >= 1 ? (getPwStrength(signupPw) === 1 ? "active-weak" : getPwStrength(signupPw) === 2 ? "active-medium" : "active-strong") : ""}`}></div>
+                    <div className={`pw-strength-step ${getPwStrength(signupPw) >= 2 ? (getPwStrength(signupPw) === 2 ? "active-medium" : "active-strong") : ""}`}></div>
+                    <div className={`pw-strength-step ${getPwStrength(signupPw) >= 3 ? "active-strong" : ""}`}></div>
+                    <div className={`pw-strength-step ${getPwStrength(signupPw) >= 4 ? "active-strong" : ""}`}></div>
+                  </div>
+                )}
 
                 {/* Error message */}
-                <div className="err" style={{ marginBottom: signupErr ? "10px" : "0" }}>
+                <div className="err" style={{ marginBottom: signupErr ? "8px" : "0" }}>
                   {signupErr}
                 </div>
 
@@ -7836,14 +7808,14 @@ export default function TicketWalaPage() {
                 <button
                   type="button"
                   className="btn"
-                  style={{ width: "100%", padding: "14px", fontSize: "15px", marginTop: "4px" }}
+                  style={{ width: "100%", padding: "13px", fontSize: "14px", marginTop: "2px" }}
                   onClick={handleSignup}
                 >
                   Create Account →
                 </button>
 
                 {/* Divider */}
-                <div className="auth-divider">
+                <div className="auth-divider" style={{ margin: "14px 0" }}>
                   <span>or continue with</span>
                 </div>
 
@@ -7851,9 +7823,10 @@ export default function TicketWalaPage() {
                 <button
                   type="button"
                   className="btn-google"
+                  style={{ padding: "11px 20px" }}
                   onClick={handleGoogleAuth}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24">
+                  <svg width="18" height="18" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
                     <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
                     <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
@@ -7862,7 +7835,7 @@ export default function TicketWalaPage() {
                   <span>Continue with Google</span>
                 </button>
 
-                <div className="auth-footer-text">
+                <div className="auth-footer-text" style={{ marginTop: "12px" }}>
                   Already registered?{" "}
                   <a onClick={() => navigateTo("login")}>
                     Log in here
@@ -8191,7 +8164,9 @@ export default function TicketWalaPage() {
       </main>
 
       {/* FOOTER */}
-      <footer>© 2026 TicketWala · Discover events. Make memories.</footer>
+      {activePage !== "login" && activePage !== "signup" && (
+        <footer>© 2026 TicketWala · Discover events. Make memories.</footer>
+      )}
 
       {/* CITY SELECTOR MODAL */}
       {showCityModal && (
