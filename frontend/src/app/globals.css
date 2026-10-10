@@ -2718,25 +2718,25 @@ footer {
   color: var(--o);
 }
 
-/* BOOKMYSHOW STYLE HOME PAGE */
+/* BOOKMYSHOW STYLE HOME PAGE - OPTIMIZED HIGH-DENSITY UI */
 .bms-home-wrap {
-  padding: 24px 5vw 60px;
-  max-width: 1280px;
+  padding: 16px 4vw 48px;
+  max-width: 1340px;
   margin: 0 auto;
 }
 
-/* Featured Hero Carousel Banner */
+/* Featured Hero Carousel Banner - Compact & Punchy */
 .bms-hero-banner {
   position: relative;
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
   background: #191817;
   color: #fff;
-  min-height: 380px;
+  min-height: 330px;
   display: flex;
   align-items: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
-  margin-bottom: 36px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.16);
+  margin-bottom: 14px;
 }
 
 .bms-hero-bg {
@@ -2757,7 +2757,7 @@ footer {
 .bms-hero-content {
   position: relative;
   z-index: 2;
-  padding: 48px;
+  padding: 34px 40px;
   max-width: 650px;
 }
 
@@ -2774,14 +2774,14 @@ footer {
   font-weight: 800;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .bms-hero-title {
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: clamp(26px, 3.8vw, 38px);
   font-weight: 800;
   line-height: 1.15;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: #ffffff;
 }
 
@@ -2789,9 +2789,9 @@ footer {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 14px;
+  font-size: 13.5px;
   color: #d6d0c4;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
 }
 
@@ -2802,22 +2802,22 @@ footer {
 .bms-hero-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
 .bms-hero-dots {
   position: absolute;
-  bottom: 20px;
-  right: 28px;
+  bottom: 18px;
+  right: 24px;
   z-index: 3;
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .bms-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
   border: none;
@@ -2826,46 +2826,124 @@ footer {
 }
 
 .bms-dot.active {
-  width: 26px;
+  width: 24px;
   border-radius: 99px;
   background: var(--o);
 }
 
-/* Category Filter Tabs */
+/* REAL-TIME PLATFORM PULSE TICKER */
+.bms-live-pulse-ticker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 12px;
+  padding: 10px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.bms-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 81, 38, 0.1);
+  color: var(--o);
+  border: 1px solid rgba(255, 81, 38, 0.25);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bms-pulse-scroll-track {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--k);
+  white-space: nowrap;
+  overflow-x: auto;
+  font-size: 12.5px;
+  scrollbar-width: none;
+}
+
+.bms-pulse-scroll-track::-webkit-scrollbar {
+  display: none;
+}
+
+.bms-pulse-sep {
+  color: #ded9d0;
+  font-weight: 700;
+}
+
+.bms-pulse-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #27ae60;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bms-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #27ae60;
+  box-shadow: 0 0 8px rgba(39, 174, 96, 0.5);
+}
+
+/* Category Filter Tabs - High Density */
 .bms-categories-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 28px;
+  gap: 10px;
+  margin-bottom: 16px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.bms-categories-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .bms-categories-list {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .bms-cat-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 99px;
-  background: var(--g);
-  border: 1.5px solid transparent;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1.5px solid rgba(43, 42, 40, 0.1);
   color: var(--k);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bms-cat-pill:hover {
-  background: #ebe6de;
+  background: #fcfbf9;
+  border-color: var(--o);
   transform: translateY(-1px);
 }
 
@@ -2873,7 +2951,44 @@ footer {
   background: var(--k);
   color: #ffffff;
   border-color: var(--k);
-  box-shadow: 0 4px 14px rgba(43, 42, 40, 0.18);
+  box-shadow: 0 3px 10px rgba(43, 42, 40, 0.16);
+}
+
+.bms-cat-pill.special-travel {
+  background: rgba(255, 81, 38, 0.05);
+  border-color: rgba(255, 81, 38, 0.28);
+  color: var(--o);
+}
+
+.bms-cat-pill.special-travel:hover {
+  background: rgba(255, 81, 38, 0.12);
+}
+
+/* Section Header - Tight Rhythm */
+.bms-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bms-section-header h2 {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--k);
+  letter-spacing: -0.3px;
+}
+
+.bms-section-header h2 span {
+  color: var(--o);
+}
+
+.bms-section-sub {
+  font-size: 13px;
+  color: #77736c;
+  margin-top: 3px;
 }
 
 .bms-cat-pill.active svg {
@@ -3057,48 +3172,164 @@ footer {
   font-size: 12px;
 }
 
-/* Why Book with TicketWala Edge Ribbon */
-.bms-edge-ribbon {
+/* High-Density Modern Platform Guarantees Strip */
+.bms-guarantee-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  background: var(--g);
-  border-radius: 20px;
-  padding: 24px 28px;
-  margin-bottom: 48px;
-  border: 1px solid rgba(43, 42, 40, 0.08);
-}
-
-.bms-edge-item {
-  display: flex;
-  align-items: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
+  margin-bottom: 24px;
 }
 
-.bms-edge-icon {
+.bms-guarantee-card {
+  background: #ffffff;
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bms-guarantee-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 81, 38, 0.35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.bms-guarantee-icon {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
-  background: #ffffff;
+  border-radius: 10px;
+  background: rgba(255, 81, 38, 0.09);
+  color: var(--o);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--o);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
 }
 
-.bms-edge-text b {
+.bms-guarantee-text b {
   display: block;
   font-size: 13px;
   font-weight: 800;
   color: var(--k);
+  margin-bottom: 2px;
 }
 
-.bms-edge-text span {
-  font-size: 12px;
+.bms-guarantee-text span {
+  display: block;
+  font-size: 11.5px;
   color: #77736c;
-  line-height: 1.4;
+  line-height: 1.35;
+}
+
+/* Featured Travel Passes on Home */
+.bms-travel-home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+}
+
+.bms-travel-home-card {
+  background: #ffffff;
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+.bms-travel-home-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 81, 38, 0.4);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.07);
+}
+
+.bms-travel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--o);
+  background: rgba(255, 81, 38, 0.08);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* Curated Weekend Experience Collections */
+.bms-collections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+}
+
+.bms-collection-card {
+  border-radius: 18px;
+  padding: 24px 26px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bms-collection-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+/* Engine Architecture Cards */
+.bms-engine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+}
+
+.bms-engine-card {
+  background: #ffffff;
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s;
+}
+
+.bms-engine-card:hover {
+  border-color: var(--o);
+  box-shadow: 0 8px 24px rgba(255, 81, 38, 0.1);
+}
+
+/* Fan & Traveler Reviews */
+.bms-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 34px;
+}
+
+.bms-review-card {
+  background: #ffffff;
+  border: 1px solid rgba(43, 42, 40, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
 }
 
 /* Tech Architecture Banner on Home */
