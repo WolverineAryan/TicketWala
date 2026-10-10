@@ -5267,7 +5267,22 @@ export default function TicketWalaPage() {
                         )}
                       </button>
 
-                      {/* Option 2: Help & Support */}
+                      {/* Option 2: Logout (placed above Help & Support) */}
+                      <button
+                        type="button"
+                        className="bms-sidebar-btn bms-sidebar-btn-logout"
+                        onClick={handleLogout}
+                        title="Sign Out of Session"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>Logout</span>
+                      </button>
+
+                      {/* Option 3: Help & Support */}
                       <button
                         type="button"
                         className={`bms-sidebar-btn ${profileTab === "support" ? "active" : ""}`}
@@ -5279,23 +5294,6 @@ export default function TicketWalaPage() {
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                         <span>Help &amp; Support</span>
-                      </button>
-                    </div>
-
-                    {/* Option 3: Logout placed at the bottom of the sidebar */}
-                    <div className="bms-sidebar-footer">
-                      <button
-                        type="button"
-                        className="bms-sidebar-logout-btn"
-                        onClick={handleLogout}
-                        title="Sign Out of Session"
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                          <polyline points="16 17 21 12 16 7" />
-                          <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        <span>Logout</span>
                       </button>
                     </div>
                   </aside>
@@ -5702,7 +5700,7 @@ export default function TicketWalaPage() {
                           <div className="bms-faq-list">
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
@@ -5716,7 +5714,7 @@ export default function TicketWalaPage() {
 
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
@@ -5730,7 +5728,7 @@ export default function TicketWalaPage() {
 
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
