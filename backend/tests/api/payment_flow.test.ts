@@ -1,8 +1,27 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { generateDynamicUpiPayment, verifyUpiTransaction } from "../../src/services/paymentService.js";
 import { createServer } from "../../src/api/server.js";
 
 describe("TicketWala Dynamic UPI & Automated Email Payment Gateway", () => {
+  const originalSmtpHost = process.env.SMTP_HOST;
+  const originalSmtpPort = process.env.SMTP_PORT;
+  const originalSmtpSecure = process.env.SMTP_SECURE;
+  const originalSmtpUser = process.env.SMTP_USER;
+  const originalSmtpPass = process.env.SMTP_PASS;
+
+  afterEach(() => {
+    for (const [key, value] of Object.entries({
+      SMTP_HOST: originalSmtpHost,
+      SMTP_PORT: originalSmtpPort,
+      SMTP_SECURE: originalSmtpSecure,
+      SMTP_USER: originalSmtpUser,
+      SMTP_PASS: originalSmtpPass,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
   it("generates an authentic NPCI-compliant dynamic UPI intent and Base64 QR code", async () => {
     const upiData = await generateDynamicUpiPayment({
       amount: 1598,
@@ -65,34 +84,143 @@ describe("TicketWala Dynamic UPI & Automated Email Payment Gateway", () => {
     await app.close();
   }, 15000);
 
-  it("handles POST /api/v1/payments/confirm-and-send-ticket and issues cryptographic PNR", async () => {
+  it("retires the unsafe legacy ticket-issuance endpoint", async () => {
     const { app } = await createServer();
-    const uniqueUtr = "4289" + Math.floor(10000000 + Math.random() * 90000000).toString();
 
     const res = await app.inject({
       method: "POST",
       url: "/api/v1/payments/confirm-and-send-ticket",
       payload: {
-        utr: uniqueUtr,
+        utr: "428912345678",
+        reservationId: "fabricated-reservation",
+        unitId: "unit-001",
+        eventId: "fabricated-event",
+      },
+    });
+
+    expect(res.statusCode).toBe(410);
+    expect(JSON.parse(res.body).error.code).toBe("ENDPOINT_RETIRED");
+
+    await app.close();
+  }, 15000);
+
+  it("confirms only an owned reservation and reports unavailable email delivery accurately", async () => {
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    const { app } = await createServer();
+    const hold = await app.inject({
+      method: "POST",
+      url: "/api/v1/reservations/hold",
+      payload: { eventId: "evt-flight-ai101" },
+    });
+    expect(hold.statusCode).toBeGreaterThanOrEqual(200);
+    expect(hold.statusCode).toBeLessThan(300);
+    const held = JSON.parse(hold.body);
+    const utr = `4289${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/reservations/${held.reservationId}/verify-payment`,
+      headers: { "x-event-id": held.eventId },
+      payload: {
+        holdToken: held.holdToken,
+        utr,
         passengerName: "Test Fan",
-        email: "ticketwala.org@gmail.com",
-        phone: "+91 91461 99158",
-        eventTitle: "Arijit Live — Mumbai",
-        seatLabel: "B-12",
-        tierName: "VIP Lounge",
-        amountPaid: 2598,
+        email: "test@example.com",
       },
     });
 
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.status).toBe("CONFIRMED");
-    expect(body.pnr).toMatch(/^TW-[A-Z0-9]+$/);
-    expect(body.qrCodePayload).toContain("TICKETWALA:");
-    expect(body.verifiedUtr).toBe(uniqueUtr);
-    expect(body.emailDispatched).toBe(true);
-    expect(body.recipientEmail).toBe("ticketwala.org@gmail.com");
+    expect(body.unitId).toBe(held.unitId);
+    expect(body.eventId).toBe(held.eventId);
+    expect(body.emailDispatched).toBe(false);
+    expect(body.emailError).toContain("SMTP");
+    await app.close();
+  }, 15000);
 
+  it("rejects fabricated reservation and unit ownership data", async () => {
+    const { app } = await createServer();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/v1/reservations/fabricated-reservation/verify-payment",
+      payload: {
+        holdToken: "fabricated-token",
+        utr: `4289${Math.floor(10000000 + Math.random() * 90000000)}`,
+        passengerName: "Attacker",
+        email: "attacker@example.com",
+      },
+    });
+
+    expect([400, 404]).toContain(res.statusCode);
+    expect(JSON.parse(res.body).error.code).not.toBe("CONFIRMED");
+    await app.close();
+  }, 15000);
+
+  it("rejects a replayed UTR submission", async () => {
+    const { app } = await createServer();
+    const firstHold = await app.inject({
+      method: "POST",
+      url: "/api/v1/reservations/hold",
+      payload: { eventId: "evt-flight-ai101" },
+    });
+    const first = JSON.parse(firstHold.body);
+    const utr = `4289${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const firstPayment = await app.inject({
+      method: "POST",
+      url: `/api/v1/reservations/${first.reservationId}/verify-payment`,
+      payload: { holdToken: first.holdToken, utr, passengerName: "First Fan", email: "first@example.com" },
+    });
+    expect(firstPayment.statusCode).toBe(200);
+
+    const secondHold = await app.inject({
+      method: "POST",
+      url: "/api/v1/reservations/hold",
+      payload: { eventId: "evt-flight-ai101" },
+    });
+    const second = JSON.parse(secondHold.body);
+    const replay = await app.inject({
+      method: "POST",
+      url: `/api/v1/reservations/${second.reservationId}/verify-payment`,
+      payload: { holdToken: second.holdToken, utr, passengerName: "Replay Fan", email: "replay@example.com" },
+    });
+
+    expect(replay.statusCode).toBe(400);
+    expect(JSON.parse(replay.body).error.code).toBe("INVALID_UTR");
+    await app.close();
+  }, 15000);
+
+  it("keeps the ticket confirmed when email dispatch fails", async () => {
+    process.env.SMTP_HOST = "127.0.0.1";
+    process.env.SMTP_PORT = "1";
+    process.env.SMTP_SECURE = "false";
+    process.env.SMTP_USER = "test@example.com";
+    process.env.SMTP_PASS = "test-password";
+
+    const { app } = await createServer();
+    const hold = await app.inject({
+      method: "POST",
+      url: "/api/v1/reservations/hold",
+      payload: { eventId: "evt-flight-ai101" },
+    });
+    const held = JSON.parse(hold.body);
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/v1/reservations/${held.reservationId}/verify-payment`,
+      payload: {
+        holdToken: held.holdToken,
+        utr: `4289${Math.floor(10000000 + Math.random() * 90000000)}`,
+        passengerName: "Mail Failure Fan",
+        email: "mail-failure@example.com",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.status).toBe("CONFIRMED");
+    expect(body.emailDispatched).toBe(false);
+    expect(body.emailError).toBeTruthy();
     await app.close();
   }, 15000);
 });

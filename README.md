@@ -163,9 +163,9 @@ TicketWala includes a 1-command offline setup via `infra/compose.yaml`. The enti
 
 | Method & Path | Headers Required | Payload / Parameters | Success Response | Standard Errors |
 |---|---|---|---|---|
-| `POST /api/v1/reservations/hold` | `Idempotency-Key` | `{ "eventId": "evt-main" }` | `201 Created`<br>`{ "reservationId": "uuid", "unitId": "unit-012", "holdToken": "secret", "expiresAt": 1791535000 }` | `409 SOLD_OUT`<br>`422 IDEMPOTENCY_CONFLICT`<br>`429 RATE_LIMITED` |
-| `POST /api/v1/reservations/:id/confirm` | `Idempotency-Key` | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "CONFIRMED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN`<br>`409 HOLD_EXPIRED`<br>`409 ALREADY_CONFIRMED` |
-| `POST /api/v1/reservations/:id/release` | None | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "RELEASED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN` |
+| `POST /api/v1/reservations/hold` | `Idempotency-Key` | `{ "eventId": "evt-main" }` | `201 Created`<br>`{ "reservationId": "uuid", "unitId": "unit-012", "holdToken": "secret", "expiresAt": 1791535000 }` | `409 SOLD_OUT`<br>`422 IDEMPOTENCY_CONFLICT` |
+| `POST /api/v1/reservations/:id/confirm` | `Idempotency-Key` and optional `X-Event-Id` | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "CONFIRMED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN`<br>`409 HOLD_EXPIRED`<br>`409 ALREADY_CONFIRMED` |
+| `POST /api/v1/reservations/:id/release` | Optional `X-Event-Id` | `{ "holdToken": "secret" }` | `200 OK`<br>`{ "status": "RELEASED", "unitId": "unit-012" }` | `400 INVALID_HOLD_TOKEN`<br>`409 HOLD_EXPIRED` |
 | `GET /api/v1/ops/inventory` | None | None | `200 OK` (Full seat status array & versions) | `500 INTERNAL_ERROR` |
 | `GET /api/v1/ops/metrics` | None | None | `200 OK` (Queue size, holds, confirms, sold out count) | `500 INTERNAL_ERROR` |
 | `POST /api/v1/ops/audit` | None | None | `200 OK` (4-point invariant verification report) | `500 AUDIT_FAILED` |

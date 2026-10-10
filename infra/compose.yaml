@@ -45,6 +45,7 @@ services:
       PORT: 8000
       HOST: 0.0.0.0
       REDIS_URL: redis://redis:6379
+      EVENT_ID: evt-main
       DATABASE_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
       DATABASE_DIRECT_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
       RESERVATION_TTL_SECONDS: 120
@@ -65,6 +66,7 @@ services:
         condition: service_healthy
     environment:
       REDIS_URL: redis://redis:6379
+      EVENT_ID: evt-main
       DATABASE_DIRECT_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
       DATABASE_URL: postgres://ticketwala:ticketwala_secure_password@postgres:5432/ticketwala
       CONSUMER_GROUP: ticketwala_workers

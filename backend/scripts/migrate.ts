@@ -33,7 +33,7 @@ async function runMigrations() {
 
     client.release();
     console.log("🎉 All database migrations applied successfully.");
- 
+
   } catch (err: unknown) {
     console.error("❌ Migration error:", err);
     process.exitCode = 1;

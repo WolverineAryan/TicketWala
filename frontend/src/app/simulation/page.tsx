@@ -637,4 +637,3 @@ export default function SimulationPage() {
     </div>
   );
 }
-

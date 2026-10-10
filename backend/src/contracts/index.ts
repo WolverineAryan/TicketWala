@@ -132,7 +132,8 @@ export interface HoldResponse {
   unitId: string;
   status: "HELD";
   expiresAt: number;
-  holdToken: string;
+  /** Present only on the initial authorized response; Redis never stores raw tokens. */
+  holdToken?: string;
   version: number;
   eventId: string;
   eventTitle?: string;
@@ -294,4 +295,3 @@ export interface ContactInquiryResponse {
   category: string;
   message: string;
 }
-

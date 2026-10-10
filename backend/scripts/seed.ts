@@ -1,9 +1,11 @@
 import Redis from "ioredis";
 import dotenv from "dotenv";
+import { initializeInventory, INVENTORY_CAPACITY } from "../src/lua/index.js";
 
 dotenv.config();
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const eventId = process.env.EVENT_ID || "evt-main";
 
 const SEED_EVENTS = [
   { id: "evt-flight-ai101", capacity: 192 },
@@ -18,43 +20,12 @@ async function seedAllInventory() {
   const redis = new Redis(redisUrl);
 
   try {
-    for (const evt of SEED_EVENTS) {
-      const queueKey = `ticketwala:event:${evt.id}:available_queue`;
-      const bucketKey = `ticketwala:event:${evt.id}:token_bucket`;
-
-      await redis.del(queueKey);
-
-      const unitIds: string[] = [];
-      for (let i = 1; i <= evt.capacity; i++) {
-        unitIds.push(`unit-${String(i).padStart(3, "0")}`);
-      }
-
-      // LPUSH in reverse order so RPOP pops unit-001 first
-      const reversed = [...unitIds].reverse();
-      const batchSize = 100;
-      for (let i = 0; i < reversed.length; i += batchSize) {
-        const chunk = reversed.slice(i, i + batchSize);
-        await redis.lpush(queueKey, ...chunk);
-      }
-
-      // Initialize unit hashes
-      for (const unitId of unitIds) {
-        const unitKey = `ticketwala:event:${evt.id}:unit:${unitId}`;
-        await redis.hmset(unitKey, {
-          status: "AVAILABLE",
-          version: "1",
-          event_id: evt.id,
-        });
-        await redis.hdel(unitKey, "reservation_id", "token_hash", "expires_at");
-      }
-
-      // Initialize adaptive token bucket
-      await redis.hmset(bucketKey, {
-        tokens: String(evt.capacity),
-        last_updated: String(Date.now()),
-      });
-
-      console.log(`✅ Seeded ${evt.capacity} units for event [${evt.id}].`);
+    const configuredEvents = process.env.EVENT_ID
+      ? [{ id: eventId, capacity: INVENTORY_CAPACITY }]
+      : SEED_EVENTS;
+    for (const evt of configuredEvents) {
+      const result = await initializeInventory(redis, evt.id, evt.capacity);
+      console.log(`✅ Inventory initialization result for ${evt.id}: ${JSON.stringify(result)}`);
     }
 
     console.log("🎉 All multipurpose events successfully initialized in Redis!");

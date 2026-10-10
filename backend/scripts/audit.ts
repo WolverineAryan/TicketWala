@@ -19,24 +19,10 @@ async function runInvariantAudit() {
   const pgPool = new Pool({ connectionString: DATABASE_URL });
 
   try {
-    const scanKeys = async (pattern: string) => {
-      const keys: string[] = [];
-      let cursor = "0";
-      do {
-        const [nextCursor, batch] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 200);
-        cursor = nextCursor;
-        keys.push(...batch);
-      } while (cursor !== "0");
-      return keys;
-    };
-
-    const unitKeys = await scanKeys("ticketwala:event:*:unit:*");
+    const eventId = process.env.EVENT_ID || "evt-main";
+    const unitKeys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
     const totalUnits = unitKeys.length;
-    const queueKeys = await scanKeys("ticketwala:event:*:available_queue");
-    let queueLen = 0;
-    for (const queueKey of queueKeys) {
-      queueLen += await redis.llen(queueKey);
-    }
+    const queueLen = await redis.llen(`ticketwala:event:{${eventId}}:available_queue`);
 
     let heldCount = 0;
     let confirmedCount = 0;
@@ -47,12 +33,7 @@ async function runInvariantAudit() {
 
     for (const key of unitKeys) {
       const uData = await redis.hgetall(key);
-      const match = key.match(/^ticketwala:event:([^:]+):unit:(.+)$/);
-      if (!match) {
-        redisViolations.push(`Unrecognized scoped unit key: ${key}`);
-        continue;
-      }
-      const [, eventId, unitId] = match;
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
       const status = uData.status;
 
       if (status === "HELD") heldCount++;
@@ -60,11 +41,10 @@ async function runInvariantAudit() {
       else availableCount++;
 
       if (uData.reservation_id && (status === "HELD" || status === "CONFIRMED")) {
-        const scopedUnitId = `${eventId}:${unitId}`;
-        if (holderMap.has(scopedUnitId)) {
-          redisViolations.push(`Duplicate Holder on event/unit ${scopedUnitId}`);
+        if (holderMap.has(unitId)) {
+          redisViolations.push(`Duplicate Holder on unit ${unitId}`);
         } else {
-          holderMap.set(scopedUnitId, uData.reservation_id);
+          holderMap.set(unitId, uData.reservation_id);
         }
       }
     }
@@ -75,10 +55,10 @@ async function runInvariantAudit() {
 
     try {
       const collisionRes = await pgPool.query(`
-        SELECT event_id, unit_id, COUNT(*) as active_count
+        SELECT unit_id, COUNT(*) as active_count
         FROM reservations 
         WHERE status IN ('HELD', 'CONFIRMED')
-        GROUP BY event_id, unit_id
+        GROUP BY unit_id 
         HAVING COUNT(*) > 1;
       `);
       dbDoubleBookings = collisionRes.rowCount || 0;

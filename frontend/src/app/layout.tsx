@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "TicketWala | Find and book your next experience",
-  description: "Discover events, explore seats, and book your next experience with TicketWala.",
+  title: {
+    default: "TicketWala | Event reservations with FlashLock",
+    template: "%s | TicketWala",
+  },
+  description: "Reserve event inventory with server-controlled holds, atomic Redis Lua transitions, and verified booking state.",
   icons: {
     icon: "/logo-icon-transparent.png",
   },
@@ -15,9 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body style={{ margin: 0, padding: 0 }} suppressHydrationWarning>
+    <html lang="en">
+      <body style={{ margin: 0, padding: 0 }}>
         {children}
+        <SiteFooter />
       </body>
     </html>
   );

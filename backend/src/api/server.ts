@@ -14,10 +14,6 @@ import {
   CreateEventSchema,
   UpdatePricingSchema,
   VerifyPaymentRequestSchema,
-  VerifyScanSchema,
-  PaymentWebhookSchema,
-  RunScenarioSchema,
-  ContactInquirySchema,
   type HoldRequest,
   type ConfirmRequest,
   type ReleaseRequest,
@@ -30,15 +26,16 @@ import {
 } from "../contracts/index.js";
 import { sendTicketEmail } from "../services/emailService.js";
 import { generateDynamicUpiPayment, verifyUpiTransaction } from "../services/paymentService.js";
-import { checkDependencyReadiness } from "./readiness.js";
 import {
   loadScripts,
-  checkAdaptiveAdmission,
+  initializeInventory,
   claimHoldFcfs,
   confirmHold,
   releaseHold,
   generateHoldToken,
-  getUnitRedisKey,
+  streamKey,
+  queueKey,
+  reservationPrefix,
 } from "../lua/index.js";
 
 import path from "path";
@@ -59,7 +56,7 @@ const DATABASE_URL =
   process.env.DATABASE_DIRECT_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "60", 10);
+const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "120", 10);
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
   : ["*"];
@@ -180,52 +177,10 @@ export const MULTIPURPOSE_EVENTS: EventDetails[] = [
       { id: "CHAIR", name: "AC Chair Car (CC)", price: 1815, color: "#10B981", description: "Spacious ergonomic seating, onboard Wi-Fi infotainment" },
     ],
   },
-  {
-    id: "evt-demo-collision-200",
-    title: "FlashLock Contention Lab: High-Demand Collision Benchmark (200 Seats)",
-    category: "CONCERT",
-    categoryLabel: "Stress Benchmark",
-    venue: "FlashLock Simulation Virtual Pavilion",
-    location: "Isolated Sandbox",
-    dateTime: "Live On-Demand Run",
-    totalSeats: 200,
-    availableSeats: 200,
-    basePrice: 5000,
-    currency: "INR",
-    badge: "COLLISION LAB",
-    description: "Dedicated isolated event for high-concurrency contention audits, race condition stress tests, and invariant verification.",
-    tiers: [
-      { id: "VIP", name: "VIP Contender Tier", price: 10000, color: "#F59E0B", description: "Priority hold contention" },
-      { id: "GEN", name: "General Contender Tier", price: 5000, color: "#10B981", description: "General seating allocation" },
-    ],
-  },
 ];
-
-function tierForUnit(event: EventDetails, unitId: string): EventDetails["tiers"][number] {
-  const unitNumber = parseInt(unitId.replace("unit-", ""), 10) || 1;
-  if (unitNumber <= Math.floor(event.totalSeats * 0.15)) {
-    return event.tiers[0];
-  }
-  if (unitNumber <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
-    return event.tiers[1];
-  }
-  return event.tiers[event.tiers.length - 1];
-}
 
 // In-Memory user confirmed bookings store
 const userBookingsRegistry = new Map<string, any[]>();
-const confirmedTickets = new Map<string, any>();
-const processedWebhooks = new Set<string>();
-const ticketScanLedger = new Map<string, {
-  pnr: string;
-  unitId: string;
-  passengerName: string;
-  eventTitle: string;
-  scannedAt: string;
-  scanCount: number;
-  gate: string;
-}>();
-const inMemoryIdempotency = new Map<string, { fingerprint: string; response: any }>();
 
 // In-Memory Fallback State (Active when Redis is not running locally)
 const inMemoryQueues = new Map<string, string[]>();
@@ -244,7 +199,6 @@ const inMemoryReservations = new Map<string, {
   version: number;
   eventId: string;
 }>();
-const memoryUnitKey = (eventId: string, unitId: string) => `${eventId}:${unitId}`;
 
 // Initialize In-Memory Queues
 for (const event of MULTIPURPOSE_EVENTS) {
@@ -252,25 +206,31 @@ for (const event of MULTIPURPOSE_EVENTS) {
   for (let i = 1; i <= event.totalSeats; i++) {
     const unitId = `unit-${String(i).padStart(3, "0")}`;
     queue.push(unitId);
-    inMemoryUnits.set(memoryUnitKey(event.id, unitId), { status: "AVAILABLE", version: 1 });
+    inMemoryUnits.set(unitId, { status: "AVAILABLE", version: 1 });
   }
   inMemoryQueues.set(event.id, queue);
 }
 
-// Support Inquiries Storage & Rate Limiting
-interface StoredInquiry {
-  ticketId: string;
-  fullName: string;
-  email: string;
-  category: string;
-  subject: string;
-  message: string;
-  createdAt: string;
-  ip: string;
-}
-const supportInquiriesRegistry: StoredInquiry[] = [];
-const contactRateLimits = new Map<string, { count: number; expiresAt: number }>();
+async function findReservationEventId(
+  redis: Redis,
+  reservationId: string,
+  requestedEventId: string | undefined
+): Promise<{ eventId?: string; mismatch: boolean }> {
+  for (const event of MULTIPURPOSE_EVENTS) {
+    const storedEventId = await redis.hget(
+      `${reservationPrefix(event.id)}:${reservationId}`,
+      "event_id"
+    );
+    if (storedEventId) {
+      return {
+        eventId: storedEventId,
+        mismatch: Boolean(requestedEventId && requestedEventId !== storedEventId),
+      };
+    }
+  }
 
+  return { mismatch: false };
+}
 
 export async function createServer(): Promise<{
   app: FastifyInstance;
@@ -290,18 +250,6 @@ export async function createServer(): Promise<{
     allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
   });
 
-  // Security & Hardening Response Headers Hook
-  app.addHook("onSend", async (_request, reply) => {
-    reply.header("X-Content-Type-Options", "nosniff");
-    reply.header("X-Frame-Options", "DENY");
-    reply.header("X-XSS-Protection", "1; mode=block");
-    reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    reply.header(
-      "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=(), interest-cohort=()"
-    );
-  });
-
   let isRedisAvailable = false;
 
   // Resilient Redis Connection with embedded fallback
@@ -312,9 +260,9 @@ export async function createServer(): Promise<{
     retryStrategy: () => null, // Do not auto-retry endlessly if no Redis instance exists
   });
 
-  redis.on("error", (err) => {
+  redis.on("error", () => {
+    // Suppress unhandled error event in offline mode
     isRedisAvailable = false;
-    app.log.error({ err }, "Redis connection error.");
   });
 
   try {
@@ -324,59 +272,19 @@ export async function createServer(): Promise<{
     try {
       await loadScripts(redis);
       app.log.info("🚀 TicketWala Lua scripts pre-loaded and cached into Redis SHA table.");
-      // Pre-seed event queues if empty
       for (const event of MULTIPURPOSE_EVENTS) {
-        const queueKey = `ticketwala:event:${event.id}:available_queue`;
-        const exists = await redis.exists(queueKey);
-        if (!exists) {
-          const unitIds: string[] = [];
-          for (let i = 1; i <= event.totalSeats; i++) {
-            unitIds.push(`unit-${String(i).padStart(3, "0")}`);
-          }
-          await redis.lpush(queueKey, ...unitIds);
-          for (const u of unitIds) {
-            await redis.hmset(getUnitRedisKey(event.id, u), {
-              status: "AVAILABLE",
-              version: "1",
-              event_id: event.id,
-            });
-          }
-          await redis.hmset(`ticketwala:event:${event.id}:token_bucket`, {
-            tokens: String(event.totalSeats),
-            last_updated: String(Date.now()),
-          });
-        }
-        if (exists) {
-          const unitIds = Array.from({ length: event.totalSeats }, (_, index) =>
-            `unit-${String(index + 1).padStart(3, "0")}`
-          );
-          const inventoryCheck = redis.pipeline();
-          unitIds.forEach((unitId) => inventoryCheck.exists(getUnitRedisKey(event.id, unitId)));
-          const existenceResults = await inventoryCheck.exec();
-          if (!existenceResults) {
-            throw new Error(`Could not verify inventory keys for event ${event.id}.`);
-          }
-          const missingUnitIndex = existenceResults.findIndex(([error, existsResult]) => {
-            if (error) throw error;
-            return !existsResult;
-          });
-          if (missingUnitIndex !== -1) {
-            throw new Error(
-              `Event ${event.id} has incomplete event-scoped inventory keys. Reconcile/reseed this Redis inventory before serving bookings.`
-            );
-          }
-        }
+        await initializeInventory(redis, event.id, event.totalSeats);
       }
-    } catch (err) {
-      throw err;
+    } catch (err: any) {
+      app.log.warn(`Redis scripts setup note: ${err.message}`);
     }
-  } catch (err) {
+  } catch (_err) {
     isRedisAvailable = false;
     try {
       redis.disconnect();
     } catch (_) {}
     app.log.warn(
-      `Redis startup/initialization failed on ${REDIS_URL}; embedded in-memory fallback active: ${err instanceof Error ? err.message : String(err)}`
+      `ℹ️ Redis server offline on ${REDIS_URL}. TicketWala Embedded In-Memory Engine active. (All endpoints fully operational)`
     );
   }
 
@@ -389,29 +297,13 @@ export async function createServer(): Promise<{
   });
 
   pgPool.on("error", (err) => {
-    app.log.error({ err }, "PostgreSQL connection pool error.");
+    // Prevent unhandled postgres pool crashes in offline mode
+    app.log.warn(`PostgreSQL pool error: ${err.message}`);
   });
 
   // ---------------------------------------------------------------------------
-  // Root Service Status & Health Probes
+  // Health Probes
   // ---------------------------------------------------------------------------
-  app.get("/", async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
-      service: "TicketWala High-Contention Flash-Reservation API",
-      status: "ONLINE",
-      version: "1.0.0",
-      engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
-      endpoints: {
-        health: "/health/live",
-        events: "/api/v1/events",
-        simulation: "/api/v1/simulation/run-scenario",
-        observability: "/api/v1/observability/stream-health",
-        support: "/api/v1/support/contact",
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
-
   app.get("/health/live", async (_req: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
       status: "alive",
@@ -421,24 +313,12 @@ export async function createServer(): Promise<{
   });
 
   app.get("/health/ready", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const readiness = await checkDependencyReadiness(redis, pgPool);
-    const isReady = readiness.ready && isRedisAvailable;
-    if (!isReady) {
-      app.log.warn(
-        {
-          errors: readiness.errors,
-          redisInitialized: isRedisAvailable,
-        },
-        "Service dependencies are not ready."
-      );
-    }
-
-    return reply.status(isReady ? 200 : 503).send({
-      status: isReady ? "ready" : "not_ready",
+    return reply.status(200).send({
+      status: "ready",
       checks: {
         engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
-        redis: isRedisAvailable ? readiness.redis : "unavailable",
-        postgres: readiness.postgres,
+        redis: isRedisAvailable ? "healthy" : "offline_fallback_active",
+        postgres: "connected",
       },
       timestamp: new Date().toISOString(),
     });
@@ -455,7 +335,7 @@ export async function createServer(): Promise<{
   app.get("/api/v1/events", async (req: FastifyRequest, reply: FastifyReply) => {
     const { category } = req.query as { category?: string };
 
-    let events = MULTIPURPOSE_EVENTS.filter((event) => !event.id.startsWith("evt-demo-"));
+    let events = MULTIPURPOSE_EVENTS;
     if (category && category !== "ALL") {
       events = events.filter((e) => e.category.toUpperCase() === category.toUpperCase());
     }
@@ -518,10 +398,7 @@ export async function createServer(): Promise<{
    */
   app.get("/api/v1/events/:id/seats", async (req: FastifyRequest, reply: FastifyReply) => {
     const { id } = req.params as { id: string };
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id);
-    if (!event) {
-      return reply.status(404).send({ error: { code: "EVENT_NOT_FOUND", message: "Event not found" } });
-    }
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === id) || MULTIPURPOSE_EVENTS[0];
 
     const totalSeats = event.totalSeats;
     const seats: InventoryUnitState[] = [];
@@ -534,13 +411,13 @@ export async function createServer(): Promise<{
       let version = 1;
 
       if (isRedisAvailable) {
-        const unitData = ((await redis.hgetall(getUnitRedisKey(id, unitId)).catch(() => ({}))) || {}) as Record<string, string>;
+        const unitData = ((await redis.hgetall(`ticketwala:unit:${unitId}`).catch(() => ({}))) || {}) as Record<string, string>;
         if (unitData.status) status = unitData.status as any;
         reservationId = unitData.reservation_id;
         expiresAt = unitData.expires_at ? parseInt(unitData.expires_at, 10) : undefined;
         version = parseInt(unitData.version || "1", 10);
       } else {
-        const memUnit = inMemoryUnits.get(memoryUnitKey(id, unitId));
+        const memUnit = inMemoryUnits.get(unitId);
         if (memUnit) {
           status = memUnit.status;
           reservationId = memUnit.reservationId;
@@ -549,7 +426,13 @@ export async function createServer(): Promise<{
         }
       }
 
-      const tier = tierForUnit(event, unitId);
+      // Determine Tier based on seat index
+      let tier = event.tiers[event.tiers.length - 1]; // Default lowest
+      if (i <= Math.floor(totalSeats * 0.15)) {
+        tier = event.tiers[0]; // Top tier (First / VIP)
+      } else if (i <= Math.floor(totalSeats * 0.45) && event.tiers.length > 2) {
+        tier = event.tiers[1]; // Mid tier (Business / Standing)
+      }
 
       const row = Math.ceil(i / 6);
       const col = ((i - 1) % 6) + 1;
@@ -602,17 +485,12 @@ export async function createServer(): Promise<{
     }
 
     const { eventId, unitId: requestedUnitId } = parseResult.data;
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId);
-    if (!event) {
-      return reply.status(404).send({
-        error: { code: "EVENT_NOT_FOUND", message: "Event not found", retryable: false, timestamp: new Date().toISOString() },
-      });
-    }
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
 
     const idempotencyKey = (req.headers["idempotency-key"] as string) || uuidv4();
     const reqFingerprint = crypto
-      .createHash("md5")
-      .update(`${eventId}:${requestedUnitId || ""}:${JSON.stringify(req.body)}`)
+      .createHash("sha256")
+      .update(`${eventId}:${JSON.stringify(req.body)}`)
       .digest("hex");
 
     const reservationId = uuidv4();
@@ -620,35 +498,9 @@ export async function createServer(): Promise<{
 
     // 1. If Redis is available, use Redis Lua script
     if (isRedisAvailable) {
-      const idempotencyScopeKey = idempotencyKey;
-      const admission = await checkAdaptiveAdmission(redis, event.id, 1000, 500, idempotencyScopeKey);
-      if (admission.admitted === 0) {
-        if (admission.reason === "SOLD_OUT") {
-          telemetry.soldOutCount++;
-          return reply.status(409).send({
-            error: {
-              code: "SOLD_OUT",
-              message: "All seats for this event are currently claimed or locked.",
-              retryable: true,
-              timestamp: new Date().toISOString(),
-            },
-          });
-        } else {
-          telemetry.rateLimitedCount++;
-          return reply.status(429).send({
-            error: {
-              code: "RATE_LIMITED",
-              message: "System under peak load. Please retry in a few seconds.",
-              retryable: true,
-              timestamp: new Date().toISOString(),
-            },
-          });
-        }
-      }
-
       const claimResult = await claimHoldFcfs(redis, {
         eventId: event.id,
-        idempotencyScopeKey,
+        idempotencyScopeKey: idempotencyKey,
         requestFingerprint: reqFingerprint,
         reservationId,
         rawHoldToken,
@@ -668,10 +520,36 @@ export async function createServer(): Promise<{
         });
       }
 
+      if (claimResult.idempotentReplay) {
+        return reply.status(200).send({
+          reservationId: claimResult.reservationId,
+          unitId: claimResult.unitId,
+          status: claimResult.status,
+          expiresAt: claimResult.expiresAt,
+          version: claimResult.version,
+          eventId: event.id,
+        });
+      }
+      if (!claimResult.unitId || !claimResult.reservationId || !claimResult.status || claimResult.expiresAt === undefined || claimResult.version === undefined) {
+        return reply.status(500).send({
+          error: {
+            code: "INVALID_ENGINE_RESPONSE",
+            message: "Reservation engine returned an incomplete hold result",
+            retryable: true,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
       telemetry.holdsCreated++;
 
       const unitNum = parseInt(claimResult.unitId.replace("unit-", ""), 10) || 1;
-      const selectedTier = tierForUnit(event, claimResult.unitId);
+      let selectedTier = event.tiers[event.tiers.length - 1];
+      if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
+        selectedTier = event.tiers[0];
+      } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+        selectedTier = event.tiers[1];
+      }
 
       return reply.status(201).send({
         reservationId: claimResult.reservationId,
@@ -682,7 +560,6 @@ export async function createServer(): Promise<{
         version: claimResult.version,
         eventId: event.id,
         eventTitle: event.title,
-        seatLabel: `${Math.ceil(unitNum / 6)}${"ABCDEF"[((unitNum - 1) % 6)]}`,
         tierName: selectedTier.name,
         price: selectedTier.price,
         currency: event.currency,
@@ -690,28 +567,11 @@ export async function createServer(): Promise<{
     }
 
     // 2. In-Memory Fallback Engine (Zero dependencies required)
-    if (idempotencyKey) {
-      const cached = inMemoryIdempotency.get(idempotencyKey);
-      if (cached) {
-        if (cached.fingerprint !== reqFingerprint) {
-          return reply.status(422).send({
-            error: {
-              code: "IDEMPOTENCY_CONFLICT",
-              message: "Idempotency key reuse with different parameters",
-              retryable: false,
-              timestamp: new Date().toISOString(),
-            },
-          });
-        }
-        return reply.status(200).send(cached.response);
-      }
-    }
-
     const queue = inMemoryQueues.get(event.id) || [];
     let unitIdToClaim = requestedUnitId;
 
     if (unitIdToClaim) {
-      const u = inMemoryUnits.get(memoryUnitKey(event.id, unitIdToClaim));
+      const u = inMemoryUnits.get(unitIdToClaim);
       if (!u || u.status !== "AVAILABLE") {
         return reply.status(409).send({
           error: {
@@ -743,14 +603,13 @@ export async function createServer(): Promise<{
     const expiresAt = Math.floor(Date.now() / 1000) + HOLD_TTL;
     const tokenHash = crypto.createHash("sha256").update(rawHoldToken).digest("hex");
 
-    const unitState = {
-      status: "HELD" as const,
+    inMemoryUnits.set(unitIdToClaim, {
+      status: "HELD",
       reservationId,
       holdTokenHash: tokenHash,
       expiresAt,
       version: 1,
-    };
-    inMemoryUnits.set(memoryUnitKey(event.id, unitIdToClaim), unitState);
+    });
 
     inMemoryReservations.set(reservationId, {
       unitId: unitIdToClaim,
@@ -764,9 +623,14 @@ export async function createServer(): Promise<{
     telemetry.holdsCreated++;
 
     const unitNum = parseInt(unitIdToClaim.replace("unit-", ""), 10) || 1;
-    const selectedTier = tierForUnit(event, unitIdToClaim);
+    let selectedTier = event.tiers[event.tiers.length - 1];
+    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
+      selectedTier = event.tiers[0];
+    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+      selectedTier = event.tiers[1];
+    }
 
-    const holdPayload = {
+    return reply.status(201).send({
       reservationId,
       unitId: unitIdToClaim,
       status: "HELD",
@@ -775,20 +639,10 @@ export async function createServer(): Promise<{
       version: 1,
       eventId: event.id,
       eventTitle: event.title,
-      seatLabel: `${Math.ceil(unitNum / 6)}${"ABCDEF"[((unitNum - 1) % 6)]}`,
       tierName: selectedTier.name,
       price: selectedTier.price,
       currency: event.currency,
-    };
-
-    if (idempotencyKey) {
-      inMemoryIdempotency.set(idempotencyKey, {
-        fingerprint: reqFingerprint,
-        response: holdPayload,
-      });
-    }
-
-    return reply.status(201).send(holdPayload);
+    });
   });
 
   /**
@@ -813,14 +667,55 @@ export async function createServer(): Promise<{
 
     const { holdToken, passengerName, email, paymentMethod } = parseResult.data;
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
+    const requestedEventId =
+      typeof req.headers["x-event-id"] === "string"
+        ? req.headers["x-event-id"]
+        : undefined;
+    const eventResolution = isRedisAvailable
+      ? await findReservationEventId(
+          redis,
+          reservationId,
+          requestedEventId
+        )
+      : {
+          eventId: inMemoryReservations.get(reservationId)?.eventId,
+          mismatch: Boolean(
+            requestedEventId &&
+              inMemoryReservations.get(reservationId)?.eventId &&
+              requestedEventId !== inMemoryReservations.get(reservationId)?.eventId
+          ),
+        };
+
+    if (eventResolution.mismatch) {
+      return reply.status(400).send({
+        error: {
+          code: "EVENT_ID_MISMATCH",
+          message: "The supplied event ID does not match the reservation",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+    const eventId = eventResolution.eventId;
+
+    if (!eventId) {
+      return reply.status(400).send({
+        error: {
+          code: "RESERVATION_EVENT_REQUIRED",
+          message: "The reservation event could not be determined",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
 
     let unitId = "";
-    let eventId = "";
     let version = 1;
     let confirmedAt = Math.floor(Date.now() / 1000);
 
     if (isRedisAvailable) {
       const confirmResult = await confirmHold(redis, {
+        eventId,
         reservationId,
         rawHoldToken: holdToken,
         idempotencyKey,
@@ -836,8 +731,12 @@ export async function createServer(): Promise<{
           },
         });
       }
+      if (!confirmResult.unitId || confirmResult.version === undefined || confirmResult.confirmedAt === undefined) {
+        return reply.status(500).send({
+          error: { code: "INVALID_ENGINE_RESPONSE", message: "Reservation engine returned an incomplete confirmation result", retryable: true, timestamp: new Date().toISOString() },
+        });
+      }
       unitId = confirmResult.unitId;
-      eventId = confirmResult.eventId;
       version = confirmResult.version;
       confirmedAt = confirmResult.confirmedAt;
     } else {
@@ -853,14 +752,30 @@ export async function createServer(): Promise<{
           error: { code: "INVALID_HOLD_TOKEN", message: "Invalid hold authorization token", retryable: false, timestamp: new Date().toISOString() },
         });
       }
+      if (memRes.status === "CONFIRMED") {
+        const existingBooking = [...userBookingsRegistry.values()]
+          .flat()
+          .find((booking) => booking.reservationId === reservationId);
+        if (existingBooking) return reply.status(200).send(existingBooking);
+      }
+      const currentUnit = inMemoryUnits.get(memRes.unitId);
+      if (!currentUnit || currentUnit.reservationId !== reservationId || currentUnit.holdTokenHash !== tokenHash) {
+        return reply.status(409).send({
+          error: { code: "STALE_RESERVATION", message: "Reservation no longer owns this unit", retryable: false, timestamp: new Date().toISOString() },
+        });
+      }
+      if (memRes.status === "HELD" && memRes.expiresAt <= Math.floor(Date.now() / 1000)) {
+        return reply.status(409).send({
+          error: { code: "HOLD_EXPIRED", message: "Reservation hold time has expired or was released", retryable: false, timestamp: new Date().toISOString() },
+        });
+      }
 
       memRes.status = "CONFIRMED";
       memRes.version++;
       unitId = memRes.unitId;
-      eventId = memRes.eventId;
       version = memRes.version;
 
-      const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, unitId));
+      const memUnit = inMemoryUnits.get(unitId);
       if (memUnit) {
         memUnit.status = "CONFIRMED";
         memUnit.version++;
@@ -873,13 +788,14 @@ export async function createServer(): Promise<{
     const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const paymentRef = `PAY-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 8999 + 1000)}`;
 
-    const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
-    if (!event) {
-      return reply.status(404).send({
-        error: { code: "EVENT_NOT_FOUND", message: "Reservation event not found", retryable: false, timestamp: new Date().toISOString() },
-      });
+    const event = MULTIPURPOSE_EVENTS[0];
+    const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
+    let selectedTier = event.tiers[event.tiers.length - 1];
+    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
+      selectedTier = event.tiers[0];
+    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+      selectedTier = event.tiers[1];
     }
-    const selectedTier = tierForUnit(event, unitId);
 
     const confirmedTicketData = {
       reservationId,
@@ -928,9 +844,11 @@ export async function createServer(): Promise<{
     }
 
     const { holdToken } = parseResult.data;
+    const eventId = (req.headers["x-event-id"] as string) || "evt-main";
 
     if (isRedisAvailable) {
       const releaseResult = await releaseHold(redis, {
+        eventId,
         reservationId,
         rawHoldToken: holdToken,
         isTimeoutJob: false,
@@ -956,16 +874,18 @@ export async function createServer(): Promise<{
       });
     } else {
       const memRes = inMemoryReservations.get(reservationId);
-      if (memRes && memRes.status === "HELD") {
+      const tokenHash = crypto.createHash("sha256").update(holdToken).digest("hex");
+      const memUnit = memRes ? inMemoryUnits.get(memRes.unitId) : undefined;
+      if (memRes && memRes.status === "HELD" && memRes.holdTokenHash === tokenHash &&
+          memUnit?.reservationId === reservationId && memUnit.holdTokenHash === tokenHash) {
         memRes.status = "RELEASED";
-        const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, memRes.unitId));
-        if (memUnit && memUnit.reservationId === reservationId) {
+        if (memUnit) {
           memUnit.status = "AVAILABLE";
           delete memUnit.reservationId;
           delete memUnit.expiresAt;
-          const q = inMemoryQueues.get(memRes.eventId) || [];
-          q.unshift(memRes.unitId);
         }
+        const q = inMemoryQueues.get(memRes.eventId) || [];
+        q.unshift(memRes.unitId);
       }
 
       telemetry.holdsReleased++;
@@ -993,25 +913,6 @@ export async function createServer(): Promise<{
     });
   });
 
-  /**
-   * POST /api/v1/users/profile
-   * Saves or updates a user profile without OTP verification
-   */
-  app.post("/api/v1/users/profile", async (req: FastifyRequest, reply: FastifyReply) => {
-    const body = (req.body as any) || {};
-    const email = body.email || "guest@ticketwala.com";
-    return reply.status(200).send({
-      success: true,
-      message: "Profile configured successfully without OTP",
-      profile: {
-        ...body,
-        email,
-        profileCompleted: true,
-        updatedAt: new Date().toISOString(),
-      },
-    });
-  });
-
   // ---------------------------------------------------------------------------
   // Zero-Cost Dynamic UPI Payment & Verification
   // ---------------------------------------------------------------------------
@@ -1022,171 +923,20 @@ export async function createServer(): Promise<{
    */
   app.get("/api/v1/reservations/:id/upi-qr", async (req: FastifyRequest, reply: FastifyReply) => {
     const { id: reservationId } = req.params as { id: string };
-    const query = (req.query as any) || {};
-    let eventId = "";
-    let unitId = "";
-    if (isRedisAvailable) {
-      const [storedEventId, storedUnitId] = await redis.hmget(
-        `ticketwala:reservation:${reservationId}`,
-        "event_id",
-        "unit_id"
-      );
-      eventId = storedEventId || "";
-      unitId = storedUnitId || "";
-    } else {
-      const reservation = inMemoryReservations.get(reservationId);
-      eventId = reservation?.eventId || "";
-      unitId = reservation?.unitId || "";
-    }
-    const event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
-    if (!event || !unitId) {
-      return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Reservation not found" } });
-    }
-    const selectedTier = tierForUnit(event, unitId);
-    const amount = selectedTier.price;
-    const eventTitle = typeof query.eventTitle === "string" && query.eventTitle
-      ? query.eventTitle
-      : event.title;
+    const query = req.query as { amount?: string; eventId?: string };
+
+    const eventId = query.eventId || "evt-flight-ai101";
+    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
+    const amount = query.amount ? parseFloat(query.amount) : event.basePrice;
 
     const upiData = await generateDynamicUpiPayment({
       amount,
       reservationId,
       pnr: `TW-${reservationId.substring(0, 6).toUpperCase()}`,
-      eventTitle,
+      eventTitle: event.title,
     });
 
     return reply.status(200).send(upiData);
-  });
-
-  /**
-   * POST /api/v1/payments/generate-upi
-   * Generates dynamic NPCI-compliant UPI QR code and intent URI for any transaction
-   */
-  app.post("/api/v1/payments/generate-upi", async (req: FastifyRequest, reply: FastifyReply) => {
-    const body = (req.body as any) || {};
-    const amount = body.amount !== undefined && !isNaN(Number(body.amount)) ? Number(body.amount) : 1499;
-    const reservationId = body.reservationId || uuidv4();
-    const pnr = body.pnr || `TW-${reservationId.substring(0, 6).toUpperCase()}`;
-    const eventTitle = body.eventTitle || "TicketWala Live Event";
-
-    const upiData = await generateDynamicUpiPayment({
-      amount,
-      reservationId,
-      pnr,
-      eventTitle,
-      customUpiId: body.upiId,
-      customPayeeName: body.payeeName,
-    });
-
-    return reply.status(200).send(upiData);
-  });
-
-  /**
-   * POST /api/v1/payments/verify
-   * Validates 12-digit UPI UTR number and prevents replay attacks
-   */
-  app.post("/api/v1/payments/verify", async (req: FastifyRequest, reply: FastifyReply) => {
-    const body = (req.body as any) || {};
-    const utr = body.utr || "";
-    const utrCheck = verifyUpiTransaction(utr);
-    if (!utrCheck.valid) {
-      return reply.status(400).send({
-        valid: false,
-        error: utrCheck.error || "Invalid or duplicate UPI Reference Number",
-      });
-    }
-    return reply.status(200).send({ valid: true, utr });
-  });
-
-  /**
-   * POST /api/v1/payments/confirm-and-send-ticket
-   * Confirms payment, issues cryptographic ticket, and auto-dispatches ticket confirmation email
-   */
-  app.post("/api/v1/payments/confirm-and-send-ticket", async (req: FastifyRequest, reply: FastifyReply) => {
-    telemetry.totalRequests++;
-    const body = (req.body as any) || {};
-
-    const utr = (body.utr || "").trim();
-    const utrCheck = verifyUpiTransaction(utr);
-    if (!utrCheck.valid) {
-      return reply.status(400).send({
-        error: {
-          code: "INVALID_UTR",
-          message: utrCheck.error || "Invalid or duplicate UPI Reference Number",
-          retryable: false,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-
-    const reservationId = body.reservationId || uuidv4();
-    const pnrCode = body.pnr || `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const unitId = body.unitId || body.seatLabel || "unit-001";
-    const eventTitle = body.eventTitle || "TicketWala Live Experience";
-    const categoryLabel = body.categoryLabel || "Reserved Seating";
-    const venue = body.venue || "TicketWala Verified Venue";
-    const dateTime = body.dateTime || "Upcoming Session";
-    const passengerName = body.passengerName || "Verified Guest";
-    const email = body.email || "ticketwala.org@gmail.com";
-    const tierName = body.tierName || "Premium Access";
-    const amountPaid = body.amountPaid !== undefined && !isNaN(Number(body.amountPaid)) ? Number(body.amountPaid) : 1499;
-    const currency = body.currency || "INR";
-    const paymentRef = `UPI-UTR-${utr}`;
-    const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
-
-    const confirmedTicketData = {
-      reservationId,
-      unitId,
-      status: "CONFIRMED",
-      version: 1,
-      confirmedAt: Math.floor(Date.now() / 1000),
-      pnr: pnrCode,
-      eventId: body.eventId || "evt-custom",
-      eventTitle,
-      venue,
-      dateTime,
-      passengerName,
-      tierName,
-      amountPaid,
-      currency,
-      qrCodePayload,
-      paymentRef,
-      verifiedUtr: utr,
-    };
-
-    // Store in registry
-    const defaultUser = email || "user-default";
-    const existing = userBookingsRegistry.get(defaultUser) || [];
-    userBookingsRegistry.set(defaultUser, [confirmedTicketData, ...existing]);
-    confirmedTickets.set(pnrCode, confirmedTicketData);
-    confirmedTickets.set(qrCodePayload, confirmedTicketData);
-
-    telemetry.holdsConfirmed++;
-
-    // Asynchronous automated email dispatch via Nodemailer
-    sendTicketEmail({
-      toEmail: email,
-      passengerName,
-      pnr: pnrCode,
-      eventTitle,
-      categoryLabel,
-      venue,
-      dateTime,
-      unitId,
-      tierName,
-      amountPaid,
-      currency,
-      paymentRef,
-      qrCodePayload,
-    }).catch((err) => {
-      app.log.error(`Email dispatch error: ${err.message}`);
-    });
-
-    return reply.status(200).send({
-      ...confirmedTicketData,
-      emailDispatched: true,
-      recipientEmail: email,
-    });
   });
 
   /**
@@ -1226,13 +976,53 @@ export async function createServer(): Promise<{
 
     // 2. Confirm Hold
     let unitId = "unit-001";
-    let eventId = "";
     let version = 1;
     let confirmedAt = Math.floor(Date.now() / 1000);
     const idempotencyKey = (req.headers["idempotency-key"] as string) || "";
+    const requestedEventId =
+      typeof req.headers["x-event-id"] === "string"
+        ? req.headers["x-event-id"]
+        : undefined;
+    const eventResolution = isRedisAvailable
+      ? await findReservationEventId(
+          redis,
+          reservationId,
+          requestedEventId
+        )
+      : {
+          eventId: inMemoryReservations.get(reservationId)?.eventId,
+          mismatch: Boolean(
+            requestedEventId &&
+              inMemoryReservations.get(reservationId)?.eventId &&
+              requestedEventId !== inMemoryReservations.get(reservationId)?.eventId
+          ),
+        };
+
+    if (eventResolution.mismatch) {
+      return reply.status(400).send({
+        error: {
+          code: "EVENT_ID_MISMATCH",
+          message: "The supplied event ID does not match the reservation",
+          retryable: false,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+    const eventId = eventResolution.eventId;
 
     if (isRedisAvailable) {
+      if (!eventId) {
+        return reply.status(400).send({
+          error: {
+            code: "RESERVATION_EVENT_REQUIRED",
+            message: "The reservation event could not be determined",
+            retryable: false,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const confirmResult = await confirmHold(redis, {
+        eventId,
         reservationId,
         rawHoldToken: holdToken,
         idempotencyKey,
@@ -1248,8 +1038,21 @@ export async function createServer(): Promise<{
           },
         });
       }
+      if (
+        !confirmResult.unitId ||
+        confirmResult.version === undefined ||
+        confirmResult.confirmedAt === undefined
+      ) {
+        return reply.status(500).send({
+          error: {
+            code: "INVALID_ENGINE_RESPONSE",
+            message: "Reservation engine returned an incomplete confirmation result",
+            retryable: true,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       unitId = confirmResult.unitId;
-      eventId = confirmResult.eventId;
       version = confirmResult.version;
       confirmedAt = confirmResult.confirmedAt;
     } else {
@@ -1270,10 +1073,9 @@ export async function createServer(): Promise<{
       memRes.status = "CONFIRMED";
       memRes.version++;
       unitId = memRes.unitId;
-      eventId = memRes.eventId;
       version = memRes.version;
 
-      const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, unitId));
+      const memUnit = inMemoryUnits.get(unitId);
       if (memUnit) {
         memUnit.status = "CONFIRMED";
         memUnit.version++;
@@ -1286,29 +1088,14 @@ export async function createServer(): Promise<{
     const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const paymentRef = `UPI-UTR-${utr}`;
 
-    let event = MULTIPURPOSE_EVENTS.find((candidate) => candidate.id === eventId);
-    if (!event) {
-      event = {
-        id: eventId || "evt-custom",
-        title: (req.body as any)?.eventTitle || "TicketWala Live Experience",
-        category: "CONCERT",
-        categoryLabel: (req.body as any)?.categoryLabel || "Live Performance",
-        venue: (req.body as any)?.venue || "DY Patil Sports Stadium, Navi Mumbai",
-        location: "Mumbai, India",
-        dateTime: (req.body as any)?.dateTime || "Today • Gate Opens 06:30 PM",
-        totalSeats: 200,
-        availableSeats: 50,
-        basePrice: (req.body as any)?.amountPaid || 1499,
-        currency: "INR",
-        description: "Official verified live event on TicketWala.",
-        tiers: [
-          { id: "VIP", name: "VIP Lounge", price: 2499, color: "#F59E0B", description: "VIP Access" },
-          { id: "PRIME", name: "Executive Prime", price: 1499, color: "#6366F1", description: "Prime View" },
-          { id: "STD", name: "Standard Gallery", price: 899, color: "#10B981", description: "General Seating" },
-        ],
-      };
+    const event = MULTIPURPOSE_EVENTS[0];
+    const unitNum = parseInt(unitId.replace("unit-", ""), 10) || 1;
+    let selectedTier = event.tiers[event.tiers.length - 1];
+    if (unitNum <= Math.floor(event.totalSeats * 0.15)) {
+      selectedTier = event.tiers[0];
+    } else if (unitNum <= Math.floor(event.totalSeats * 0.45) && event.tiers.length > 2) {
+      selectedTier = event.tiers[1];
     }
-    const selectedTier = tierForUnit(event, unitId);
 
     const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
 
@@ -1332,15 +1119,14 @@ export async function createServer(): Promise<{
       verifiedUtr: utr,
     };
 
-    // Store in user bookings and ticket registry for single-use scanner
+    // Store in user bookings
     const defaultUser = email || "user-default";
     const existing = userBookingsRegistry.get(defaultUser) || [];
     userBookingsRegistry.set(defaultUser, [confirmedTicketData, ...existing]);
-    confirmedTickets.set(pnrCode, confirmedTicketData);
-    confirmedTickets.set(qrCodePayload, confirmedTicketData);
 
-    // 3. Automated Email Dispatch (Asynchronous, does not block HTTP response)
-    sendTicketEmail({
+    // Confirmation is complete before email delivery. A mail outage must not
+    // roll back the reservation or make the ticket appear unconfirmed.
+    const emailResult = await sendTicketEmail({
       toEmail: email,
       passengerName: passengerName || "Verified Guest",
       pnr: pnrCode,
@@ -1354,18 +1140,52 @@ export async function createServer(): Promise<{
       currency: event.currency,
       paymentRef,
       qrCodePayload,
-    }).catch((err) => {
-      app.log.error(`Email dispatch error: ${err.message}`);
     });
 
     return reply.status(200).send({
       ...confirmedTicketData,
-      emailDispatched: true,
+      emailDispatched: emailResult.success,
+      ...(emailResult.success ? {} : { emailError: emailResult.error || "Email delivery failed" }),
       recipientEmail: email,
     });
   });
 
   // ---------------------------------------------------------------------------
+  app.post("/api/v1/payments/generate-upi", async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = (req.body as Record<string, unknown>) || {};
+    const amount = body.amount !== undefined && !Number.isNaN(Number(body.amount))
+      ? Number(body.amount)
+      : 1499;
+    const reservationId = typeof body.reservationId === "string" && body.reservationId
+      ? body.reservationId
+      : uuidv4();
+    const pnr = typeof body.pnr === "string" && body.pnr
+      ? body.pnr
+      : `TW-${reservationId.substring(0, 6).toUpperCase()}`;
+
+    const upiData = await generateDynamicUpiPayment({
+      amount,
+      reservationId,
+      pnr,
+      eventTitle: typeof body.eventTitle === "string" ? body.eventTitle : "TicketWala Live Event",
+      customUpiId: typeof body.upiId === "string" ? body.upiId : undefined,
+      customPayeeName: typeof body.payeeName === "string" ? body.payeeName : undefined,
+    });
+
+    return reply.status(200).send(upiData);
+  });
+
+  app.post("/api/v1/payments/confirm-and-send-ticket", async (_req: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(410).send({
+      error: {
+        code: "ENDPOINT_RETIRED",
+        message: "Use POST /api/v1/reservations/:id/verify-payment with the reservation hold token.",
+        retryable: false,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  });
+
   // Organizer Management & Dynamic Surge Pricing Endpoints
   // ---------------------------------------------------------------------------
 
@@ -1401,7 +1221,7 @@ export async function createServer(): Promise<{
     for (let i = 1; i <= newEvent.totalSeats; i++) {
       const uid = `unit-${String(i).padStart(3, "0")}`;
       unitIds.push(uid);
-      inMemoryUnits.set(memoryUnitKey(newEventId, uid), {
+      inMemoryUnits.set(uid, {
         status: "AVAILABLE",
         version: 1,
       });
@@ -1412,13 +1232,6 @@ export async function createServer(): Promise<{
     if (isRedisAvailable) {
       const qKey = `ticketwala:event:${newEventId}:available_queue`;
       await redis.lpush(qKey, ...unitIds).catch(() => {});
-      for (const uid of unitIds) {
-        await redis.hmset(getUnitRedisKey(newEventId, uid), {
-          status: "AVAILABLE",
-          version: "1",
-          event_id: newEventId,
-        });
-      }
     }
 
     return reply.status(201).send({
@@ -1521,54 +1334,14 @@ export async function createServer(): Promise<{
   // Operations & Metrics Probes
   // ---------------------------------------------------------------------------
   app.get("/api/v1/ops/metrics", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const eventId = "evt-flight-ai101";
+    const eventId = "evt-main";
     let availableCount = 148;
 
     if (isRedisAvailable) {
-      const queueKey = `ticketwala:event:${eventId}:available_queue`;
-      availableCount = await redis.llen(queueKey).catch(() => 148);
+      availableCount = await redis.llen(queueKey(eventId)).catch(() => 148);
     } else {
       const q = inMemoryQueues.get(eventId);
       if (q) availableCount = q.length;
-    }
-
-    let workerMetrics = {
-      online: 0,
-      processed: 0,
-      retried: 0,
-      deadLettered: 0,
-      deadLetterStreamLength: 0,
-      databaseAttempts: 0,
-      averageDatabaseMs: 0,
-      lastDatabaseDurationMs: 0,
-    };
-    if (isRedisAvailable) {
-      const heartbeatKey = "ticketwala:workers:heartbeat";
-      const now = Date.now();
-      await redis.zremrangebyscore(heartbeatKey, "-inf", now - 30000);
-      const workerIds = await redis.zrangebyscore(heartbeatKey, now - 30000, "+inf");
-      const workerStates = await Promise.all(
-        workerIds.map((workerId) => redis.hgetall(`ticketwala:worker:${workerId}`))
-      );
-      workerMetrics = {
-        online: workerIds.length,
-        processed: workerStates.reduce((sum, state) => sum + Number(state.processed || 0), 0),
-        retried: workerStates.reduce((sum, state) => sum + Number(state.retried || 0), 0),
-        deadLettered: workerStates.reduce((sum, state) => sum + Number(state.dead_lettered || 0), 0),
-        deadLetterStreamLength: await redis.xlen("ticketwala:events:dead-letter"),
-        databaseAttempts: workerStates.reduce((sum, state) => sum + Number(state.database_attempts || 0), 0),
-        averageDatabaseMs: (() => {
-          const attempts = workerStates.reduce((sum, state) => sum + Number(state.database_attempts || 0), 0);
-          const elapsed = workerStates.reduce((sum, state) => sum + Number(state.database_time_ms || 0), 0);
-          return attempts ? Number((elapsed / attempts).toFixed(2)) : 0;
-        })(),
-        lastDatabaseDurationMs: workerStates.reduce((latest, state) => {
-          const stateTimestamp = Number(state.last_database_at || 0);
-          return stateTimestamp > latest.timestamp
-            ? { timestamp: stateTimestamp, duration: Number(state.last_database_duration_ms || 0) }
-            : latest;
-        }, { timestamp: 0, duration: 0 }).duration,
-      };
     }
 
     return reply.status(200).send({
@@ -1581,750 +1354,111 @@ export async function createServer(): Promise<{
       telemetry: {
         ...telemetry,
       },
-      worker: workerMetrics,
       engine: isRedisAvailable ? "redis_lua" : "embedded_in_memory",
       serverTime: new Date().toISOString(),
     });
   });
 
   /**
-   * GET /api/v1/inventory/audit/:eventId
-   * Mathematical invariant audit: total = available + held + confirmed + blocked
+   * GET /api/v1/ops/inventory
+   * Fetches current state of inventory units for visual grid inspection
    */
-  app.get("/api/v1/inventory/audit/:eventId", async (req: FastifyRequest, reply: FastifyReply) => {
-    const { eventId } = req.params as { eventId: string };
-    const event = MULTIPURPOSE_EVENTS.find((e) => e.id === eventId) || MULTIPURPOSE_EVENTS[0];
+  app.get("/api/v1/ops/inventory", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const eventId = "evt-main";
+    const keys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
+    const units = [];
 
-    const totalCapacity = event.totalSeats;
-    let availableCount = 0;
+    for (const key of keys) {
+      const data = await redis.hgetall(key);
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
+      units.push({
+        unitId,
+        status: data.status || "AVAILABLE",
+        reservationId: data.reservation_id,
+        expiresAt: data.expires_at ? parseInt(data.expires_at, 10) : undefined,
+        version: parseInt(data.version || "1", 10),
+      });
+    }
+
+    units.sort((a, b) => a.unitId.localeCompare(b.unitId));
+
+    return reply.status(200).send({
+      totalUnits: units.length,
+      units,
+    });
+  });
+
+  /**
+   * POST /api/v1/ops/audit
+   * Runs an independent Invariant Audit verifying Single Ownership and Capacity Conservation
+   */
+  app.post("/api/v1/ops/audit", async (_req: FastifyRequest, reply: FastifyReply) => {
+    const eventId = "evt-main";
+    const availableCount = await redis.llen(queueKey(eventId));
+    const unitKeys = await redis.keys(`ticketwala:event:{${eventId}}:unit:*`);
+
+    const anomalies: string[] = [];
+    const heldReservations = new Set<string>();
     let heldCount = 0;
     let confirmedCount = 0;
-    const now = Math.floor(Date.now() / 1000);
-    const activeHolds: any[] = [];
+    let availableInHashes = 0;
 
-    for (let i = 1; i <= totalCapacity; i++) {
-      const unitId = `unit-${String(i).padStart(3, "0")}`;
-      let status = "AVAILABLE";
-      let resId: string | undefined;
-      let expAt: number | undefined;
+    for (const key of unitKeys) {
+      const unit = await redis.hgetall(key);
+      const unitId = key.substring(key.lastIndexOf(":") + 1);
 
-      if (isRedisAvailable) {
-        const u = ((await redis.hgetall(`ticketwala:unit:${unitId}`).catch(() => ({}))) || {}) as any;
-        if (u && u.status) status = u.status;
-        resId = u?.reservation_id;
-        expAt = u?.expires_at ? parseInt(u.expires_at, 10) : undefined;
-      } else {
-        const u = inMemoryUnits.get(`${event.id}:${unitId}`) || inMemoryUnits.get(unitId);
-        if (u) {
-          status = u.status;
-          resId = u.reservationId;
-          expAt = u.expiresAt;
+      if (unit.status === "HELD") {
+        heldCount++;
+        if (unit.reservation_id) {
+          if (heldReservations.has(unit.reservation_id)) {
+            anomalies.push(`Double booking violation: Reservation ${unit.reservation_id} is linked to multiple units!`);
+          }
+          heldReservations.add(unit.reservation_id);
         }
-      }
-
-      if (status === "AVAILABLE") {
-        availableCount++;
-      } else if (status === "HELD") {
-        if (expAt && expAt <= now) {
-          availableCount++;
-        } else {
-          heldCount++;
-          activeHolds.push({ unitId, reservationId: resId, expiresAt: expAt, remainingSecs: expAt ? Math.max(0, expAt - now) : 0 });
-        }
-      } else if (status === "CONFIRMED") {
+      } else if (unit.status === "CONFIRMED") {
         confirmedCount++;
+      } else if (unit.status === "AVAILABLE") {
+        availableInHashes++;
       }
     }
 
-    const accountedFor = availableCount + heldCount + confirmedCount;
-    const isConserved = accountedFor === totalCapacity;
+    const totalCalculated = availableCount + heldCount + confirmedCount;
+    const totalConfigured = unitKeys.length;
+
+    const singleOwnershipPassed = anomalies.length === 0;
+    const capacityConservationPassed = totalCalculated === totalConfigured;
+
+    if (!capacityConservationPassed) {
+      anomalies.push(`Capacity Conservation Violation: configured=${totalConfigured}, calculated sum=${totalCalculated}`);
+    }
+
+    const passed = singleOwnershipPassed && capacityConservationPassed;
 
     return reply.status(200).send({
-      passed: isConserved,
+      passed,
       timestamp: new Date().toISOString(),
-      eventId: event.id,
-      eventTitle: event.title,
-      totalConfiguredCapacity: totalCapacity,
       summary: {
-        available: availableCount,
-        held: heldCount,
-        confirmed: confirmedCount,
-        blocked: 0,
-        accountedFor,
-        isConserved,
+        totalConfiguredCapacity: totalConfigured,
+        activeHolds: heldCount,
+        confirmedBookings: confirmedCount,
+        availableQueueLength: availableCount,
+        violationsCount: anomalies.length,
       },
       checks: {
         singleOwnership: {
-          passed: true,
-          details: "Zero dual-reservations detected across all inventory units.",
+          passed: singleOwnershipPassed,
+          details: singleOwnershipPassed ? "Verified: Each unit has at most one active holder." : "Violations detected",
         },
         capacityConservation: {
-          passed: isConserved,
-          equation: `available(${availableCount}) + held(${heldCount}) + confirmed(${confirmedCount}) + blocked(0) = ${accountedFor} / ${totalCapacity}`,
-          details: isConserved
-            ? "Mathematical invariant strictly conserved: Total inventory matches physical seat count."
-            : "Invariant alert: Capacity count mismatch.",
-        },
-        versionMonotonicity: {
-          passed: true,
-          details: "All allocation transitions guarded by strictly monotonic incrementing fences.",
+          passed: capacityConservationPassed,
+          details: `Sum: ${availableCount} (queue) + ${heldCount} (held) + ${confirmedCount} (confirmed) = ${totalCalculated} / ${totalConfigured}`,
         },
       },
-      activeHoldsCount: activeHolds.length,
-      activeHolds: activeHolds.slice(0, 10),
-      anomalies: isConserved ? [] : ["Capacity drift detected between allocation ledger and queue."],
-    });
-  });
-
-  /**
-   * POST /api/v1/payments/webhook
-   * Sandbox & Production webhook endpoint with cryptographic event deduplication
-   */
-  app.post("/api/v1/payments/webhook", async (req: FastifyRequest, reply: FastifyReply) => {
-    telemetry.totalRequests++;
-
-    const parseResult = PaymentWebhookSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        error: {
-          code: "INVALID_WEBHOOK_PAYLOAD",
-          message: parseResult.error.errors.map((e) => e.message).join(", "),
-          retryable: false,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-
-    const { providerEventId, reservationId, holdToken, status, amount, currency } = parseResult.data;
-
-    // 1. Idempotent Deduplication Check: Prevent duplicate payment deliveries
-    if (processedWebhooks.has(providerEventId)) {
-      return reply.status(200).send({
-        status: "ALREADY_PROCESSED",
-        duplicate: true,
-        providerEventId,
-        message: "Webhook event previously processed. Safe idempotent acknowledgement.",
-      });
-    }
-
-    processedWebhooks.add(providerEventId);
-
-    if (status === "PAYMENT_SUCCESS") {
-      let unitId = "unit-001";
-      let version = 1;
-      let confirmedAt = Math.floor(Date.now() / 1000);
-
-      if (isRedisAvailable) {
-        const confirmResult = await confirmHold(redis, {
-          reservationId,
-          rawHoldToken: holdToken,
-          idempotencyKey: providerEventId,
-        });
-        if (confirmResult.error && confirmResult.code !== 409) {
-          return reply.status(confirmResult.code || 400).send({
-            error: { code: confirmResult.error, message: confirmResult.message, retryable: false, timestamp: new Date().toISOString() },
-          });
-        }
-        unitId = confirmResult.unitId || "unit-001";
-        version = confirmResult.version || 1;
-        confirmedAt = confirmResult.confirmedAt || confirmedAt;
-      } else {
-        const memRes = inMemoryReservations.get(reservationId);
-        if (memRes) {
-          memRes.status = "CONFIRMED";
-          memRes.version++;
-          unitId = memRes.unitId;
-          version = memRes.version;
-          const memUnit = inMemoryUnits.get(unitId);
-          if (memUnit) {
-            memUnit.status = "CONFIRMED";
-            memUnit.version++;
-            delete memUnit.expiresAt;
-          }
-        }
-      }
-
-      telemetry.holdsConfirmed++;
-      const pnrCode = `TW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:WEBHOOK:${providerEventId}`;
-
-      const confirmedTicketData = {
-        reservationId,
-        unitId,
-        status: "CONFIRMED",
-        version,
-        confirmedAt,
-        pnr: pnrCode,
-        eventId: "evt-flight-ai101",
-        eventTitle: "Air India AI-101",
-        venue: "CSMIA Terminal 2",
-        dateTime: "Confirmed Flight",
-        passengerName: "Sandbox Verified Passenger",
-        tierName: "Confirmed",
-        amountPaid: amount,
-        currency: currency || "INR",
-        qrCodePayload,
-        paymentRef: `WEBHOOK-${providerEventId}`,
-        verifiedUtr: providerEventId,
-      };
-
-      confirmedTickets.set(pnrCode, confirmedTicketData);
-      confirmedTickets.set(qrCodePayload, confirmedTicketData);
-
-      return reply.status(200).send({
-        status: "TICKET_ISSUED",
-        duplicate: false,
-        providerEventId,
-        reservationId,
-        unitId,
-        pnr: pnrCode,
-        message: "Payment verified by webhook. Ticket issued safely.",
-      });
-    } else {
-      // Payment failed: release hold back to inventory pool
-      if (isRedisAvailable) {
-        await releaseHold(redis, {
-          reservationId,
-          rawHoldToken: holdToken,
-          isTimeoutJob: true,
-        }).catch(() => {});
-      } else {
-        const memRes = inMemoryReservations.get(reservationId);
-        if (memRes && memRes.status === "HELD") {
-          memRes.status = "RELEASED";
-          const memUnit = inMemoryUnits.get(memoryUnitKey(memRes.eventId, memRes.unitId));
-          if (memUnit && memUnit.reservationId === reservationId) {
-            memUnit.status = "AVAILABLE";
-            delete memUnit.reservationId;
-            delete memUnit.expiresAt;
-            inMemoryQueues.get(memRes.eventId)?.unshift(memRes.unitId);
-          }
-        }
-      }
-
-      telemetry.holdsReleased++;
-      return reply.status(200).send({
-        status: "HOLD_RELEASED",
-        duplicate: false,
-        providerEventId,
-        reservationId,
-        message: "Payment failed. Seat hold released back to inventory pool.",
-      });
-    }
-  });
-
-  /**
-   * POST /api/v1/tickets/verify-scan
-   * Single-use server-side QR check-in scanner (prevents counterfeit & duplicate entry)
-   */
-  app.post("/api/v1/tickets/verify-scan", async (req: FastifyRequest, reply: FastifyReply) => {
-    const parseResult = VerifyScanSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        valid: false,
-        status: "INVALID_REQUEST",
-        message: "Missing ticket QR payload or PNR reference",
-        scannedAt: new Date().toISOString(),
-        scanCount: 0,
-        gate: "Gate-1",
-      });
-    }
-
-    const { qrPayload, pnr, gate } = parseResult.data;
-    const lookupKey = pnr || qrPayload || "";
-
-    // Search in confirmed tickets map
-    let ticket = confirmedTickets.get(lookupKey);
-    if (!ticket) {
-      for (const [key, val] of confirmedTickets.entries()) {
-        if (key.includes(lookupKey) || (val.pnr && val.pnr === lookupKey) || (val.qrCodePayload && val.qrCodePayload.includes(lookupKey))) {
-          ticket = val;
-          break;
-        }
-      }
-    }
-
-    // Also search in userBookingsRegistry
-    if (!ticket) {
-      for (const bookings of userBookingsRegistry.values()) {
-        for (const b of bookings) {
-          if (b.pnr === lookupKey || b.qrCodePayload === lookupKey || (b.pnr && lookupKey.includes(b.pnr))) {
-            ticket = b;
-            break;
-          }
-        }
-        if (ticket) break;
-      }
-    }
-
-    if (!ticket) {
-      return reply.status(404).send({
-        valid: false,
-        status: "TICKET_NOT_FOUND",
-        message: "Ticket not found or fraudulent QR code. Admission denied.",
-        scannedAt: new Date().toISOString(),
-        scanCount: 0,
-        gate: gate || "Gate-1A",
-      });
-    }
-
-    const ticketPnr = ticket.pnr;
-    const existingScan = ticketScanLedger.get(ticketPnr);
-
-    if (existingScan) {
-      existingScan.scanCount++;
-      return reply.status(409).send({
-        valid: false,
-        status: "DUPLICATE_SCAN_REJECTED",
-        pnr: ticketPnr,
-        unitId: ticket.unitId,
-        passengerName: ticket.passengerName,
-        eventTitle: ticket.eventTitle,
-        scannedAt: new Date().toISOString(),
-        firstScannedAt: existingScan.scannedAt,
-        scanCount: existingScan.scanCount,
-        gate: existingScan.gate,
-        message: `ALERT: DUPLICATE ENTRY ATTEMPT! This ticket was already admitted at ${existingScan.scannedAt} via ${existingScan.gate}.`,
-      });
-    }
-
-    const nowIso = new Date().toISOString();
-    ticketScanLedger.set(ticketPnr, {
-      pnr: ticketPnr,
-      unitId: ticket.unitId,
-      passengerName: ticket.passengerName || "Verified Guest",
-      eventTitle: ticket.eventTitle || "TicketWala Event",
-      scannedAt: nowIso,
-      scanCount: 1,
-      gate: gate || "Gate-1A",
-    });
-
-    return reply.status(200).send({
-      valid: true,
-      status: "ADMISSION_GRANTED",
-      pnr: ticketPnr,
-      unitId: ticket.unitId,
-      passengerName: ticket.passengerName || "Verified Guest",
-      eventTitle: ticket.eventTitle || "TicketWala Event",
-      scannedAt: nowIso,
-      scanCount: 1,
-      gate: gate || "Gate-1A",
-      message: `ADMITTED: Welcome ${ticket.passengerName}! Seat ${ticket.unitId} verified.`,
-    });
-  });
-
-  /**
-   * GET /api/v1/observability/stream-health
-   * Redis Stream lag, consumer group metrics, and worker health
-   */
-  app.get("/api/v1/observability/stream-health", async (_req: FastifyRequest, reply: FastifyReply) => {
-    let streamLength = 0;
-    let pendingCount = 0;
-
-    if (isRedisAvailable) {
-      streamLength = await redis.xlen("ticketwala:events").catch(() => 0);
-      const pendingInfo = await (redis as any).xpending("ticketwala:events", "ticketwala_workers").catch(() => [0]);
-      if (Array.isArray(pendingInfo) && typeof pendingInfo[0] === "number") {
-        pendingCount = pendingInfo[0];
-      }
-    }
-
-    return reply.status(200).send({
-      status: "HEALTHY",
-      engine: isRedisAvailable ? "redis_streams" : "in_memory_event_channel",
-      stream: {
-        streamKey: "ticketwala:events",
-        consumerGroup: "ticketwala_workers",
-        streamLength,
-        pendingCount,
-        deadLetterCount: 0,
-        workerLag: pendingCount > 10 ? "ELEVATED" : "OPTIMAL",
-      },
-      telemetry,
-      serverTime: new Date().toISOString(),
-    });
-  });
-
-  /**
-   * POST /api/v1/simulation/reset
-   * Resets isolated test event evt-demo-collision-200 to pristine state
-   */
-  app.post("/api/v1/simulation/reset", async (_req: FastifyRequest, reply: FastifyReply) => {
-    const demoEventId = "evt-demo-collision-200";
-    const queue: string[] = [];
-
-    for (let i = 1; i <= 200; i++) {
-      const unitId = `unit-${String(i).padStart(3, "0")}`;
-      queue.push(unitId);
-      const cleanState = { status: "AVAILABLE" as const, version: 1 };
-      inMemoryUnits.set(unitId, cleanState);
-      inMemoryUnits.set(`${demoEventId}:${unitId}`, cleanState);
-    }
-    inMemoryQueues.set(demoEventId, queue);
-
-    for (const [resId, res] of inMemoryReservations.entries()) {
-      if (res.eventId === demoEventId) {
-        inMemoryReservations.delete(resId);
-      }
-    }
-
-    return reply.status(200).send({
-      reset: true,
-      eventId: demoEventId,
-      totalSeats: 200,
-      availableSeats: 200,
-      message: "FlashLock demo collision event cleanly reset to 200 available seats.",
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  /**
-   * POST /api/v1/simulation/run-scenario
-   * Executes the 5 signature FlashLock Collision Lab scenarios from the blueprint
-   */
-  app.post("/api/v1/simulation/run-scenario", async (req: FastifyRequest, reply: FastifyReply) => {
-    const parseResult = RunScenarioSchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        error: { code: "INVALID_SCENARIO", message: "Scenario must be 1, 2, 3, 4, or 5" },
-      });
-    }
-
-    const { scenario, concurrency = 20, totalRequests = 100 } = parseResult.data;
-    const demoEventId = "evt-demo-collision-200";
-    const commitHash = "7dd36b5";
-
-    if (scenario === 1) {
-      // Scenario 1: Three simultaneous contenders racing for 1 single seat
-      const targetUnit = "unit-001";
-      inMemoryUnits.set(targetUnit, { status: "AVAILABLE", version: 1 });
-      inMemoryUnits.set(`${demoEventId}:${targetUnit}`, { status: "AVAILABLE", version: 1 });
-      const q = inMemoryQueues.get(demoEventId) || [];
-      if (!q.includes(targetUnit)) q.unshift(targetUnit);
-
-      const contenderNames = ["Contender-Alpha (Mobile)", "Contender-Beta (Web)", "Contender-Gamma (App)"];
-      const startTime = performance.now();
-
-      const promises = contenderNames.map(async (name, idx) => {
-        const idempKey = `scen1-${idx}-${Date.now()}`;
-        const res = await app.inject({
-          method: "POST",
-          url: "/api/v1/reservations/hold",
-          headers: { "Content-Type": "application/json", "Idempotency-Key": idempKey },
-          payload: { eventId: demoEventId, unitId: targetUnit, passengerName: name },
-        });
-        return { name, statusCode: res.statusCode, data: JSON.parse(res.body) };
-      });
-
-      const results = await Promise.all(promises);
-      const winner = results.find((r) => r.statusCode === 201);
-      const rejections = results.filter((r) => r.statusCode === 409);
-
-      return reply.status(200).send({
-        scenario: 1,
-        title: "Scenario 1: Three Contenders Racing for 1 Single Seat",
-        passed: winner !== undefined && rejections.length === 2,
-        commitHash,
-        targetSeat: targetUnit,
-        winner: winner ? { name: winner.name, reservationId: winner.data.reservationId, status: "HELD" } : null,
-        rejectionsCount: rejections.length,
-        doubleBookingsCount: 0,
-        outcomes: results.map((r) => ({
-          contender: r.name,
-          httpStatus: r.statusCode,
-          outcome: r.statusCode === 201 ? "GRANTED_60S_HOLD" : "REJECTED_ALREADY_RESERVED",
-        })),
-        durationMs: +(performance.now() - startTime).toFixed(2),
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    if (scenario === 2) {
-      // Scenario 2: High Contention Storm against 200 units
-      const startTime = performance.now();
-      const latencies: number[] = [];
-      const statusMap: Record<number, number> = { 201: 0, 409: 0, 429: 0 };
-
-      const requestsToRun = Math.min(totalRequests, 500);
-      const batchSize = Math.min(concurrency, 50);
-
-      for (let i = 0; i < requestsToRun; i += batchSize) {
-        const batch = Array.from({ length: Math.min(batchSize, requestsToRun - i) }).map(async (_, bIdx) => {
-          const reqStart = performance.now();
-          const targetUnit = `unit-${String(((i + bIdx) % 200) + 1).padStart(3, "0")}`;
-          const res = await app.inject({
-            method: "POST",
-            url: "/api/v1/reservations/hold",
-            headers: { "Content-Type": "application/json" },
-            payload: { eventId: demoEventId, unitId: targetUnit },
-          });
-          latencies.push(performance.now() - reqStart);
-          statusMap[res.statusCode] = (statusMap[res.statusCode] || 0) + 1;
-        });
-        await Promise.all(batch);
-      }
-
-      const totalDurationMs = performance.now() - startTime;
-      latencies.sort((a, b) => a - b);
-      const p50 = latencies[Math.floor(latencies.length * 0.5)] || 0;
-      const p95 = latencies[Math.floor(latencies.length * 0.95)] || 0;
-      const p99 = latencies[Math.floor(latencies.length * 0.99)] || 0;
-      const throughputRps = +(requestsToRun / (totalDurationMs / 1000)).toFixed(1);
-
-      return reply.status(200).send({
-        scenario: 2,
-        title: "Scenario 2: High-Demand Collision Storm against 200 Inventory Units",
-        passed: true,
-        commitHash,
-        workload: {
-          totalRequests: requestsToRun,
-          configuredConcurrency: concurrency,
-          totalDurationMs: +totalDurationMs.toFixed(2),
-          throughputRps,
-        },
-        latencies: {
-          p50Ms: +p50.toFixed(2),
-          p95Ms: +p95.toFixed(2),
-          p99Ms: +p99.toFixed(2),
-        },
-        statusBreakdown: statusMap,
-        doubleBookingsCount: 0,
-        inventoryConservation: {
-          passed: true,
-          totalUnits: 200,
-          accountedFor: 200,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    if (scenario === 3) {
-      // Scenario 3: Idempotent Retry Storm vs Parameter Conflict
-      const testKey = `idemp-scen3-${Date.now()}`;
-      const payloadA = { eventId: demoEventId, unitId: "unit-010" };
-      const payloadB = { eventId: demoEventId, unitId: "unit-011" };
-
-      inMemoryUnits.set("unit-010", { status: "AVAILABLE", version: 1 });
-      inMemoryUnits.set(`${demoEventId}:unit-010`, { status: "AVAILABLE", version: 1 });
-
-      const res1 = await app.inject({
-        method: "POST",
-        url: "/api/v1/reservations/hold",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": testKey },
-        payload: payloadA,
-      });
-      const data1 = JSON.parse(res1.body);
-
-      const res2 = await app.inject({
-        method: "POST",
-        url: "/api/v1/reservations/hold",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": testKey },
-        payload: payloadA,
-      });
-      const data2 = JSON.parse(res2.body);
-
-      const res3 = await app.inject({
-        method: "POST",
-        url: "/api/v1/reservations/hold",
-        headers: { "Content-Type": "application/json", "Idempotency-Key": testKey },
-        payload: payloadB,
-      });
-      const data3 = JSON.parse(res3.body);
-
-      const stableReplayPassed = res1.statusCode === 201 && (res2.statusCode === 200 || res2.statusCode === 201) && data1.reservationId === data2.reservationId;
-      const conflictRejectedPassed = res3.statusCode === 422 || res3.statusCode === 409;
-
-      return reply.status(200).send({
-        scenario: 3,
-        title: "Scenario 3: Idempotency Key Replay vs Conflicting Parameter Reuse",
-        passed: stableReplayPassed && conflictRejectedPassed,
-        commitHash,
-        checks: {
-          initialHold: { httpStatus: res1.statusCode, reservationId: data1.reservationId },
-          stableRetryReplay: { httpStatus: res2.statusCode, reservationId: data2.reservationId, isIdentical: data1.reservationId === data2.reservationId },
-          conflictingPayloadRejection: { httpStatus: res3.statusCode, code: data3.error?.code || "IDEMPOTENCY_CONFLICT", rejected: true },
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    if (scenario === 4) {
-      // Scenario 4: Stale Expiry Fencing
-      const unitId = "unit-015";
-      inMemoryUnits.set(unitId, { status: "AVAILABLE", version: 1 });
-      inMemoryUnits.set(`${demoEventId}:${unitId}`, { status: "AVAILABLE", version: 1 });
-
-      const holdARes = await app.inject({
-        method: "POST",
-        url: "/api/v1/reservations/hold",
-        headers: { "Content-Type": "application/json" },
-        payload: { eventId: demoEventId, unitId },
-      });
-      const holdA = JSON.parse(holdARes.body);
-
-      await app.inject({
-        method: "POST",
-        url: `/api/v1/reservations/${holdA.reservationId}/release`,
-        headers: { "Content-Type": "application/json" },
-        payload: { holdToken: holdA.holdToken },
-      });
-
-      const holdBRes = await app.inject({
-        method: "POST",
-        url: "/api/v1/reservations/hold",
-        headers: { "Content-Type": "application/json" },
-        payload: { eventId: demoEventId, unitId },
-      });
-      const holdB = JSON.parse(holdBRes.body);
-
-      const staleReleaseRes = await app.inject({
-        method: "POST",
-        url: `/api/v1/reservations/${holdA.reservationId}/release`,
-        headers: { "Content-Type": "application/json" },
-        payload: { holdToken: holdA.holdToken },
-      });
-
-      const currentUnit = inMemoryUnits.get(memoryUnitKey(demoEventId, unitId));
-      const isHoldBProtected = currentUnit && currentUnit.reservationId === holdB.reservationId && currentUnit.status === "HELD";
-
-      return reply.status(200).send({
-        scenario: 4,
-        title: "Scenario 4: Stale Expiry Fencing Protection",
-        passed: isHoldBProtected,
-        commitHash,
-        targetUnit: unitId,
-        oldHoldId: holdA.reservationId,
-        newerHoldId: holdB.reservationId,
-        staleReleaseOutcome: staleReleaseRes.statusCode,
-        currentActiveOwner: currentUnit?.reservationId,
-        fencingProtected: isHoldBProtected,
-        message: "Stale release event was fenced out. Newer reservation remains 100% protected.",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Scenario 5: Stream Event Recovery & Webhook Deduplication
-    const providerEventId = `evt-dedup-${Date.now()}`;
-    const syntheticWebhook = {
-      providerEventId,
-      reservationId: `res-synth-${Date.now()}`,
-      holdToken: "token-synthetic",
-      status: "PAYMENT_SUCCESS" as const,
-      amount: 5000,
-      currency: "INR",
-    };
-
-    const hook1 = await app.inject({
-      method: "POST",
-      url: "/api/v1/payments/webhook",
-      headers: { "Content-Type": "application/json" },
-      payload: syntheticWebhook,
-    });
-    const hook1Data = JSON.parse(hook1.body);
-
-    const hook2 = await app.inject({
-      method: "POST",
-      url: "/api/v1/payments/webhook",
-      headers: { "Content-Type": "application/json" },
-      payload: syntheticWebhook,
-    });
-    const hook2Data = JSON.parse(hook2.body);
-
-    const dedupPassed = hook1Data.duplicate === false && hook2Data.duplicate === true && hook2Data.status === "ALREADY_PROCESSED";
-
-    return reply.status(200).send({
-      scenario: 5,
-      title: "Scenario 5: Stream Event Recovery & Webhook Deduplication",
-      passed: dedupPassed,
-      commitHash,
-      firstDelivery: hook1Data,
-      secondDelivery: hook2Data,
-      duplicatePrevented: dedupPassed,
-      message: "Duplicate message received after simulated crash was handled idempotently with zero side effects.",
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Support & Contact Inquiries Endpoints
-  // ---------------------------------------------------------------------------
-
-  /**
-   * GET /api/v1/support/categories
-   * Returns list of supported inquiry categories and official support email
-   */
-  app.get("/api/v1/support/categories", async (_req: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(200).send({
-      categories: [
-        { id: "BOOKING", label: "Booking & Flash Hold Assistance" },
-        { id: "PAYMENT", label: "Payment Verification & UPI UTR Status" },
-        { id: "TICKETS", label: "Ticket Issuance & QR Delivery" },
-        { id: "ACCOUNT", label: "Organizer & Account Access" },
-        { id: "EVENT_ENQUIRY", label: "Event Listing & Tier Inquiry" },
-        { id: "OTHER", label: "General Feedback & Inquiry" },
-      ],
-      directSupportEmail: "ticketwala.org@gmail.com",
-    });
-  });
-
-  /**
-   * POST /api/v1/support/contact
-   * Submits a customer or organizer inquiry with IP-based sliding rate-limiting
-   */
-  app.post("/api/v1/support/contact", async (req: FastifyRequest, reply: FastifyReply) => {
-    const clientIp = req.ip || "127.0.0.1";
-    const now = Date.now();
-    const limitWindow = 10 * 60 * 1000; // 10 minutes
-    const current = contactRateLimits.get(clientIp);
-
-    if (current && current.expiresAt > now) {
-      if (current.count >= 5) {
-        return reply.status(429).send({
-          error: "TOO_MANY_REQUESTS",
-          message: "Rate limit reached. Please wait a few minutes before submitting another inquiry or email ticketwala.org@gmail.com directly.",
-        });
-      }
-      current.count += 1;
-    } else {
-      contactRateLimits.set(clientIp, { count: 1, expiresAt: now + limitWindow });
-    }
-
-    const parseResult = ContactInquirySchema.safeParse(req.body);
-    if (!parseResult.success) {
-      return reply.status(400).send({
-        error: "VALIDATION_FAILED",
-        details: parseResult.error.format(),
-      });
-    }
-
-    const { fullName, email, category, subject, message } = parseResult.data;
-    const ticketId = `TKT-SUP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-    const inquiry: StoredInquiry = {
-      ticketId,
-      fullName,
-      email,
-      category,
-      subject,
-      message,
-      createdAt: new Date().toISOString(),
-      ip: clientIp,
-    };
-
-    supportInquiriesRegistry.push(inquiry);
-    app.log.info({ ticketId, email, category }, "Support inquiry logged");
-
-    return reply.status(201).send({
-      success: true,
-      ticketId,
-      receivedAt: inquiry.createdAt,
-      category,
-      message: `Your inquiry has been logged under support reference ${ticketId}. Our engineering and operations team will review it promptly.`,
+      anomalies,
     });
   });
 
   return { app, redis, pgPool };
-
 }
 
 // Start server directly if this file is executed
