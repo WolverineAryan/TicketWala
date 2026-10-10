@@ -67,16 +67,16 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
   const heldCount = displayUnits.filter((u) => u.status === "HELD").length;
   const confirmedCount = displayUnits.filter((u) => u.status === "CONFIRMED").length;
 
-  const stageLabel =
+  const stageInfo =
     eventCategory === "FLIGHT"
-      ? "🛫 Cockpit & Flight Direction"
+      ? { icon: Plane, label: "Cockpit & Flight Direction" }
       : eventCategory === "CONCERT"
-      ? "🎤 Main Stage & Sound Pod"
+      ? { icon: Mic, label: "Main Stage & Sound Pod" }
       : eventCategory === "SPORTS"
-      ? "🏏 Pitch & Center Wicket"
+      ? { icon: Trophy, label: "Pitch & Center Wicket" }
       : eventCategory === "CINEMA"
-      ? "📽️ IMAX Curved 70mm Screen"
-      : "🚆 Engine / Driver Cab";
+      ? { icon: Film, label: "IMAX Curved 70mm Screen" }
+      : { icon: TrainFront, label: "Engine / Driver Cab" };
 
   return (
     <div
@@ -223,6 +223,10 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
       {/* Screen / Stage Orientation Indicator */}
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
           textAlign: "center",
           padding: "8px",
           backgroundColor: "#F1F5F9",
@@ -235,7 +239,8 @@ export const InteractiveSeatMap3D: React.FC<InteractiveSeatMap3DProps> = ({
           letterSpacing: "0.5px",
         }}
       >
-        {stageLabel}
+        <stageInfo.icon size={15} />
+        <span>{stageInfo.label}</span>
       </div>
 
       {/* Interactive Grid Canvas */}

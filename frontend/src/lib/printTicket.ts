@@ -338,7 +338,7 @@ export function printExactTicket(ticket: PrintableTicketData): void {
   <div class="print-ticket-wrapper">
     <div class="print-top-header">
       <div class="brand-title">
-        <span>🎟️</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect x="2" y="6" width="20" height="12" rx="3"/><circle cx="12" cy="12" r="2"/></svg>
         <span>TICKETWALA OFFICIAL PASS</span>
       </div>
       <div class="brand-meta">
@@ -380,13 +380,13 @@ export function printExactTicket(ticket: PrintableTicketData): void {
           </div>
           <div class="meta-item">
             <small>STATUS</small>
-            <b style="color: #ffffff;">✓ ${ticket.status.toUpperCase()}</b>
+            <b style="color: #ffffff;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block; vertical-align:middle; margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg>${ticket.status.toUpperCase()}</b>
           </div>
         </div>
 
         <div class="footer-row">
           <div class="verified-badge">
-            <span class="verified-icon">✓</span>
+            <span class="verified-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" style="display:inline-block; vertical-align:middle;"><polyline points="20 6 9 17 4 12"/></svg></span>
             <span>OFFICIAL VERIFIED PASS</span>
           </div>
           <div class="price-tag">

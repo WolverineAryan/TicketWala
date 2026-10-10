@@ -385,7 +385,7 @@ export const HeroAirplaneCabin: React.FC<HeroAirplaneCabinProps> = ({
           </div>
         </div>
 
-        {/* ✈️ THE CUSTOM ANIMATED AIRPLANE CABIN CENTERPIECE ✈️ */}
+        {/* THE CUSTOM ANIMATED AIRPLANE CABIN CENTERPIECE */}
         <div
           ref={containerRef}
           onMouseMove={handleMouseMove}

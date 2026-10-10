@@ -113,7 +113,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 Active Reservation Hold: {activeHold.unitId}
               </div>
               <div style={{ fontSize: "12px", color: "#FF6B35", fontWeight: 700 }}>
-                ⏳ Expires in {secondsRemaining} seconds! Complete checkout to claim.
+                Expires in {secondsRemaining} seconds! Complete checkout to claim.
               </div>
             </div>
           </div>
