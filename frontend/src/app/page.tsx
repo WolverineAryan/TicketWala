@@ -555,6 +555,8 @@ export default function TicketWalaPage() {
   const [citySearchQuery, setCitySearchQuery] = useState<string>("");
   const [gpsLoading, setGpsLoading] = useState<boolean>(false);
   const [gpsMessage, setGpsMessage] = useState<string>("");
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const themeHydratedRef = useRef(false);
 
   // BookMyShow Home Interactive States
   const [carouselIdx, setCarouselIdx] = useState<number>(0);
@@ -645,6 +647,7 @@ export default function TicketWalaPage() {
       if (logContainerRef.current) {
         logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
       }
+
     }, 20);
   }, []);
 
@@ -716,6 +719,20 @@ export default function TicketWalaPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("ticketwala_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setIsDarkMode(savedTheme ? savedTheme === "dark" : prefersDark);
+    themeHydratedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark-mode", isDarkMode);
+    if (themeHydratedRef.current) {
+      localStorage.setItem("ticketwala_theme", isDarkMode ? "dark" : "light");
+    }
+  }, [isDarkMode]);
 
   // Sync profile form details with current logged-in user
   useEffect(() => {
@@ -1348,6 +1365,15 @@ export default function TicketWalaPage() {
         </ul>
 
         <div id="auth" style={{ display: "flex", alignItems: "center" }}>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setIsDarkMode((enabled) => !enabled)}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? "☀" : "☾"}
+          </button>
           {user ? (
             <>
               <button
@@ -1424,7 +1450,7 @@ export default function TicketWalaPage() {
               <div
                 className="bms-hero-bg"
                 style={{
-                  backgroundImage: `url(${featuredEvents[carouselIdx]?.bannerUrl || "/signup-banner.jpg"})`,
+                  backgroundImage: `url(${featuredEvents[carouselIdx]?.bannerUrl || "/signup-banner.jpg"}), url("/signup-banner.jpg")`,
                 }}
               />
               <div className="bms-hero-gradient" />
@@ -1510,19 +1536,19 @@ export default function TicketWalaPage() {
             <div className="bms-edge-ribbon" style={{ marginBottom: "32px" }}>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                <span><b>Zero Double-Bookings</b> Guaranteed</span>
+                <span><b>Atomic inventory transitions</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                <span><b>0.38ms Redis Lua Lock</b></span>
+                <span><b>Redis Lua state changes</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                <span><b>30s TTL Hold Ring</b></span>
+                <span><b>Server-controlled hold TTL</b></span>
               </div>
               <div className="bms-edge-pill">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                <span><b>10k RPS Bot Shield</b></span>
+                <span><b>Version-fenced event processing</b></span>
               </div>
             </div>
 
@@ -1570,6 +1596,10 @@ export default function TicketWalaPage() {
                         src={evt.bannerUrl}
                         alt={evt.name}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = "/signup-banner.jpg";
+                        }}
                       />
                       <span style={{
                         position: "absolute",
@@ -3230,7 +3260,7 @@ export default function TicketWalaPage() {
                         </svg>
                       ) : (
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                          <path d="M1 12C3 8 7 4 12 4s9 4 11 8c-2 4-6 8-11 8s-9-4-11-8Z" />
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       )}
@@ -3485,7 +3515,7 @@ export default function TicketWalaPage() {
                         </svg>
                       ) : (
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                          <path d="M1 12C3 8 7 4 12 4s9 4 11 8c-2 4-6 8-11 8s-9-4-11-8Z" />
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       )}
@@ -3571,9 +3601,6 @@ export default function TicketWalaPage() {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer>© 2026 TicketWala · Redis Lua + TTL holds + async persistence</footer>
-
       {/* CITY SELECTOR MODAL */}
       {showCityModal && (
         <div className="city-modal-overlay" onClick={() => setShowCityModal(false)}>
@@ -3624,8 +3651,21 @@ export default function TicketWalaPage() {
             )}
 
             <div className="city-section-title">Popular Cities</div>
-            <div className="popular-cities-grid">
-              {filteredCities.map((city) => {
+            {filteredCities.length === 0 ? (
+              <div className="city-empty-state">
+                <strong>No supported city matched “{citySearchQuery}”.</strong>
+                <span>Choose one of the available metros or clear the search.</span>
+                <button
+                  type="button"
+                  className="city-clear-search"
+                  onClick={() => setCitySearchQuery("")}
+                >
+                  Show all cities
+                </button>
+              </div>
+            ) : (
+              <div className="popular-cities-grid">
+                {filteredCities.map((city) => {
                 const isSel = city.id === selectedCityId;
                 return (
                   <button
@@ -3644,8 +3684,9 @@ export default function TicketWalaPage() {
                     <small style={{ fontSize: "10px", opacity: 0.65, fontWeight: 500 }}>{city.tagline}</small>
                   </button>
                 );
-              })}
-            </div>
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
