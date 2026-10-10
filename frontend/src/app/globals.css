@@ -6188,14 +6188,14 @@ footer {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #FFF1F3;
-  color: #F84464;
+  background: #FFF3ED;
+  color: var(--o);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 18px;
-  border: 1px solid rgba(248, 68, 100, 0.25);
-  box-shadow: 0 4px 14px rgba(248, 68, 100, 0.2);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  box-shadow: 0 4px 14px rgba(255, 107, 53, 0.2);
 }
 
 .bms-access-card h2 {
@@ -6266,14 +6266,14 @@ footer {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 2.5px solid #F84464;
-  box-shadow: 0 4px 12px rgba(248, 68, 100, 0.2);
+  border: 2.5px solid var(--o);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
   object-fit: cover;
 }
 
 .bms-avatar-placeholder {
-  background: #FFF1F3;
-  color: #F84464;
+  background: #FFF3ED;
+  color: var(--o);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6286,7 +6286,7 @@ footer {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  background: #F84464;
+  background: var(--o);
   color: #FFFFFF;
   width: 24px;
   height: 24px;
@@ -6301,7 +6301,7 @@ footer {
 }
 
 .bms-avatar-edit-btn:hover {
-  background: #E51A4C;
+  background: #E85924;
   transform: scale(1.1);
 }
 
@@ -6371,7 +6371,7 @@ footer {
 }
 
 .bms-contact-pill svg {
-  color: #F84464;
+  color: var(--o);
   flex-shrink: 0;
 }
 
@@ -6420,9 +6420,9 @@ footer {
   gap: 6px;
   padding: 9px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(248, 68, 100, 0.25);
-  background: #FFF1F3;
-  color: #F84464;
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  background: #FFF3ED;
+  color: var(--o);
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -6431,9 +6431,9 @@ footer {
 }
 
 .bms-header-logout-btn:hover {
-  background: #FEE2E2;
-  border-color: #F84464;
-  color: #E51A4C;
+  background: #FFE8DC;
+  border-color: var(--o);
+  color: #E85924;
 }
 
 /* ACCOUNT STATUS BADGE */
@@ -6518,10 +6518,10 @@ footer {
 }
 
 .bms-sidebar-btn.active {
-  background: #FFF1F3;
-  color: #F84464;
+  background: #FFF3ED;
+  color: var(--o);
   font-weight: 700;
-  border-color: rgba(248, 68, 100, 0.2);
+  border-color: rgba(255, 107, 53, 0.2);
 }
 
 .bms-sidebar-btn svg {
@@ -6531,7 +6531,7 @@ footer {
 
 .bms-sidebar-badge {
   margin-left: auto;
-  background: #F84464;
+  background: var(--o);
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 700;
@@ -6554,9 +6554,9 @@ footer {
   width: 100%;
   padding: 11px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(248, 68, 100, 0.25);
-  background: #FFF1F3;
-  color: #F84464;
+  border: 1px solid rgba(255, 107, 53, 0.25);
+  background: #FFF3ED;
+  color: var(--o);
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -6565,9 +6565,9 @@ footer {
 }
 
 .bms-sidebar-logout-btn:hover {
-  background: #FEE2E2;
-  border-color: #F84464;
-  color: #E51A4C;
+  background: #FFE8DC;
+  border-color: var(--o);
+  color: #E85924;
 }
 
 /* RIGHT MAIN CONTENT AREA */
@@ -6607,15 +6607,15 @@ footer {
 }
 
 .bms-cat-pill:hover {
-  border-color: #F84464;
-  color: #F84464;
+  border-color: var(--o);
+  color: var(--o);
 }
 
 .bms-cat-pill.active {
-  background: #F84464;
-  border-color: #F84464;
+  background: var(--o);
+  border-color: var(--o);
   color: #FFFFFF;
-  box-shadow: 0 3px 10px rgba(248, 68, 100, 0.35);
+  box-shadow: 0 3px 10px rgba(255, 107, 53, 0.35);
   font-weight: 700;
 }
 
@@ -6648,7 +6648,7 @@ footer {
 
 .bms-ticket-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(248, 68, 100, 0.4);
+  border-color: rgba(255, 107, 53, 0.4);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
@@ -6674,9 +6674,9 @@ footer {
 }
 
 .bms-cat-tag.event {
-  background: #FFF1F3;
-  color: #F84464;
-  border: 1px solid rgba(248, 68, 100, 0.25);
+  background: #FFF3ED;
+  color: var(--o);
+  border: 1px solid rgba(255, 107, 53, 0.25);
 }
 
 .bms-cat-tag.flight {
@@ -6801,7 +6801,7 @@ footer {
 }
 
 .bms-tds-col.price span {
-  color: #F84464;
+  color: var(--o);
   font-weight: 800;
   font-size: 13px;
 }
@@ -6836,7 +6836,7 @@ footer {
 
 /* BOOKMYSHOW ACTION BUTTONS */
 .bms-btn-view-ticket {
-  background: #F84464;
+  background: var(--o);
   color: #FFFFFF;
   border: none;
   border-radius: 8px;
@@ -6847,14 +6847,14 @@ footer {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 8px rgba(248, 68, 100, 0.28);
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.28);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bms-btn-view-ticket:hover {
-  background: #E51A4C;
+  background: #E85924;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(248, 68, 100, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
 .bms-btn-download {
@@ -6922,7 +6922,7 @@ footer {
 }
 
 .bms-gate-guide-header svg {
-  color: #F84464;
+  color: var(--o);
 }
 
 .bms-gate-guide-grid {
@@ -7030,9 +7030,9 @@ footer {
 
 .bms-form .input-field-input:focus {
   outline: none;
-  border-color: #F84464;
+  border-color: var(--o);
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(248, 68, 100, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
 }
 
 .bms-form .input-field-input:disabled {
@@ -7043,7 +7043,7 @@ footer {
 
 .bms-form select.input-field-input {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F84464' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF6B35' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px;
@@ -7051,7 +7051,7 @@ footer {
 }
 
 .bms-btn-primary {
-  background: #F84464;
+  background: var(--o);
   color: #FFFFFF;
   border: none;
   border-radius: 10px;
@@ -7059,12 +7059,12 @@ footer {
   font-weight: 700;
   padding: 11px 24px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(248, 68, 100, 0.3);
+  box-shadow: 0 3px 12px rgba(255, 107, 53, 0.3);
   transition: all 0.2s;
 }
 
 .bms-btn-primary:hover {
-  background: #E51A4C;
+  background: #E85924;
   transform: translateY(-1px);
 }
 
@@ -7083,8 +7083,8 @@ footer {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: #FFF1F3;
-  color: #F84464;
+  background: #FFF3ED;
+  color: var(--o);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7128,7 +7128,7 @@ footer {
 }
 
 .bms-support-card:hover {
-  border-color: rgba(248, 68, 100, 0.4);
+  border-color: rgba(255, 107, 53, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
@@ -7137,8 +7137,8 @@ footer {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #FFF1F3;
-  color: #F84464;
+  background: #FFF3ED;
+  color: var(--o);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7165,7 +7165,7 @@ footer {
   gap: 6px;
   font-size: 12px;
   font-weight: 700;
-  color: #F84464;
+  color: var(--o);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -7174,7 +7174,7 @@ footer {
 }
 
 .bms-support-action-btn:hover {
-  color: #E51A4C;
+  color: #E85924;
   text-decoration: underline;
 }
 
