@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { ConfirmResponse } from "@/types/api";
 import { Ticket, CheckCircle2, QrCode, Copy, Check, Download, Plane, Calendar, MapPin, User, ShieldCheck } from "lucide-react";
+import { printExactTicket } from "@/lib/printTicket";
 
 interface ConfirmedTicketPassProps {
   booking?: ConfirmResponse;
@@ -25,7 +26,20 @@ export const ConfirmedTicketPass: React.FC<ConfirmedTicketPassProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    printExactTicket({
+      ticketType: "Event",
+      bookingId: booking.pnr || booking.reservationId,
+      customerName: booking.passengerName || "Confirmed Guest",
+      title: booking.eventTitle || "Multipurpose Event Booking",
+      subtitle: `${booking.tierName || "Pass"} · Seat #${booking.unitId || "Reserved"}`,
+      venueOrRoute: booking.venue || "Official Venue",
+      dateStr: booking.dateTime ? booking.dateTime.split("·")[0].trim() : "Confirmed Date",
+      timeStr: booking.dateTime && booking.dateTime.includes("·") ? booking.dateTime.split("·")[1].trim() : "05:00 PM",
+      seatOrClass: `Seat #${booking.unitId || "General"} (${booking.tierName || "Pass"})`,
+      price: booking.amountPaid || 0,
+      status: "Confirmed",
+      sourceType: "event",
+    });
   };
 
   return (

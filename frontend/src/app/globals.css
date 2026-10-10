@@ -6521,18 +6521,37 @@ footer {
 
 /* PRINT STYLESHEET */
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: landscape;
+    margin: 8mm;
   }
-  .ticket-3d-stage, .ticket-3d-stage * {
-    visibility: visible;
-  }
-  .ticket-3d-backdrop {
-    position: static;
-    background: transparent !important;
+
+  html, body {
+    background: #ffffff !important;
+    color: #181716 !important;
+    margin: 0 !important;
     padding: 0 !important;
-    backdrop-filter: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
+
+  /* Hide entire page except active ticket backdrop when printing from screen */
+  body > *:not(.ticket-3d-backdrop) {
+    display: none !important;
+  }
+
+  .ticket-3d-backdrop {
+    position: static !important;
+    background: #ffffff !important;
+    padding: 20px 0 !important;
+    backdrop-filter: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+  }
+
   .ticket-modal-close-btn,
   .ticket-success-header,
   .ticket-actions-bar,
@@ -6540,12 +6559,60 @@ footer {
   .ticket-spotlight-glow {
     display: none !important;
   }
+
+  .ticket-showcase-container {
+    width: 100% !important;
+    max-width: 840px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    visibility: visible !important;
+  }
+
+  .ticket-3d-stage {
+    perspective: none !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 840px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    visibility: visible !important;
+  }
+
   .ticket-3d-card {
     box-shadow: none !important;
     animation: none !important;
     transform: none !important;
-    border: 1px solid #ddd;
-    page-break-inside: avoid;
+    border: 1.5px solid #ded9d0 !important;
+    page-break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    visibility: visible !important;
+  }
+
+  .ticket-3d-body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    background: linear-gradient(135deg, #FF6B35 0%, #FF5126 45%, #E63E00 100%) !important;
+    color: #ffffff !important;
+  }
+
+  .ticket-3d-glare {
+    display: none !important;
+  }
+
+  .ticket-3d-stub {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    background: #fbfaf8 !important;
+  }
+
+  .ticket-stub-qr-box {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #ffffff !important;
   }
 }
 

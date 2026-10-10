@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import confetti from "canvas-confetti";
 import { signInWithGoogle, logOut } from "@/lib/firebase";
+import { printExactTicket } from "@/lib/printTicket";
 
 const N = 200;
 const TTL = 60; // 60 seconds TTL lock guarantee
@@ -1814,7 +1815,11 @@ export default function TicketWalaPage() {
   };
 
   const handlePrintTicket = () => {
-    window.print();
+    if (active3DTicket) {
+      printExactTicket(active3DTicket);
+    } else {
+      window.print();
+    }
   };
 
   const handleDownload3DTicket = (ticket: Active3DTicketData) => {
@@ -4766,6 +4771,21 @@ export default function TicketWalaPage() {
                                   passengerName: confirmedTicket.passengerName,
                                   passengerEmail: confirmedTicket.recipientEmail,
                                   utr: confirmedTicket.verifiedUtr || utrInput,
+                                });
+                              } else if (confirmedTicket) {
+                                printExactTicket({
+                                  ticketType: "Event",
+                                  bookingId: confirmedTicket.pnr,
+                                  customerName: confirmedTicket.passengerName,
+                                  title: confirmedTicket.eventTitle,
+                                  subtitle: `${confirmedTicket.tierName || "General Admission"} · Seat #${confirmedTicket.seatNumber}`,
+                                  venueOrRoute: confirmedTicket.venue,
+                                  dateStr: confirmedTicket.dateTime.split("·")[0]?.trim() || confirmedTicket.dateTime,
+                                  timeStr: confirmedTicket.dateTime.includes("·") ? confirmedTicket.dateTime.split("·")[1]?.trim() : "05:00 PM Gates",
+                                  seatOrClass: `Seat #${confirmedTicket.seatNumber} (${confirmedTicket.tierName || "General"})`,
+                                  price: confirmedTicket.amountPaid,
+                                  status: "Confirmed",
+                                  sourceType: "event",
                                 });
                               } else {
                                 window.print();
@@ -8601,7 +8621,23 @@ export default function TicketWalaPage() {
                   type="button"
                   className="btn"
                   style={{ flex: 1, padding: "11px", fontSize: "13px" }}
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    if (ticketModalBooking) {
+                      printExactTicket({
+                        ticketType: "Pass",
+                        bookingId: ticketModalBooking.pnr || "TW-CONFIRMED",
+                        customerName: ticketModalBooking.passengerName || user?.name || "Fan",
+                        title: ticketModalBooking.e || "Official Reservation",
+                        subtitle: `${ticketModalBooking.tier || "Standard Pass"} · Seat #${ticketModalBooking.s}`,
+                        venueOrRoute: ticketModalBooking.venue || "Official Venue",
+                        dateStr: ticketModalBooking.dateTime ? ticketModalBooking.dateTime.split("·")[0].trim() : "Confirmed Schedule",
+                        timeStr: ticketModalBooking.dateTime && ticketModalBooking.dateTime.includes("·") ? ticketModalBooking.dateTime.split("·")[1].trim() : "Scheduled",
+                        seatOrClass: `Seat #${ticketModalBooking.s} (${ticketModalBooking.tier || "Confirmed"})`,
+                        price: ticketModalBooking.price || 1499,
+                        status: "Confirmed",
+                      });
+                    }
+                  }}
                 >
                   Print E-Ticket 🖨️
                 </button>
