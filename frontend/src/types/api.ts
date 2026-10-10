@@ -62,6 +62,7 @@ export interface HoldResponse {
   version: number;
   eventId: string;
   eventTitle?: string;
+  seatLabel?: string;
   tierName?: string;
   price?: number;
   currency?: string;

@@ -35,11 +35,13 @@ export default function CheckoutPage() {
   const [holdData, setHoldData] = useState<HoldResponse | null>(null);
   const [upiDetails, setUpiDetails] = useState<DynamicUpiDetails | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(45);
+  const [holdLoaded, setHoldLoaded] = useState(false);
+  const [upiError, setUpiError] = useState<string | null>(null);
 
   // Form State
-  const [passengerName, setPassengerName] = useState("Aryan Sharma");
-  const [email, setEmail] = useState("ticketwala.org@gmail.com");
-  const [phone, setPhone] = useState("+91 91461 99158");
+  const [passengerName, setPassengerName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [utrNumber, setUtrNumber] = useState("");
 
   const [copiedUpi, setCopiedUpi] = useState(false);
@@ -47,14 +49,29 @@ export default function CheckoutPage() {
   const [confirmedTicket, setConfirmedTicket] = useState<ConfirmResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load hold data from session
+  // Load and validate hold data saved when the seat was selected.
   useEffect(() => {
     const raw = sessionStorage.getItem("tw_hold");
     if (raw) {
       try {
-        const parsed = JSON.parse(raw);
-        setHoldData(parsed);
-      } catch (_) {}
+        const parsed = JSON.parse(raw) as HoldResponse;
+        if (
+          parsed.reservationId === reservationId &&
+          parsed.holdToken &&
+          Number.isFinite(parsed.expiresAt) &&
+          Number.isFinite(parsed.price)
+        ) {
+          setHoldData(parsed);
+          setTimeLeft(Math.max(0, parsed.expiresAt - Math.floor(Date.now() / 1000)));
+        } else {
+          setTimeLeft(0);
+        }
+      } catch {
+        sessionStorage.removeItem("tw_hold");
+        setTimeLeft(0);
+      }
+    } else {
+      setTimeLeft(0);
     }
 
     // Prefill from user session if available
@@ -66,34 +83,42 @@ export default function CheckoutPage() {
         if (u.email) setEmail(u.email);
       } catch (_) {}
     }
-  }, []);
+    setHoldLoaded(true);
+  }, [reservationId]);
 
   // Fetch dynamic UPI QR from backend
   useEffect(() => {
-    if (!reservationId) return;
+    if (!reservationId || !holdData) return;
+    let cancelled = false;
 
-    fetch(`${API_BASE}/api/v1/reservations/${reservationId}/upi-qr?amount=${holdData?.price || 48500}`)
-      .then((res) => res.json())
-      .then((data) => setUpiDetails(data))
-      .catch((err) => console.error("Failed to load UPI QR:", err));
-  }, [reservationId, holdData?.price]);
+    fetch(`${API_BASE}/api/v1/reservations/${reservationId}/upi-qr`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || `Could not load payment details (HTTP ${res.status})`);
+        return data as DynamicUpiDetails;
+      })
+      .then((data) => {
+        if (!cancelled) setUpiDetails(data);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setUpiError(err instanceof Error ? err.message : "Could not load payment details.");
+      });
 
-  // 45-second active hold countdown timer
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationId, holdData]);
+
+  // 45-second active hold countdown timer against server-issued hold expiry
   useEffect(() => {
-    if (confirmedTicket) return;
+    if (!holdData || confirmedTicket) return;
 
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft(Math.max(0, holdData.expiresAt - Math.floor(Date.now() / 1000)));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [confirmedTicket]);
+  }, [confirmedTicket, holdData]);
 
   const copyUpiId = () => {
     if (!upiDetails?.upiId) return;
@@ -110,7 +135,7 @@ export default function CheckoutPage() {
     }
 
     if (!utrNumber || utrNumber.trim().length < 8) {
-      setErrorMessage("Please enter a valid 12-digit UPI Reference / UTR Number from your payment receipt.");
+      setErrorMessage("Enter a payment reference with at least 8 characters.");
       return;
     }
 
@@ -139,6 +164,7 @@ export default function CheckoutPage() {
       }
 
       setConfirmedTicket(data);
+      sessionStorage.removeItem("tw_hold");
       confetti({
         particleCount: 120,
         spread: 80,
@@ -151,7 +177,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // If confirmed, render verified boarding pass
+  // A submitted reference creates a demo booking; payment is not verified by a provider.
   if (confirmedTicket) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
@@ -160,10 +186,12 @@ export default function CheckoutPage() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-3">
               <CheckCircle2 className="w-4 h-4" />
-              <span>Payment Verified • Ticket Dispatched to {email}</span>
+              <span>Demo booking created</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">Your Booking is Confirmed!</h1>
-            <p className="text-xs text-slate-400 mt-1">An official HTML ticket with gate QR barcode has been emailed to you.</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">Your demo booking is ready</h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Payment was not checked with your bank or UPI provider. Ticket details are shown below; email delivery is best-effort.
+            </p>
           </div>
 
           <ConfirmedTicketPass ticket={confirmedTicket} onBookAnother={() => router.push("/explore")} />
@@ -172,7 +200,18 @@ export default function CheckoutPage() {
     );
   }
 
-  // Expired State
+  if (!holdLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
+        <Navbar />
+        <main className="flex flex-1 items-center justify-center text-sm text-slate-400">
+          Loading your seat hold…
+        </main>
+      </div>
+    );
+  }
+
+  // Missing or expired reservation state
   if (timeLeft === 0) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
@@ -181,9 +220,13 @@ export default function CheckoutPage() {
           <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-400 mb-4">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-white">Reservation Hold Expired</h2>
+          <h2 className="text-xl font-bold text-white">
+            {holdData ? "Reservation hold expired" : "Reservation details unavailable"}
+          </h2>
           <p className="text-xs text-slate-400 mt-2">
-            The 45-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding.
+            {holdData
+              ? "The 45-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding."
+              : "We couldn’t find this seat hold in your session. Please choose a seat again to continue."}
           </p>
           <button
             onClick={() => router.push("/explore")}
@@ -201,23 +244,38 @@ export default function CheckoutPage() {
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
-        
-        {/* Urgent Timer Alert Header */}
+        <nav aria-label="Booking progress" className="mb-6 flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-2 text-emerald-300">
+            <CheckCircle2 className="h-5 w-5" /> Seat chosen
+          </span>
+          <span className="h-px flex-1 bg-indigo-500/50" />
+          <span className="flex items-center gap-2 font-semibold text-indigo-300">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/20">2</span>
+            Checkout
+          </span>
+          <span className="h-px flex-1 bg-slate-800" />
+          <span className="flex items-center gap-2 text-slate-500">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700">3</span>
+            Ticket
+          </span>
+        </nav>
+
         <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <Clock className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <span className="text-xs font-bold text-white block">Seat Temporarily Held for You</span>
+              <span className="text-xs font-bold text-white block">Your seat is held for you</span>
               <span className="text-[11px] text-slate-400">
-                Seat <strong className="text-indigo-400 font-bold">{holdData?.unitId || "Allocated"}</strong> is locked exclusively in your name.
+                Seat <strong className="text-indigo-400 font-bold">{holdData?.seatLabel || holdData?.unitId || "—"}</strong>
+                {holdData?.eventTitle ? ` · ${holdData.eventTitle}` : ""}
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-2 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-            <span className="text-xs font-semibold text-slate-400">Time Left:</span>
+            <span className="text-xs font-semibold text-slate-400">Time to finish:</span>
             <span className="text-xl font-black font-mono text-amber-400">
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, "0")}
             </span>
@@ -232,27 +290,27 @@ export default function CheckoutPage() {
             
             {/* Passenger Details */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                 <User className="w-4 h-4 text-indigo-400" />
-                <span>Passenger / Attendee Details</span>
+                <span>Your details</span>
               </h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-1">Full Legal Name</label>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1">Name on ticket</label>
                   <input
                     type="text"
                     required
                     value={passengerName}
                     onChange={(e) => setPassengerName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 text-xs rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500"
-                    placeholder="e.g. Aryan Sharma"
+                    placeholder="Name on the ticket"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-slate-400 block mb-1">
-                    Email Address (For E-Ticket Dispatch)
+                    Email address
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -262,16 +320,16 @@ export default function CheckoutPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 text-xs rounded-xl pl-9 pr-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500"
-                      placeholder="e.g. ticketwala.org@gmail.com"
+                      placeholder="you@example.com"
                     />
                   </div>
                   <span className="text-[10px] text-slate-500 mt-1 block">
-                    Your confirmed ticket and QR barcode will be dispatched to this address.
+                    We’ll show ticket details here after you submit your payment reference.
                   </span>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 block mb-1">Mobile Number</label>
+                  <label className="text-xs font-semibold text-slate-400 block mb-1">Mobile number</label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -289,25 +347,25 @@ export default function CheckoutPage() {
 
             {/* Price Breakdown */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Fare Breakdown</h2>
+              <h2 className="text-sm font-bold text-white mb-4">Price summary</h2>
               
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between text-slate-400">
-                  <span>Base Ticket Fare</span>
-                  <span className="text-white font-semibold">₹{(holdData?.price || 48500).toLocaleString("en-IN")}</span>
+                  <span>Ticket price</span>
+                  <span className="text-white font-semibold">₹{(holdData?.price ?? 0).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>Convenience Fee (UPI Direct)</span>
-                  <span className="text-emerald-400 font-bold">₹0 (FREE)</span>
+                  <span>Extra fees</span>
+                  <span className="text-white font-semibold">None in this demo</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>GST & Service Taxes</span>
-                  <span className="text-white font-semibold">Included</span>
+                  <span>Seat</span>
+                  <span className="text-white font-semibold">{holdData?.seatLabel || holdData?.unitId || "—"}</span>
                 </div>
                 <div className="pt-3 border-t border-slate-800 flex justify-between text-sm">
                   <span className="font-bold text-white">Amount Payable</span>
                   <span className="font-black text-emerald-400 text-base">
-                    ₹{(holdData?.price || 48500).toLocaleString("en-IN")}
+                    ₹{(holdData?.price ?? 0).toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>
@@ -315,7 +373,7 @@ export default function CheckoutPage() {
 
           </div>
 
-          {/* Right Column: Zero-Cost UPI Payment Module (7 cols) */}
+          {/* Right Column: UPI demo payment details (7 cols) */}
           <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl">
             <div>
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
@@ -324,12 +382,12 @@ export default function CheckoutPage() {
                     UPI
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-white">Zero-Fee Direct UPI Payment</h2>
-                    <span className="text-[10px] text-slate-400">GPay • PhonePe • Paytm • Cred • BHIM</span>
+                    <h2 className="text-base font-bold text-white">UPI payment demo</h2>
+                    <span className="text-[10px] text-slate-400">Payment status is not verified automatically</span>
                   </div>
                 </div>
                 <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  0% MDR Fee
+                  UPI
                 </span>
               </div>
 
@@ -338,7 +396,11 @@ export default function CheckoutPage() {
                 
                 {/* QR Image */}
                 <div className="bg-white p-3 rounded-xl shadow-lg shrink-0">
-                  {upiDetails?.qrCodeDataUrl ? (
+                  {upiError ? (
+                    <div role="alert" className="w-40 h-40 flex items-center justify-center text-center text-xs text-rose-600">
+                      {upiError}
+                    </div>
+                  ) : upiDetails?.qrCodeDataUrl ? (
                     <img
                       src={upiDetails.qrCodeDataUrl}
                       alt="Scan to Pay via UPI"
@@ -357,7 +419,7 @@ export default function CheckoutPage() {
                     <span className="text-slate-500 font-semibold text-[10px] uppercase block">Receiver UPI ID</span>
                     <div className="flex items-center gap-2 mt-1">
                       <code className="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-indigo-300 font-mono text-xs font-bold">
-                        {upiDetails?.upiId || "9146199158@fam"}
+                        {upiDetails?.upiId || "Loading payment details…"}
                       </code>
                       <button
                         type="button"
@@ -373,7 +435,7 @@ export default function CheckoutPage() {
                   <div>
                     <span className="text-slate-500 font-semibold text-[10px] uppercase block">Exact Amount</span>
                     <div className="text-lg font-black text-white mt-0.5">
-                      ₹{(holdData?.price || 48500).toLocaleString("en-IN")}
+                      ₹{(upiDetails?.amount ?? holdData?.price ?? 0).toLocaleString("en-IN")}
                     </div>
                   </div>
 
@@ -394,17 +456,17 @@ export default function CheckoutPage() {
               <form onSubmit={handleVerifyAndConfirm} className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-white block mb-1">
-                    Enter 12-Digit UPI Reference / UTR Number
+                    UPI reference (UTR)
                   </label>
                   <p className="text-[11px] text-slate-400 mb-2">
-                    After completing the payment in your UPI app, enter the 12-digit transaction ID or UTR number shown on your receipt.
+                    This demo checks only the reference format and duplicate submissions. It cannot confirm that money was received.
                   </p>
                   <input
                     type="text"
                     required
                     value={utrNumber}
                     onChange={(e) => setUtrNumber(e.target.value)}
-                    placeholder="e.g. 412356789012"
+                    placeholder="Enter payment reference"
                     maxLength={16}
                     className="w-full bg-slate-950 border border-indigo-500/40 text-sm font-mono tracking-wider rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
                   />
@@ -424,12 +486,12 @@ export default function CheckoutPage() {
                   {isVerifying ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Verifying UTR & Issuing Ticket...</span>
+                      <span>Creating demo booking…</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Verify Payment & Dispatch Ticket</span>
+                      <span>Create demo booking</span>
                     </>
                   )}
                 </button>
@@ -437,7 +499,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
-              Replay protection active. Duplicate UTR submissions are cryptographically rejected.
+              This demo does not verify payments with a bank or UPI provider. Do not send real money.
             </div>
 
           </div>

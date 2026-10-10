@@ -118,7 +118,7 @@ export default function ContactPage() {
         <div className="mb-10 text-center max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-3">
             <HelpCircle className="w-3.5 h-3.5" />
-            <span>Support Desk & Engineering Operations</span>
+            <span>Support and help</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
             How can our team help you?
@@ -314,35 +314,29 @@ export default function ContactPage() {
               </a>
             </div>
 
-            {/* UPI & Payment Verification */}
+            {/* Demo checkout information */}
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                 <CreditCard className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-white">Official UPI Gateway</h3>
+              <h3 className="text-sm font-bold text-white">Payment information</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                All checkout QR codes are routed securely through NPCI UPI:
-              </p>
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-400 font-semibold">
-                9146199158@fam
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Match this VPA on your payment app before entering your UPI PIN.
+                This is a booking demo. Payments are not processed or verified, so please do not send money.
               </p>
             </div>
 
-            {/* FlashLock Hold Rule */}
+            {/* Seat hold information */}
             <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
                 <Clock className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-white">120-Second Flash Lease SLA</h3>
+              <h3 className="text-sm font-bold text-white">Seat hold time</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Ticket holds expire strictly at 120 seconds if payment is not initiated. Expired seats are automatically returned to the public pool by the Redis lease engine.
+                A selected seat is held for up to two minutes while you review your booking. When the time ends, the seat becomes available again.
               </p>
               <div className="flex items-center gap-2 text-[11px] text-amber-400 font-medium">
                 <Lock className="w-3.5 h-3.5" />
-                <span>Zero Double-Allocation Invariant</span>
+                <span>Choose an available seat to continue</span>
               </div>
             </div>
           </div>

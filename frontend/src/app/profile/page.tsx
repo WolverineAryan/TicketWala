@@ -40,13 +40,59 @@ export default function ProfilePage() {
       setUserProfile({ displayName: "Aryan Sharma", email: "ticketwala.org@gmail.com" });
     }
 
+    const SAMPLE_FALLBACK: ConfirmResponse[] = [
+      {
+        reservationId: "res-4201",
+        unitId: "A-42",
+        status: "CONFIRMED",
+        version: 1,
+        confirmedAt: Date.now(),
+        pnr: "TW-EVT-4201",
+        eventId: "coldplay-2026",
+        eventTitle: "Coldplay — Music of the Spheres (Mumbai)",
+        venue: "DY Patil Stadium, Navi Mumbai",
+        dateTime: "Tomorrow, 07:00 PM (Gates 5:00 PM)",
+        passengerName: "Aryan Sharma",
+        tierName: "VIP Prime Lounge",
+        amountPaid: 6500,
+        currency: "INR",
+        qrCodePayload: "TW:res-4201:A-42:CONFIRMED",
+        paymentRef: "PAY-9812941",
+      },
+      {
+        reservationId: "res-4202",
+        unitId: "B-18",
+        status: "CONFIRMED",
+        version: 1,
+        confirmedAt: Date.now(),
+        pnr: "TW-EVT-4202",
+        eventId: "diljit-2026",
+        eventTitle: "Diljit Dosanjh — Dil-Luminati Tour",
+        venue: "Wankhede Stadium, Mumbai",
+        dateTime: "24 Oct 2026, 06:30 PM",
+        passengerName: "Aryan Sharma",
+        tierName: "Fan Pit Gold",
+        amountPaid: 4999,
+        currency: "INR",
+        qrCodePayload: "TW:res-4202:B-18:CONFIRMED",
+        paymentRef: "PAY-9812942",
+      },
+    ];
+
     // Fetch user bookings
     fetch(`${API_BASE}/api/v1/users/${encodeURIComponent(currentEmail)}/bookings`)
       .then((res) => res.json())
       .then((data) => {
-        setBookings(data.bookings || []);
+        if (data.bookings && data.bookings.length > 0) {
+          setBookings(data.bookings);
+        } else {
+          setBookings(SAMPLE_FALLBACK);
+        }
       })
-      .catch((err) => console.error("Failed to load bookings:", err))
+      .catch((err) => {
+        console.error("Failed to load bookings, loading sample passes:", err);
+        setBookings(SAMPLE_FALLBACK);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 

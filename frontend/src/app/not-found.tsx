@@ -45,7 +45,7 @@ export default function NotFound() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-semibold transition"
             >
               <Zap className="w-3.5 h-3.5" />
-              <span>Collision Lab</span>
+              <span>TicketWala</span>
             </Link>
 
             <Link
