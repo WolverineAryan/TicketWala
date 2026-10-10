@@ -1698,7 +1698,6 @@ export default function TicketWalaPage() {
     setTimeout(() => setSessionsRevokedMsg(""), 3500);
   };
 
-<<<<<<< HEAD
   const handleSupportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const reqId = `TW-SUP-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -1797,8 +1796,6 @@ export default function TicketWalaPage() {
     }),
   ];
 
-=======
->>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
   const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -1860,17 +1857,6 @@ export default function TicketWalaPage() {
       setProfileTab("passes");
       navigateTo("profile");
     }
-<<<<<<< HEAD
-=======
-  };
-
-  const handleDownloadTicket = (booking: Partial<Booking> & { title?: string }) => {
-    setTicketModalBooking({
-      ...booking,
-      s: booking.s ?? "",
-      e: booking.e ?? booking.title ?? "Event Boarding Pass",
-    });
->>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
   };
 
   // 1. Telemetry Dashboard & Sparkline Chart Loop
@@ -6100,327 +6086,10 @@ export default function TicketWalaPage() {
                     </div>
                   </aside>
 
-<<<<<<< HEAD
                   {/* RIGHT COLUMN: SELECTED SECTION CONTENT */}
                   <main className="bms-main-content">
                     {/* OPTION 1: MY BOOKED TICKETS */}
                     {profileTab === "passes" && (
-=======
-                  {/* Turnstile Gate Access Guide */}
-                  <div className="gate-guide-card">
-                    <div className="gate-guide-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--o)" strokeWidth="2.2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
-                      </svg>
-                      <span>Turnstile Gate Access Guide</span>
-                    </div>
-
-                    <div className="gate-guide-grid">
-                      <div className="gate-guide-item">
-                        <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Offline Gate Ready
-                        </b>
-                        <span>Screenshots and saved PDF e-tickets are valid at all venue entry turnstiles.</span>
-                      </div>
-
-                      <div className="gate-guide-item">
-                        <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Screen Brightness
-                        </b>
-                        <span>Turn screen brightness to 100% and hold QR 15 cm from the optical laser reader.</span>
-                      </div>
-
-                      <div className="gate-guide-item">
-                        <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Photo ID Verification
-                        </b>
-                        <span>Keep government photo ID matching your ticket pass moniker ready for marshals.</span>
-                      </div>
-
-                      <div className="gate-guide-item">
-                        <b>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Gate Helpdesk 24/7
-                        </b>
-                        <span>In case of scan issues, quote your 10-digit PNR at Turnstile Gate Support.</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: PROFILE & CONTACT */}
-              {profileTab === "personal" && (
-                <div className="profile-section-pane">
-                  <div style={{ marginBottom: "22px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
-                      Profile &amp; Contact Details
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
-                      Manage your legal identity, printed boarding pass moniker, and verified phone contact.
-                    </p>
-                  </div>
-
-                  <form className="profile-form" onSubmit={handleSaveProfile}>
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label">Full Legal Name</label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profileName}
-                            onChange={(e) => setProfileName(e.target.value)}
-                            placeholder="Your full name"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label">Pass Moniker (Printed on Tickets)</label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profilePassName}
-                            onChange={(e) => setProfilePassName(e.target.value)}
-                            placeholder="Moniker on boarding pass"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span>Primary Mobile Phone</span>
-                          <span style={{ color: "#27ae60", fontSize: "10px", fontWeight: 700 }}>OTP Verified</span>
-                        </label>
-                        <div className="input-field-box">
-                          <input
-                            className="input-field-input"
-                            value={profilePhone}
-                            onChange={(e) => setProfilePhone(e.target.value)}
-                            placeholder="+91 98201 23456"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label" style={{ display: "flex", justifyContent: "space-between" }}>
-                          <span>Registered Account Email</span>
-                          <span style={{ color: "#8c8880", fontSize: "10px", fontWeight: 700 }}>Primary</span>
-                        </label>
-                        <div className="input-field-box" style={{ background: "#f8f7f5", opacity: 0.85 }}>
-                          <input
-                            className="input-field-input"
-                            value={user.email}
-                            disabled
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="input-field-group">
-                      <label className="input-field-label">Home Metro Region</label>
-                      <div className="input-field-box">
-                        <select
-                          className="input-field-input"
-                          value={profileCity}
-                          onChange={(e) => setProfileCity(e.target.value)}
-                          style={{ background: "transparent", border: "none", outline: "none" }}
-                        >
-                          {CITIES.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name} — {c.tagline}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="form-actions-row" style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #f2f0ec" }}>
-                      {profileSuccessMsg && (
-                        <span className="profile-success-text">{profileSuccessMsg}</span>
-                      )}
-                      <button type="submit" className="btn" style={{ padding: "10px 24px" }}>
-                        Save Profile Changes
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* TAB 3: SECURITY & ACCESS */}
-              {profileTab === "security" && (
-                <div className="profile-section-pane">
-                  <div style={{ marginBottom: "22px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--k)", margin: 0 }}>
-                      Security &amp; Password
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#77736c", margin: "4px 0 0 0" }}>
-                      Update account password, enable two-factor protection, and manage device sessions.
-                    </p>
-                  </div>
-
-                  <form className="profile-form" onSubmit={handleUpdatePassword}>
-                    <div className="input-field-group">
-                      <label className="input-field-label">Current Password</label>
-                      <div className="input-field-box input-with-eye">
-                        <input
-                          type={showOldPw ? "text" : "password"}
-                          className="input-field-input"
-                          value={oldPw}
-                          onChange={(e) => setOldPw(e.target.value)}
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          className="pw-eye-btn"
-                          onClick={() => setShowOldPw((prev) => !prev)}
-                          title={showOldPw ? "Hide password" : "Show password"}
-                        >
-                          {showOldPw ? (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                              <line x1="1" y1="1" x2="23" y2="23" />
-                            </svg>
-                          ) : (
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="form-row-2">
-                      <div className="input-field-group">
-                        <label className="input-field-label">New Password</label>
-                        <div className="input-field-box input-with-eye">
-                          <input
-                            type={showNewPw ? "text" : "password"}
-                            className="input-field-input"
-                            value={newPw}
-                            onChange={(e) => setNewPw(e.target.value)}
-                            placeholder="At least 6 characters"
-                          />
-                          <button
-                            type="button"
-                            className="pw-eye-btn"
-                            onClick={() => setShowNewPw((prev) => !prev)}
-                            title={showNewPw ? "Hide password" : "Show password"}
-                          >
-                            {showNewPw ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                              </svg>
-                            ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="input-field-group">
-                        <label className="input-field-label">Confirm New Password</label>
-                        <div className="input-field-box input-with-eye">
-                          <input
-                            type={showConfirmPw ? "text" : "password"}
-                            className="input-field-input"
-                            value={confirmPw}
-                            onChange={(e) => setConfirmPw(e.target.value)}
-                            placeholder="Repeat new password"
-                          />
-                          <button
-                            type="button"
-                            className="pw-eye-btn"
-                            onClick={() => setShowConfirmPw((prev) => !prev)}
-                            title={showConfirmPw ? "Hide password" : "Show password"}
-                          >
-                            {showConfirmPw ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                <line x1="1" y1="1" x2="23" y2="23" />
-                              </svg>
-                            ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Password Strength Line */}
-                    {newPw && (
-                      <div className="pw-strength-wrap">
-                        <div className="pw-strength-track">
-                          <div
-                            className="pw-strength-bar"
-                            style={{
-                              width: `${getProfilePwStrength(newPw).percent}%`,
-                              backgroundColor: getProfilePwStrength(newPw).color,
-                            }}
-                          ></div>
-                        </div>
-                        <div className="pw-strength-label">
-                          <span>Password Strength:</span>
-                          <b style={{ color: getProfilePwStrength(newPw).color }}>{getProfilePwStrength(newPw).label}</b>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="form-actions-row">
-                      {pwMsg && (
-                        <span style={{ fontSize: "12px", fontWeight: 700, color: pwMsg.includes("success") ? "#27ae60" : "#e74c3c" }}>
-                          {pwMsg}
-                        </span>
-                      )}
-                      <button type="submit" className="btn ghost" style={{ padding: "10px 22px" }}>
-                        Update Password
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Two-Factor Authentication */}
-                  <div style={{ marginTop: "28px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
-                    <div className="toggle-setting-row">
-                      <div className="toggle-setting-info">
-                        <b>Two-Factor Authentication (2FA)</b>
-                        <span>Require SMS verification before accessing turnstile boarding passes.</span>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={twoFactorEnabled}
-                          onChange={(e) => {
-                            setTwoFactorEnabled(e.target.checked);
-                            setProfileSuccessMsg(e.target.checked ? "2FA Protection Enabled!" : "2FA Protection Disabled.");
-                            setTimeout(() => setProfileSuccessMsg(""), 3000);
-                          }}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-
-
-                  {/* Active Sessions */}
-                  <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #f2f0ec" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
->>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
                       <div>
                         {/* Section Header */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
@@ -8832,10 +8501,7 @@ export default function TicketWalaPage() {
         </div>
       </div>
     )}
-<<<<<<< HEAD
 
-=======
->>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
       {/* FULL E-TICKET BOARDING PASS MODAL */}
       {ticketModalBooking && (
         <div className="travel-modal-overlay" onClick={() => setTicketModalBooking(null)}>
@@ -8952,10 +8618,6 @@ export default function TicketWalaPage() {
           </div>
         </div>
       )}
-<<<<<<< HEAD
-=======
-
->>>>>>> 3672cc779c02c892ab656a86c37efa477c27e27e
 
       {/* FLOATING TOAST NOTIFICATION */}
       {eticketAlert && (
