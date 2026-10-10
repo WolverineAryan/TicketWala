@@ -981,6 +981,20 @@ const DEFAULT_TRAVEL_BOOKINGS: TravelBookingRecord[] = [
     bookedAt: "3 days ago",
     details: "Breakfast Included · Rock Pool View",
   },
+  {
+    id: "bk-4",
+    pnr: "TW-BS11029",
+    type: "bus",
+    title: "Zingbus Luxury AC Sleeper (2+1)",
+    subtitle: "Borivali West Mumbai to Pune Swargate",
+    fromToOrCity: "Mumbai → Pune",
+    dateStr: "24 Oct 2026, 11:30 PM",
+    passengers: "1 Passenger (Lower Berth L-12)",
+    price: 850,
+    status: "Confirmed",
+    bookedAt: "4 days ago",
+    details: "Express Highway Non-Stop · Wi-Fi & Blanket",
+  },
 ];
 
 const DEFAULT_EVENT_BOOKINGS: Booking[] = [
@@ -1514,6 +1528,84 @@ export default function TicketWalaPage() {
       setTimeout(() => setEticketAlert(""), 4500);
     }
   };
+
+  // Unified Bookings: merges all event passes, flights, trains, hotels, and bus passes into a single unified stream
+  const unifiedBookings = [
+    ...bookings.map((b, i) => {
+      const pnrStr = b.pnr || `TW-EVT-420${i + 1}`;
+      const holderName = b.passengerName || user?.passName || profilePassName || user?.name || "Verified Guest";
+      return {
+        key: `evt-${i}-${pnrStr}`,
+        categoryType: "event" as const,
+        categoryLabel: b.tier || "LIVE CONCERT",
+        title: b.e,
+        subtitle: `${b.tier || "VIP Pass"} · Turnstile Fast-Lane Entry`,
+        venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+        dateStr: "Tomorrow, 07:00 PM IST",
+        timeStr: "Gates 05:00 PM",
+        seatOrDetails: `Seat #${b.s} (${b.tier || "VIP"})`,
+        pnr: pnrStr,
+        passenger: holderName,
+        price: b.price || 1499,
+        status: "Confirmed",
+        isTravel: false,
+        ticket3DType: "Event" as const,
+        rawEvent: b,
+      };
+    }),
+    ...travelBookings.map((tb, i) => {
+      const isFlight = tb.type === "flight";
+      const isTrain = tb.type === "train";
+      const isHotel = tb.type === "hotel";
+      const isBus = tb.type === "bus";
+      const isCab = tb.type === "cab";
+
+      const categoryLabel = isFlight
+        ? "FLIGHT PASS"
+        : isTrain
+        ? "TRAIN TICKET"
+        : isHotel
+        ? "HOTEL STAY"
+        : isBus
+        ? "BUS PASS"
+        : isCab
+        ? "CAB RIDE"
+        : "TRANSIT PASS";
+
+      const ticket3DType: "Bus" | "Train" | "Flight" | "Cab" | "Hotel" | "Event" = isHotel
+        ? "Hotel"
+        : isFlight
+        ? "Flight"
+        : isTrain
+        ? "Train"
+        : isBus
+        ? "Bus"
+        : isCab
+        ? "Cab"
+        : "Event";
+
+      const passengerName = tb.passengers.split("(")[0].trim() || user?.name || "Verified Guest";
+
+      return {
+        key: `trv-${tb.id || i}-${tb.pnr}`,
+        categoryType: tb.type,
+        categoryLabel,
+        title: tb.title,
+        subtitle: tb.subtitle,
+        venueOrRoute: tb.fromToOrCity || tb.subtitle,
+        dateStr: tb.dateStr,
+        timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
+        seatOrDetails: tb.details || (isHotel ? "Confirmed Stay" : "Confirmed Seat"),
+        pnr: tb.pnr,
+        passenger: passengerName,
+        price: tb.price,
+        status: tb.status || "Confirmed",
+        isTravel: true,
+        ticket3DType,
+        rawTravel: tb,
+      };
+    }),
+  ];
 
   const handleTicketMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -5128,7 +5220,7 @@ export default function TicketWalaPage() {
                     <div className="bms-header-stats">
                       <div className="bms-header-stat-box">
                         <small>Total Bookings</small>
-                        <b>{bookings.length + travelBookings.length}</b>
+                        <b>{unifiedBookings.length}</b>
                       </div>
                       <div className="bms-header-stat-box">
                         <small>Concerts</small>
@@ -5170,8 +5262,8 @@ export default function TicketWalaPage() {
                           <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
                         </svg>
                         <span>My Booked Tickets</span>
-                        {(bookings.length + travelBookings.length) > 0 && (
-                          <span className="bms-sidebar-badge">{bookings.length + travelBookings.length}</span>
+                        {unifiedBookings.length > 0 && (
+                          <span className="bms-sidebar-badge">{unifiedBookings.length}</span>
                         )}
                       </button>
 
@@ -5187,19 +5279,6 @@ export default function TicketWalaPage() {
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                         <span>Help &amp; Support</span>
-                      </button>
-
-                      {/* Option: Account & Security */}
-                      <button
-                        type="button"
-                        className={`bms-sidebar-btn ${profileTab === "personal" || profileTab === "security" ? "active" : ""}`}
-                        onClick={() => setProfileTab("personal")}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span>Account &amp; Security</span>
                       </button>
                     </div>
 
@@ -5226,374 +5305,200 @@ export default function TicketWalaPage() {
                     {/* OPTION 1: MY BOOKED TICKETS */}
                     {profileTab === "passes" && (
                       <div>
-                        {/* Category Filter Bar */}
-                        <div className="bms-category-filter-bar">
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "all" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("all")}
-                          >
-                            All Bookings ({bookings.length + travelBookings.length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "events" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("events")}
-                          >
-                            Events &amp; Concerts ({bookings.length + travelBookings.filter(tb => tb.type === "event").length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "flight" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("flight")}
-                          >
-                            Flights ({travelBookings.filter(tb => tb.type === "flight").length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "train" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("train")}
-                          >
-                            Trains ({travelBookings.filter(tb => tb.type === "train").length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "hotel" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("hotel")}
-                          >
-                            Hotels ({travelBookings.filter(tb => tb.type === "hotel").length})
-                          </button>
-                          <button
-                            type="button"
-                            className={`bms-cat-pill ${passFilterType === "travel" ? "active" : ""}`}
-                            onClick={() => setPassFilterType("travel")}
-                          >
-                            Transit &amp; Cabs ({travelBookings.filter(tb => tb.type === "bus" || tb.type === "cab").length})
-                          </button>
+                        {/* Section Header */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
+                          <div>
+                            <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#1A1D24", margin: "0 0 4px" }}>
+                              My Booked Tickets ({unifiedBookings.length})
+                            </h3>
+                            <p style={{ fontSize: "13px", color: "#6B7280", margin: 0 }}>
+                              All your confirmed event passes, flights, trains, hotels, and bus tickets in one unified list.
+                            </p>
+                          </div>
                         </div>
 
-                        {/* Tickets Grid */}
+                        {/* Unified Tickets Grid */}
                         <div className="bms-tickets-grid">
-                          {/* Event Bookings */}
-                          {(passFilterType === "all" || passFilterType === "events") &&
-                            bookings.map((b, i) => {
-                              const pnrStr = b.pnr || `TW-EVT-420${i + 1}`;
-                              const holderName = b.passengerName || user.passName || profilePassName || user.name;
-                              return (
-                                <div key={`evt-${i}`} className="bms-ticket-card">
-                                  <div className="bms-ticket-top">
-                                    <span className="bms-cat-tag event">
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <path d="M9 18V5l12-2v13" />
-                                        <circle cx="6" cy="18" r="3" />
-                                        <circle cx="18" cy="16" r="3" />
-                                      </svg>
-                                      <span>{b.tier || "LIVE CONCERT"}</span>
-                                    </span>
-                                    <span className="bms-confirmed-badge">
-                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                        <polyline points="20 6 9 17 4 12" />
-                                      </svg>
-                                      <span>Confirmed</span>
-                                    </span>
-                                  </div>
+                          {unifiedBookings.map((item) => (
+                            <div key={item.key} className="bms-ticket-card">
+                              {/* Card Top: Category Tag + Confirmed Badge */}
+                              <div className="bms-ticket-top">
+                                <span className={`bms-cat-tag ${item.categoryType}`}>
+                                  {item.categoryType === "event" && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M9 18V5l12-2v13" />
+                                      <circle cx="6" cy="18" r="3" />
+                                      <circle cx="18" cy="16" r="3" />
+                                    </svg>
+                                  )}
+                                  {item.categoryType === "flight" && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.3-1.8 1.1l-.2.7 6.4 3.7-3.4 3.4-2.5-.6c-.5-.1-1 .1-1.3.5l-.3.4 3.2 2 2 3.2.4-.3c.4-.3.6-.8.5-1.3l-.6-2.5 3.4-3.4 3.7 6.4.7-.2c.8-.2 1.3-1 1.1-1.8z" />
+                                    </svg>
+                                  )}
+                                  {item.categoryType === "train" && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <rect x="4" y="3" width="16" height="14" rx="2" />
+                                      <path d="M4 11h16" />
+                                      <path d="M12 3v8" />
+                                      <path d="m8 19-2 3" />
+                                      <path d="m16 19 2 3" />
+                                      <circle cx="8" cy="15" r="1" />
+                                      <circle cx="16" cy="15" r="1" />
+                                    </svg>
+                                  )}
+                                  {item.categoryType === "hotel" && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <path d="M3 21h18" />
+                                      <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+                                      <path d="M9 7h1" />
+                                      <path d="M9 11h1" />
+                                      <path d="M9 15h1" />
+                                      <path d="M14 7h1" />
+                                      <path d="M14 11h1" />
+                                      <path d="M14 15h1" />
+                                    </svg>
+                                  )}
+                                  {(item.categoryType === "bus" || item.categoryType === "cab") && (
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <rect x="3" y="3" width="18" height="14" rx="2" />
+                                      <path d="M7 17v2" />
+                                      <path d="M17 17v2" />
+                                      <circle cx="7.5" cy="13.5" r="1" />
+                                      <circle cx="16.5" cy="13.5" r="1" />
+                                    </svg>
+                                  )}
+                                  <span>{item.categoryLabel}</span>
+                                </span>
 
-                                  <div className="bms-ticket-main">
-                                    <h4>{b.e}</h4>
-                                    <p className="bms-ticket-subtitle">
-                                      {b.tier || "VIP PASS"} · Turnstile Fast-Lane Entry
-                                    </p>
-                                  </div>
+                                <span className="bms-confirmed-badge">
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  <span>Confirmed</span>
+                                </span>
+                              </div>
 
-                                  <div className="bms-perforated-divider">
-                                    <span className="bms-notch-left" />
-                                    <span className="bms-notch-right" />
-                                  </div>
+                              {/* Card Main: Title & Subtitle */}
+                              <div className="bms-ticket-main">
+                                <h4>{item.title}</h4>
+                                <p className="bms-ticket-subtitle">{item.subtitle}</p>
+                              </div>
 
-                                  <div className="bms-ticket-details-strip">
-                                    <div className="bms-tds-col">
-                                      <small>Seat</small>
-                                      <span>#{b.s}</span>
-                                    </div>
-                                    <div className="bms-tds-col">
-                                      <small>PNR / ID</small>
-                                      <span title={pnrStr}>{pnrStr}</span>
-                                    </div>
-                                    <div className="bms-tds-col">
-                                      <small>Passenger</small>
-                                      <span title={holderName}>{holderName}</span>
-                                    </div>
-                                    <div className="bms-tds-col price">
-                                      <small>Total</small>
-                                      <span>₹{(b.price || 1499).toLocaleString("en-IN")}</span>
-                                    </div>
-                                  </div>
+                              {/* Perforated Divider Strip with Circular Notches */}
+                              <div className="bms-perforated-divider">
+                                <span className="bms-notch-left" />
+                                <span className="bms-notch-right" />
+                              </div>
 
-                                  <div className="bms-ticket-bottom">
-                                    <span className="bms-pnr-pill">Gate Fast-Pass</span>
-                                    <div className="bms-ticket-actions">
-                                      <button
-                                        type="button"
-                                        className="bms-btn-view-ticket"
-                                        onClick={() =>
-                                          setActive3DTicket({
-                                            ticketType: "Event",
-                                            bookingId: pnrStr,
-                                            customerName: holderName,
-                                            title: b.e,
-                                            subtitle: `${b.tier || "VIP Pass"} · Seat #${b.s}`,
-                                            venueOrRoute: "DY Patil Stadium, Navi Mumbai",
-                                            dateStr: "Tomorrow, 07:00 PM",
-                                            timeStr: "Gates 05:00 PM",
-                                            seatOrClass: `Seat #${b.s} (${b.tier || "VIP"})`,
-                                            price: b.price || 1499,
-                                            status: "Confirmed",
-                                            sourceType: "event",
-                                          })
-                                        }
-                                        title="View Animated Boarding Pass"
-                                      >
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                        </svg>
-                                        <span>View Ticket</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        className="bms-btn-download"
-                                        onClick={() => handleDownloadTicket({ title: b.e, s: b.s, pnr: pnrStr })}
-                                        title="Download E-Ticket PDF"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                          <polyline points="7 10 12 15 17 10" />
-                                          <line x1="12" y1="15" x2="12" y2="3" />
-                                        </svg>
-                                        <span>Download</span>
-                                      </button>
-                                    </div>
-                                  </div>
+                              {/* 4-Column Ticket Details Strip */}
+                              <div className="bms-ticket-details-strip">
+                                <div className="bms-tds-col">
+                                  <small>Date &amp; Schedule</small>
+                                  <span title={item.dateStr}>{item.dateStr}</span>
                                 </div>
-                              );
-                            })}
-
-                          {/* Travel Bookings: Flight, Train, Hotel, Bus, Cab */}
-                          {travelBookings
-                            .filter((tb) => {
-                              if (passFilterType === "all") return true;
-                              if (passFilterType === "events") return tb.type === "event";
-                              if (passFilterType === "flight") return tb.type === "flight";
-                              if (passFilterType === "train") return tb.type === "train";
-                              if (passFilterType === "hotel") return tb.type === "hotel";
-                              if (passFilterType === "travel") return tb.type === "bus" || tb.type === "cab";
-                              return true;
-                            })
-                            .map((tb, i) => {
-                              const isFlight = tb.type === "flight";
-                              const isTrain = tb.type === "train";
-                              const isHotel = tb.type === "hotel";
-                              const isBus = tb.type === "bus";
-                              const isCab = tb.type === "cab";
-
-                              const categoryClass = isFlight
-                                ? "flight"
-                                : isTrain
-                                ? "train"
-                                : isHotel
-                                ? "hotel"
-                                : isBus
-                                ? "bus"
-                                : isCab
-                                ? "cab"
-                                : "transit";
-
-                              const categoryLabel = isFlight
-                                ? "FLIGHT PASS"
-                                : isTrain
-                                ? "TRAIN TICKET"
-                                : isHotel
-                                ? "HOTEL STAY"
-                                : isBus
-                                ? "BUS PASS"
-                                : isCab
-                                ? "CAB RIDE"
-                                : "TRANSIT PASS";
-
-                              const ticket3DType: "Bus" | "Train" | "Flight" | "Cab" | "Hotel" | "Event" = isHotel
-                                ? "Hotel"
-                                : isFlight
-                                ? "Flight"
-                                : isTrain
-                                ? "Train"
-                                : isBus
-                                ? "Bus"
-                                : isCab
-                                ? "Cab"
-                                : "Event";
-
-                              return (
-                                <div key={`trv-${i}`} className="bms-ticket-card">
-                                  <div className="bms-ticket-top">
-                                    <span className={`bms-cat-tag ${categoryClass}`}>
-                                      {isFlight ? (
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.3-1.8 1.1l-.2.7 6.4 3.7-3.4 3.4-2.5-.6c-.5-.1-1 .1-1.3.5l-.3.4 3.2 2 2 3.2.4-.3c.4-.3.6-.8.5-1.3l-.6-2.5 3.4-3.4 3.7 6.4.7-.2c.8-.2 1.3-1 1.1-1.8z" />
-                                        </svg>
-                                      ) : isTrain ? (
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <rect x="4" y="3" width="16" height="14" rx="2" />
-                                          <path d="M4 11h16" />
-                                          <path d="M12 3v8" />
-                                          <path d="m8 19-2 3" />
-                                          <path d="m16 19 2 3" />
-                                          <circle cx="8" cy="15" r="1" />
-                                          <circle cx="16" cy="15" r="1" />
-                                        </svg>
-                                      ) : isHotel ? (
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <path d="M3 21h18" />
-                                          <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
-                                          <path d="M9 7h1" />
-                                          <path d="M9 11h1" />
-                                          <path d="M9 15h1" />
-                                          <path d="M14 7h1" />
-                                          <path d="M14 11h1" />
-                                          <path d="M14 15h1" />
-                                        </svg>
-                                      ) : (
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <rect x="3" y="3" width="18" height="14" rx="2" />
-                                          <path d="M7 17v2" />
-                                          <path d="M17 17v2" />
-                                          <circle cx="7.5" cy="13.5" r="1" />
-                                          <circle cx="16.5" cy="13.5" r="1" />
-                                        </svg>
-                                      )}
-                                      <span>{categoryLabel}</span>
-                                    </span>
-                                    <span className="bms-confirmed-badge">
-                                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                        <polyline points="20 6 9 17 4 12" />
-                                      </svg>
-                                      <span>Confirmed</span>
-                                    </span>
-                                  </div>
-
-                                  <div className="bms-ticket-main">
-                                    <h4>{tb.title}</h4>
-                                    <p className="bms-ticket-subtitle">{tb.subtitle}</p>
-                                  </div>
-
-                                  <div className="bms-perforated-divider">
-                                    <span className="bms-notch-left" />
-                                    <span className="bms-notch-right" />
-                                  </div>
-
-                                  <div className="bms-ticket-details-strip">
-                                    <div className="bms-tds-col">
-                                      <small>{isHotel ? "Stay" : "Class / Seat"}</small>
-                                      <span title={tb.details}>{tb.details || "Confirmed"}</span>
-                                    </div>
-                                    <div className="bms-tds-col">
-                                      <small>PNR / ID</small>
-                                      <span title={tb.pnr}>{tb.pnr}</span>
-                                    </div>
-                                    <div className="bms-tds-col">
-                                      <small>{isHotel ? "Guests" : "Passenger"}</small>
-                                      <span title={tb.passengers}>{tb.passengers}</span>
-                                    </div>
-                                    <div className="bms-tds-col price">
-                                      <small>Total</small>
-                                      <span>₹{tb.price.toLocaleString("en-IN")}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="bms-ticket-bottom">
-                                    <span className="bms-pnr-pill">{tb.dateStr.split("·")[0].trim()}</span>
-                                    <div className="bms-ticket-actions">
-                                      <button
-                                        type="button"
-                                        className="bms-btn-view-ticket"
-                                        onClick={() =>
-                                          setActive3DTicket({
-                                            ticketType: ticket3DType,
-                                            bookingId: tb.pnr,
-                                            customerName: tb.passengers.split("(")[0].trim() || user?.name || "Aryan Sharma",
-                                            title: tb.title,
-                                            subtitle: tb.subtitle,
-                                            venueOrRoute: tb.fromToOrCity || tb.subtitle,
-                                            dateStr: tb.dateStr.split("·")[0].trim(),
-                                            timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
-                                            seatOrClass: tb.details || "Confirmed Pass",
-                                            price: tb.price,
-                                            status: tb.status || "Confirmed",
-                                            sourceType: "travel",
-                                          })
-                                        }
-                                        title="View Animated Boarding Pass"
-                                      >
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                                        </svg>
-                                        <span>View Ticket</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        className="bms-btn-download"
-                                        onClick={() => handleDownloadTicket({ title: tb.title, pnr: tb.pnr })}
-                                        title="Download Travel Pass PDF"
-                                      >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                          <polyline points="7 10 12 15 17 10" />
-                                          <line x1="12" y1="15" x2="12" y2="3" />
-                                        </svg>
-                                        <span>Download</span>
-                                      </button>
-                                    </div>
-                                  </div>
+                                <div className="bms-tds-col">
+                                  <small>{item.categoryType === "hotel" ? "Stay / Room" : "Seat / Details"}</small>
+                                  <span title={item.seatOrDetails}>{item.seatOrDetails}</span>
                                 </div>
-                              );
-                            })}
+                                <div className="bms-tds-col">
+                                  <small>PNR / Booking ID</small>
+                                  <span title={item.pnr}>{item.pnr}</span>
+                                </div>
+                                <div className="bms-tds-col price">
+                                  <small>Total Price</small>
+                                  <span>₹{item.price.toLocaleString("en-IN")}</span>
+                                </div>
+                              </div>
+
+                              {/* Card Bottom: Passenger & Actions */}
+                              <div className="bms-ticket-bottom">
+                                <span className="bms-pnr-pill" title={`Passenger: ${item.passenger}`}>
+                                  👤 {item.passenger}
+                                </span>
+                                <div className="bms-ticket-actions">
+                                  <button
+                                    type="button"
+                                    className="bms-btn-view-ticket"
+                                    onClick={() => {
+                                      if (item.isTravel) {
+                                        const tb = (item as any).rawTravel as TravelBookingRecord;
+                                        setActive3DTicket({
+                                          ticketType: (item as any).ticket3DType,
+                                          bookingId: tb.pnr,
+                                          customerName: item.passenger,
+                                          title: tb.title,
+                                          subtitle: tb.subtitle,
+                                          venueOrRoute: tb.fromToOrCity || tb.subtitle,
+                                          dateStr: tb.dateStr.split("·")[0].trim(),
+                                          timeStr: tb.dateStr.includes("·") ? tb.dateStr.split("·")[1].trim() : "10:00 AM",
+                                          seatOrClass: tb.details || "Confirmed Pass",
+                                          price: tb.price,
+                                          status: tb.status || "Confirmed",
+                                          sourceType: "travel",
+                                        });
+                                      } else {
+                                        const b = (item as any).rawEvent as Booking;
+                                        setActive3DTicket({
+                                          ticketType: "Event",
+                                          bookingId: item.pnr,
+                                          customerName: item.passenger,
+                                          title: b.e,
+                                          subtitle: `${b.tier || "VIP Pass"} · Seat #${b.s}`,
+                                          venueOrRoute: "DY Patil Stadium, Navi Mumbai",
+                                          dateStr: "Tomorrow, 07:00 PM",
+                                          timeStr: "Gates 05:00 PM",
+                                          seatOrClass: `Seat #${b.s} (${b.tier || "VIP"})`,
+                                          price: b.price || 1499,
+                                          status: "Confirmed",
+                                          sourceType: "event",
+                                        });
+                                      }
+                                    }}
+                                    title="View Animated 3D Ticket"
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                                    </svg>
+                                    <span>View Ticket</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="bms-btn-download"
+                                    onClick={() => handleDownloadTicket({ title: item.title, s: (item as any).rawEvent?.s, pnr: item.pnr })}
+                                    title="Download E-Ticket Pass PDF"
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                      <polyline points="7 10 12 15 17 10" />
+                                      <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    <span>Download</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Empty State */}
-                        {((passFilterType === "all" && bookings.length === 0 && travelBookings.length === 0) ||
-                          (passFilterType === "events" && bookings.length === 0 && travelBookings.filter(tb => tb.type === "event").length === 0) ||
-                          (passFilterType === "flight" && travelBookings.filter(tb => tb.type === "flight").length === 0) ||
-                          (passFilterType === "train" && travelBookings.filter(tb => tb.type === "train").length === 0) ||
-                          (passFilterType === "hotel" && travelBookings.filter(tb => tb.type === "hotel").length === 0) ||
-                          (passFilterType === "travel" && travelBookings.filter(tb => tb.type === "bus" || tb.type === "cab").length === 0)) && (
+                        {/* Unified Empty State */}
+                        {unifiedBookings.length === 0 && (
                           <div className="bms-empty-tickets-box">
                             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="1.8" style={{ margin: "0 auto 12px", display: "block" }}>
                               <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
                             </svg>
-                            <h3>No Bookings Found</h3>
-                            <p>No active passes or reservations matching this category filter.</p>
-                            <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-                              {passFilterType !== "all" && (
-                                <button
-                                  type="button"
-                                  className="bms-btn-download"
-                                  style={{ padding: "9px 18px", fontSize: "13px" }}
-                                  onClick={() => setPassFilterType("all")}
-                                >
-                                  View All Bookings
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className="bms-btn-primary"
-                                style={{ padding: "9px 20px", fontSize: "13px" }}
-                                onClick={() => navigateTo("home")}
-                              >
-                                Explore Upcoming Events &amp; Shows →
-                              </button>
-                            </div>
+                            <h3>No Booked Tickets Found</h3>
+                            <p>You don't have any event, bus, train, flight, or hotel tickets yet.</p>
+                            <button
+                              type="button"
+                              className="bms-btn-primary"
+                              style={{ padding: "10px 24px", fontSize: "13px", marginTop: "12px" }}
+                              onClick={() => navigateTo("home")}
+                            >
+                              Explore Events &amp; Travel Bookings →
+                            </button>
                           </div>
                         )}
 
