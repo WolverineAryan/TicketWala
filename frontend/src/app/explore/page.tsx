@@ -114,7 +114,7 @@ export default function ExplorePage() {
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-white">Experience High-Contention Ticketing</h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-2">
-              Instant 120s seat reservation with zero booking fee via direct UPI payment. Select your exact seats in real-time.
+              Instant 45s seat reservation with zero booking fee via direct UPI payment. Select your exact seats in real-time.
             </p>
           </div>
         </div>

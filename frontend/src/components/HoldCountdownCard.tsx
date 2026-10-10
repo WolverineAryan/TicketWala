@@ -29,7 +29,7 @@ interface HoldCountdownCardProps {
 export const HoldCountdownCard: React.FC<HoldCountdownCardProps> = ({
   hold,
   secondsRemaining,
-  totalTTL = 120,
+  totalTTL = 45,
   onConfirm,
   onRelease,
   isLoading,
@@ -40,7 +40,7 @@ export const HoldCountdownCard: React.FC<HoldCountdownCardProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "CARD" | "NETBANKING">("UPI");
 
   const progressPercent = Math.max(0, Math.min(100, (secondsRemaining / totalTTL) * 100));
-  const isUrgent = secondsRemaining <= 25;
+  const isUrgent = secondsRemaining <= 15;
 
   const basePrice = hold.price || 4500;
   const taxes = Math.round(basePrice * 0.05); // 5% GST

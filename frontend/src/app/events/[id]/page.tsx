@@ -174,7 +174,7 @@ export default function EventDetailPage() {
               <div className="text-2xl font-black text-emerald-400 mt-0.5">
                 {event.availableSeats} <span className="text-xs font-normal text-slate-400">/ {event.totalSeats} seats</span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">120s atomic reservation guarantee</div>
+              <div className="text-[11px] text-slate-500 mt-1">45s atomic reservation guarantee</div>
             </div>
           </div>
         </div>
@@ -333,12 +333,12 @@ export default function EventDetailPage() {
                 ) : (
                   <>
                     <Zap className="w-4 h-4" />
-                    <span>Lock Seat for 120s & Pay</span>
+                    <span>Lock Seat for 45s & Pay</span>
                   </>
                 )}
               </button>
               <p className="text-[10px] text-center text-slate-500 mt-2">
-                Locks seat atomically. You will have 120 seconds to confirm payment.
+                Locks seat atomically. You will have 45 seconds to confirm payment.
               </p>
             </div>
           </div>

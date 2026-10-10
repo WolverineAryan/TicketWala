@@ -46,10 +46,16 @@ export default function Navbar() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
+        let existing: any = {};
+        try {
+          const stored = localStorage.getItem("tw_user");
+          if (stored) existing = JSON.parse(stored);
+        } catch (_) {}
         localStorage.setItem("tw_user", JSON.stringify({
-          displayName: user.displayName,
+          ...existing,
+          displayName: user.displayName || existing.displayName,
           email: user.email,
-          photoURL: user.photoURL,
+          photoURL: user.photoURL || existing.photoURL,
         }));
       }
     });

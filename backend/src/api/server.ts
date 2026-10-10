@@ -59,7 +59,7 @@ const DATABASE_URL =
   process.env.DATABASE_DIRECT_URL ||
   "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "120", 10);
+const HOLD_TTL = parseInt(process.env.RESERVATION_TTL_SECONDS || "45", 10);
 const CORS_ORIGINS = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",")
   : ["*"];
@@ -1002,6 +1002,25 @@ export async function createServer(): Promise<{
     });
   });
 
+  /**
+   * POST /api/v1/users/profile
+   * Saves or updates a user profile without OTP verification
+   */
+  app.post("/api/v1/users/profile", async (req: FastifyRequest, reply: FastifyReply) => {
+    const body = (req.body as any) || {};
+    const email = body.email || "guest@ticketwala.com";
+    return reply.status(200).send({
+      success: true,
+      message: "Profile configured successfully without OTP",
+      profile: {
+        ...body,
+        email,
+        profileCompleted: true,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // Zero-Cost Dynamic UPI Payment & Verification
   // ---------------------------------------------------------------------------
@@ -1037,7 +1056,7 @@ export async function createServer(): Promise<{
    */
   app.post("/api/v1/payments/generate-upi", async (req: FastifyRequest, reply: FastifyReply) => {
     const body = (req.body as any) || {};
-    const amount = Number(body.amount) || 1499;
+    const amount = body.amount !== undefined && !isNaN(Number(body.amount)) ? Number(body.amount) : 1499;
     const reservationId = body.reservationId || uuidv4();
     const pnr = body.pnr || `TW-${reservationId.substring(0, 6).toUpperCase()}`;
     const eventTitle = body.eventTitle || "TicketWala Live Event";
@@ -1102,7 +1121,7 @@ export async function createServer(): Promise<{
     const passengerName = body.passengerName || "Verified Guest";
     const email = body.email || "ticketwala.org@gmail.com";
     const tierName = body.tierName || "Premium Access";
-    const amountPaid = Number(body.amountPaid) || 1499;
+    const amountPaid = body.amountPaid !== undefined && !isNaN(Number(body.amountPaid)) ? Number(body.amountPaid) : 1499;
     const currency = body.currency || "INR";
     const paymentRef = `UPI-UTR-${utr}`;
     const qrCodePayload = `TICKETWALA:${pnrCode}:${unitId}:${reservationId}:UTR:${utr}`;
@@ -2011,7 +2030,7 @@ export async function createServer(): Promise<{
         outcomes: results.map((r) => ({
           contender: r.name,
           httpStatus: r.statusCode,
-          outcome: r.statusCode === 201 ? "GRANTED_120S_HOLD" : "REJECTED_ALREADY_RESERVED",
+          outcome: r.statusCode === 201 ? "GRANTED_45S_HOLD" : "REJECTED_ALREADY_RESERVED",
         })),
         durationMs: +(performance.now() - startTime).toFixed(2),
         timestamp: new Date().toISOString(),

@@ -34,7 +34,7 @@ export default function CheckoutPage() {
 
   const [holdData, setHoldData] = useState<HoldResponse | null>(null);
   const [upiDetails, setUpiDetails] = useState<DynamicUpiDetails | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(120);
+  const [timeLeft, setTimeLeft] = useState<number>(45);
 
   // Form State
   const [passengerName, setPassengerName] = useState("Aryan Sharma");
@@ -78,7 +78,7 @@ export default function CheckoutPage() {
       .catch((err) => console.error("Failed to load UPI QR:", err));
   }, [reservationId, holdData?.price]);
 
-  // 120-second active hold countdown timer
+  // 45-second active hold countdown timer
   useEffect(() => {
     if (confirmedTicket) return;
 
@@ -183,7 +183,7 @@ export default function CheckoutPage() {
           </div>
           <h2 className="text-xl font-bold text-white">Reservation Hold Expired</h2>
           <p className="text-xs text-slate-400 mt-2">
-            The 120-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding.
+            The 45-second lease has elapsed and the seat was released back to the available queue to prevent inventory hoarding.
           </p>
           <button
             onClick={() => router.push("/explore")}

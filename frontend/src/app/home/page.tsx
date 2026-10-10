@@ -114,7 +114,7 @@ export default function HomePage() {
           <div className="relative z-10 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-bold tracking-wide uppercase mb-3">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Trending Drops in Mumbai • 120s Flash Hold Active</span>
+              <span>Trending Drops in Mumbai • 45s Flash Hold Active</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight">
               Book Tickets with Zero Inconvenience Fees
