@@ -5700,7 +5700,7 @@ export default function TicketWalaPage() {
                           <div className="bms-faq-list">
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
@@ -5714,7 +5714,7 @@ export default function TicketWalaPage() {
 
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
@@ -5728,7 +5728,7 @@ export default function TicketWalaPage() {
 
                             <div className="bms-faq-item">
                               <b>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F84464" strokeWidth="2.5">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FF6B35" strokeWidth="2.5">
                                   <circle cx="12" cy="12" r="10" />
                                   <path d="M12 16v-4" />
                                   <path d="M12 8h.01" />
